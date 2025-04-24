@@ -23,6 +23,38 @@
 - [x] GitHub'a push işlemini gerçekleştir
 - [x] Proje planını tamamla ve kullanıcıya sun
 
+## Geliştirme Ortamı Kurulumu
+- [x] Gerekli yazılımları kur (Git, Docker, Node.js, Python, Rust, Go)
+- [x] Monorepo yapısını düzenle
+- [x] Temel servis dizinlerini oluştur
+- [x] Docker container yapılandırmalarını hazırla
+- [ ] Geliştirme ortamını test et
+
+## Mikroservis Bileşenlerinin Geliştirilmesi
+- [x] API Gateway (Node.js/Express)
+  - [x] Temel yapı ve bağımlılıklar
+  - [x] Servis rotaları
+  - [x] Dockerfile
+- [x] Segmentation Service (Python/FastAPI)
+  - [x] Temel yapı ve bağımlılıklar
+  - [x] API endpoint'leri
+  - [x] Dockerfile
+- [x] Runner Service (Rust)
+  - [x] Temel yapı ve bağımlılıklar
+  - [x] API endpoint'leri
+  - [x] Dockerfile
+- [x] Archive Service (Go)
+  - [x] Temel yapı ve bağımlılıklar
+  - [x] API endpoint'leri
+  - [x] Dockerfile
+
+## Test ve Doğrulama
+- [ ] API Gateway servisini test et
+- [ ] Segmentation Service servisini test et
+- [ ] Runner Service servisini test et
+- [ ] Archive Service servisini test et
+- [ ] Servisler arası entegrasyonu test et
+
 ## Gelecek Adımlar (İşçiler İçin)
 - [ ] İşçi 1: Backend Lider - API Gateway geliştirme
 - [ ] İşçi 2: Segmentation Uzmanı - Segmentation Service geliştirme

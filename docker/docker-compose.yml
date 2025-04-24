@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ../api-gateway:/app
+      - /app/node_modules
+    networks:
+      - alt_las_network
+
+  segmentation-service:
+    build:
+      context: ../segmentation-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../segmentation-service:/app
+    networks:
+      - alt_las_network
+
+  runner-service:
+    build:
+      context: ../runner-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../runner-service:/app
+    networks:
+      - alt_las_network
+
+  archive-service:
+    build:
+      context: ../archive-service
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    volumes:
+      - ../archive-service:/app
+    networks:
+      - alt_las_network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=altlas
+      - POSTGRES_PASSWORD=altlas_password
+      - POSTGRES_DB=altlas_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - alt_las_network
+
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - alt_las_network
+
+networks:
+  alt_las_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

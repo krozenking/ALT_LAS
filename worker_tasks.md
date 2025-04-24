@@ -264,6 +264,16 @@ Her işçi, aşağıdaki şekilde ilerleme raporlaması yapacaktır:
 2. Haftalık ilerleme raporları (GitHub Issues üzerinden)
 3. İki haftalık sprint değerlendirmeleri
 4. Kilometre taşı tamamlama raporları
+5. **Detaylı dokümantasyon**: Her işçi, `/docs/worker{N}_documentation.md` formatında kendi çalışmalarını belgeleyecektir
+
+## Dokümantasyon Gereksinimleri
+
+Her işçi, aşağıdaki dokümantasyon gereksinimlerini yerine getirmelidir:
+
+1. **Dokümantasyon Şablonu**: Projenin kök dizininde bulunan `worker_documentation_template.md` şablonunu kullanarak kendi dokümantasyonunuzu oluşturun
+2. **Düzenli Güncelleme**: Dokümantasyonunuzu en az haftada bir güncelleyin
+3. **İçerik Gereksinimleri**: Tamamlanan görevler, devam eden görevler, teknik detaylar, API dokümantasyonu ve diğer işçilerle iş birliği bilgilerini içermelidir
+4. **Dokümantasyon Kılavuzu**: Detaylı dokümantasyon gereksinimleri için `/docs/documentation_guidelines.md` dosyasını inceleyin
 
 ## Başlangıç Kılavuzu
 
@@ -274,6 +284,8 @@ Her işçi için başlangıç adımları:
 3. README.md dosyasını okuyun ve kurulum adımlarını takip edin
 4. İlk görevlerinizi GitHub Issues'dan alın
 5. Geliştirme ortamınızı kurun ve ilk commit'inizi yapın
+6. Dokümantasyon şablonunu kullanarak kendi dokümantasyonunuzu oluşturun
+7. Git LFS'i kurun ve yapılandırın (detaylar için `GIT_LFS_NOTICE.md` dosyasını inceleyin)
 
 ## İletişim ve İş Birliği
 
@@ -282,3 +294,4 @@ Her işçi için başlangıç adımları:
 - GitHub Issues üzerinden görev takibi
 - Slack/Discord üzerinden anlık iletişim
 - Kod incelemeleri için pull request'ler
+- Dokümantasyon incelemeleri ve geri bildirimler

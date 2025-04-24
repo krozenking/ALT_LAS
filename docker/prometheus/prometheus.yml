@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:3000']
+
+  - job_name: 'segmentation-service'
+    static_configs:
+      - targets: ['segmentation-service:8000']
+
+  - job_name: 'runner-service'
+    static_configs:
+      - targets: ['runner-service:8080']
+
+  - job_name: 'archive-service'
+    static_configs:
+      - targets: ['archive-service:9000']
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+
+  - job_name: 'nats'
+    static_configs:
+      - targets: ['nats:8222']

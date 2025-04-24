@@ -28,7 +28,7 @@
 - [x] Monorepo yapısını düzenle
 - [x] Temel servis dizinlerini oluştur
 - [x] Docker container yapılandırmalarını hazırla
-- [ ] Geliştirme ortamını test et
+- [x] Geliştirme ortamını test et
 
 ## Mikroservis Bileşenlerinin Geliştirilmesi
 - [x] API Gateway (Node.js/Express)
@@ -49,11 +49,11 @@
   - [x] Dockerfile
 
 ## Test ve Doğrulama
-- [ ] API Gateway servisini test et
-- [ ] Segmentation Service servisini test et
-- [ ] Runner Service servisini test et
-- [ ] Archive Service servisini test et
-- [ ] Servisler arası entegrasyonu test et
+- [x] API Gateway servisini test et
+- [x] Segmentation Service servisini test et
+- [x] Runner Service servisini test et
+- [x] Archive Service servisini test et
+- [x] Servisler arası entegrasyonu test et
 
 ## Gelecek Adımlar (İşçiler İçin)
 - [ ] İşçi 1: Backend Lider - API Gateway geliştirme

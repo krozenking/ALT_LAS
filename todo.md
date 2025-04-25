@@ -120,3 +120,47 @@
 - [ ] **Görev 5.2.3:** Analitik görselleştirme bileşenleri
 - [ ] **Görev 5.2.4:** Responsive tasarım implementasyonu
 - [ ] **Görev 5.2.5:** API Gateway ile entegrasyon
+
+# Worker 3: Runner Service Geliştirme Görevleri
+
+## Hafta 1-2: Temel Altyapı
+- [x] **Görev 3.1.1:** Rust projesinin kurulumu ve temel yapının oluşturulması
+- [x] **Görev 3.1.2:** Tokio asenkron runtime entegrasyonu
+- [x] **Görev 3.1.3:** Basit HTTP API endpoint'lerinin oluşturulması
+- [ ] **Görev 3.1.4:** Basit *.alt dosya okuma fonksiyonlarının geliştirilmesi
+- [ ] **Görev 3.1.5:** HTTP/gRPC istemci prototipinin oluşturulması
+
+## Hafta 3-4: Alt Dosya İşleme
+- [ ] **Görev 3.2.1:** Alt dosya formatı parser'ının geliştirilmesi
+- [ ] **Görev 3.2.2:** Alt dosya validasyon mekanizmasının oluşturulması
+- [ ] **Görev 3.2.3:** Alt dosya metadata işleme sisteminin geliştirilmesi
+- [ ] **Görev 3.2.4:** Alt dosya işleme birim testlerinin yazılması
+- [ ] **Görev 3.2.5:** Alt dosya işleme entegrasyon testlerinin yazılması
+
+## Hafta 5-6: Paralel Görev Yönetimi
+- [ ] **Görev 3.3.1:** Görev yönetim sisteminin tasarlanması
+- [ ] **Görev 3.3.2:** Paralel görev çalıştırma mekanizmasının geliştirilmesi
+- [ ] **Görev 3.3.3:** Görev durumu izleme ve raporlama sisteminin oluşturulması
+- [ ] **Görev 3.3.4:** Hata yakalama ve kurtarma mekanizmasının geliştirilmesi
+- [ ] **Görev 3.3.5:** Görev yönetimi birim ve entegrasyon testlerinin yazılması
+
+## Hafta 7-8: AI Servisleri Entegrasyonu
+- [ ] **Görev 3.4.1:** AI Orchestrator ile iletişim protokolünün geliştirilmesi
+- [ ] **Görev 3.4.2:** AI istek formatının oluşturulması ve gönderilmesi
+- [ ] **Görev 3.4.3:** AI yanıtlarının işlenmesi ve değerlendirilmesi
+- [ ] **Görev 3.4.4:** Çoklu AI servisi desteğinin eklenmesi
+- [ ] **Görev 3.4.5:** AI entegrasyonu birim ve entegrasyon testlerinin yazılması
+
+## Hafta 9-10: Last Dosya Üretimi
+- [ ] **Görev 3.5.1:** Last dosya formatının tasarlanması
+- [ ] **Görev 3.5.2:** Last dosya üretim mekanizmasının geliştirilmesi
+- [ ] **Görev 3.5.3:** Last dosya metadata ekleme sisteminin oluşturulması
+- [ ] **Görev 3.5.4:** Last dosya validasyon mekanizmasının geliştirilmesi
+- [ ] **Görev 3.5.5:** Last dosya üretimi birim ve entegrasyon testlerinin yazılması
+
+## Hafta 11-12: Performans ve Stabilizasyon
+- [ ] **Görev 3.6.1:** Performans optimizasyonu
+- [ ] **Görev 3.6.2:** Bellek kullanımı optimizasyonu
+- [ ] **Görev 3.6.3:** Hata dayanıklılığı iyileştirmeleri
+- [ ] **Görev 3.6.4:** Dokümantasyon güncellemesi
+- [ ] **Görev 3.6.5:** Dağıtım ve CI/CD entegrasyonu

@@ -7,6 +7,14 @@ export interface CardProps extends BoxProps {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   isHoverable?: boolean;
+  /**
+   * Accessible label for the card when content is not descriptive enough
+   */
+  ariaLabel?: string;
+  /**
+   * Accessible role for the card (e.g., 'region', 'article', etc.)
+   */
+  ariaRole?: string;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -15,6 +23,8 @@ export const Card: React.FC<CardProps> = ({
   footer,
   isHoverable = true,
   children,
+  ariaLabel,
+  ariaRole = 'region',
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -51,6 +61,17 @@ export const Card: React.FC<CardProps> = ({
       transition: 'all 0.3s ease',
     }
   } : {};
+
+  // Accessibility attributes
+  const accessibilityProps = {
+    role: ariaRole,
+    'aria-label': ariaLabel,
+    tabIndex: 0,
+    _focus: {
+      boxShadow: 'outline',
+      outline: 'none',
+    }
+  };
   
   return (
     <Box
@@ -60,6 +81,7 @@ export const Card: React.FC<CardProps> = ({
       transition="all 0.2s ease-in-out"
       {...getCardStyle()}
       {...hoverStyle}
+      {...accessibilityProps}
       {...rest}
     >
       {/* Card Header */}
@@ -69,6 +91,8 @@ export const Card: React.FC<CardProps> = ({
           borderBottom="1px solid"
           borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
           className="card-header"
+          role="heading"
+          aria-level={2}
         >
           {header}
         </Box>
@@ -90,6 +114,7 @@ export const Card: React.FC<CardProps> = ({
           borderTop="1px solid"
           borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
           className="card-footer"
+          aria-label="Card footer"
         >
           {footer}
         </Box>

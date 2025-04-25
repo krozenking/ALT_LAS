@@ -120,6 +120,23 @@ export const IconButton: React.FC<IconButtonProps> = ({
     },
   } : {};
   
+  // Accessibility attributes
+  const accessibilityProps = {
+    role: 'button',
+    'aria-label': ariaLabel,
+    'aria-disabled': isDisabled,
+    'aria-busy': isLoading,
+    tabIndex: isDisabled ? -1 : 0,
+    onKeyDown: !isDisabled && !isLoading 
+      ? (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick?.(e as unknown as React.MouseEvent);
+          }
+        }
+      : undefined,
+  };
+  
   return (
     <Box
       as="button"
@@ -128,7 +145,6 @@ export const IconButton: React.FC<IconButtonProps> = ({
       justifyContent="center"
       borderRadius="md"
       transition="all 0.2s ease-in-out"
-      aria-label={ariaLabel}
       _hover={!isDisabled && !isLoading ? {
         transform: 'translateY(-2px)',
         boxShadow: 'md',
@@ -136,10 +152,15 @@ export const IconButton: React.FC<IconButtonProps> = ({
       _active={!isDisabled && !isLoading ? {
         transform: 'translateY(0)',
       } : {}}
+      _focus={{
+        boxShadow: 'outline',
+        outline: 'none',
+      }}
       {...getGlassStyle()}
       {...getSizeStyle()}
       {...disabledStyle}
       {...loadingStyle}
+      {...accessibilityProps}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       {...rest}
     >

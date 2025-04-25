@@ -16,6 +16,14 @@ export interface PanelContainerProps extends BoxProps {
   allowResize?: boolean;
   allowCombine?: boolean;
   gridSize?: number;
+  /**
+   * Accessible label for the panel container
+   */
+  ariaLabel?: string;
+  /**
+   * ID for the panel container, used for aria attributes
+   */
+  id?: string;
 }
 
 export const PanelContainer: React.FC<PanelContainerProps> = ({
@@ -24,6 +32,8 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
   allowResize = true,
   allowCombine = true,
   gridSize = 20,
+  ariaLabel,
+  id,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -33,6 +43,8 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dropZones, setDropZones] = useState<Array<{ id: string; position: { x: number; y: number } }>>([]);
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
+  const containerId = id || `panel-container-${Math.random().toString(36).substr(2, 9)}`;
+  const liveRegionId = `${containerId}-live-region`;
 
   // Handle panel drag start
   const handlePanelDragStart = (id: string, e: React.MouseEvent) => {
@@ -53,6 +65,9 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
     // Add event listeners for drag and drag end
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+
+    // Announce drag start for screen readers
+    updateLiveRegion(`Panel ${panels.find(p => p.id === id)?.title || id} sürükleniyor`);
   };
   
   // Handle mouse move during drag
@@ -95,6 +110,13 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
       );
     });
     
+    // If entering a new drop zone, announce it for screen readers
+    if (activeZone?.id !== activeDropZone) {
+      if (activeZone) {
+        updateLiveRegion(`Bırakma bölgesi ${activeZone.id} üzerinde`);
+      }
+    }
+    
     setActiveDropZone(activeZone?.id || null);
   };
   
@@ -107,6 +129,12 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
       // Example: Remove the dragged panel and update the drop zone content
       // This is simplified; actual implementation would depend on your panel combination UI
       setPanels(prevPanels => prevPanels.filter(panel => panel.id !== activePanelId));
+      
+      // Announce panel combination for screen readers
+      updateLiveRegion(`Panel ${panels.find(p => p.id === activePanelId)?.title || activePanelId} bırakma bölgesi ${activeDropZone} ile birleştirildi`);
+    } else if (activePanelId) {
+      // Announce drag end for screen readers
+      updateLiveRegion(`Panel ${panels.find(p => p.id === activePanelId)?.title || activePanelId} sürükleme tamamlandı`);
     }
     
     setActivePanelId(null);
@@ -145,11 +173,28 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
     size?: { width: number; height: number };
   }) => {
     setPanels(prevPanels => [...prevPanels, panel]);
+    
+    // Announce new panel for screen readers
+    updateLiveRegion(`Yeni panel eklendi: ${panel.title}`);
   };
   
   // Remove a panel
   const removePanel = (id: string) => {
+    const panelToRemove = panels.find(panel => panel.id === id);
     setPanels(prevPanels => prevPanels.filter(panel => panel.id !== id));
+    
+    // Announce panel removal for screen readers
+    if (panelToRemove) {
+      updateLiveRegion(`Panel kaldırıldı: ${panelToRemove.title}`);
+    }
+  };
+
+  // Update live region for screen reader announcements
+  const updateLiveRegion = (message: string) => {
+    const liveRegion = document.getElementById(liveRegionId);
+    if (liveRegion) {
+      liveRegion.textContent = message;
+    }
   };
   
   return (
@@ -159,12 +204,24 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
       width="100%"
       height="100%"
       overflow="hidden"
+      role="region"
+      aria-label={ariaLabel || "Panel konteyneri"}
+      id={containerId}
       {...rest}
     >
+      {/* Live region for screen reader announcements */}
+      <Box
+        id={liveRegionId}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
+      
       {/* Render panels */}
       {panels.map(panel => (
         <Panel
           key={panel.id}
+          id={`panel-${panel.id}`}
           title={panel.title}
           position="absolute"
           top={panel.position?.y || 0}
@@ -182,6 +239,7 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
               opacity={0.7}
               _hover={{ opacity: 1 }}
               onClick={() => removePanel(panel.id)}
+              aria-label={`${panel.title} panelini kaldır`}
             >
               ✕
             </Box>
@@ -202,6 +260,8 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
           width="200px"
           height="150px"
           isActive={activeDropZone === zone.id}
+          ariaLabel={`Bırakma bölgesi ${zone.id}`}
+          ariaDescription="Paneli birleştirmek için buraya sürükleyin"
         />
       ))}
     </Box>

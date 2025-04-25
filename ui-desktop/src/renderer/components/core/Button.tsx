@@ -10,6 +10,10 @@ export interface ButtonProps extends BoxProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
+  /**
+   * Accessible label for the button when the button content is not descriptive enough
+   */
+  ariaLabel?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -21,6 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
   rightIcon,
   onClick,
   children,
+  ariaLabel,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -109,6 +114,23 @@ export const Button: React.FC<ButtonProps> = ({
     },
   } : {};
   
+  // Accessibility attributes
+  const accessibilityProps = {
+    role: 'button',
+    'aria-disabled': isDisabled,
+    'aria-busy': isLoading,
+    'aria-label': ariaLabel,
+    tabIndex: isDisabled ? -1 : 0,
+    onKeyDown: !isDisabled && !isLoading 
+      ? (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick?.(e as unknown as React.MouseEvent);
+          }
+        }
+      : undefined,
+  };
+  
   return (
     <Box
       as="button"
@@ -125,21 +147,26 @@ export const Button: React.FC<ButtonProps> = ({
       _active={!isDisabled && !isLoading ? {
         transform: 'translateY(0)',
       } : {}}
+      _focus={{
+        boxShadow: 'outline',
+        outline: 'none',
+      }}
       {...getGlassStyle()}
       {...getSizeStyle()}
       {...disabledStyle}
       {...loadingStyle}
+      {...accessibilityProps}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       {...rest}
     >
       {leftIcon && (
-        <Box mr={2} display="inline-flex" alignItems="center">
+        <Box mr={2} display="inline-flex" alignItems="center" aria-hidden="true">
           {leftIcon}
         </Box>
       )}
       {isLoading ? <Box opacity={0}>{children}</Box> : children}
       {rightIcon && (
-        <Box ml={2} display="inline-flex" alignItems="center">
+        <Box ml={2} display="inline-flex" alignItems="center" aria-hidden="true">
           {rightIcon}
         </Box>
       )}

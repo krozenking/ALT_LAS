@@ -13,6 +13,14 @@ export interface SplitViewProps extends BoxProps {
   leftOrTopContent: React.ReactNode;
   rightOrBottomContent: React.ReactNode;
   resizable?: boolean;
+  /**
+   * Accessible label for the split view container
+   */
+  ariaLabel?: string;
+  /**
+   * ID for the split view, used for aria attributes
+   */
+  id?: string;
 }
 
 export const SplitView: React.FC<SplitViewProps> = ({
@@ -23,12 +31,18 @@ export const SplitView: React.FC<SplitViewProps> = ({
   leftOrTopContent,
   rightOrBottomContent,
   resizable = true,
+  ariaLabel,
+  id,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
   const [ratio, setRatio] = useState(initialRatio);
   const containerRef = useRef<HTMLDivElement>(null);
   const isHorizontal = direction === 'horizontal';
+  const splitViewId = id || `split-view-${Math.random().toString(36).substr(2, 9)}`;
+  const leftOrTopId = `${splitViewId}-left-top`;
+  const rightOrBottomId = `${splitViewId}-right-bottom`;
+  const dividerId = `${splitViewId}-divider`;
   
   // Handle resize
   const handleResize = (e: React.MouseEvent, delta: { x: number, y: number }) => {
@@ -59,6 +73,36 @@ export const SplitView: React.FC<SplitViewProps> = ({
     
     setRatio(newRatio);
   };
+
+  // Keyboard handler for resize
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!resizable) return;
+    
+    const step = 0.01; // 1% step for keyboard navigation
+    let newRatio = ratio;
+    
+    if (isHorizontal) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        newRatio = Math.max(0.1, ratio - step);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        newRatio = Math.min(0.9, ratio + step);
+      }
+    } else {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        newRatio = Math.max(0.1, ratio - step);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        newRatio = Math.min(0.9, ratio + step);
+      }
+    }
+    
+    if (newRatio !== ratio) {
+      setRatio(newRatio);
+    }
+  };
   
   return (
     <Box
@@ -68,6 +112,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
       position="relative"
       height="100%"
       width="100%"
+      role="group"
+      aria-label={ariaLabel || `${isHorizontal ? 'Horizontal' : 'Vertical'} split view`}
+      id={splitViewId}
       {...rest}
     >
       {/* Left/Top Panel */}
@@ -76,6 +123,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
         height={isHorizontal ? '100%' : `${ratio * 100}%`}
         width={isHorizontal ? `${ratio * 100}%` : '100%'}
         overflow="hidden"
+        id={leftOrTopId}
+        role="region"
+        aria-label={`${isHorizontal ? 'Left' : 'Top'} panel`}
       >
         {leftOrTopContent}
       </Box>
@@ -94,6 +144,21 @@ export const SplitView: React.FC<SplitViewProps> = ({
           _hover={{
             bg: colorMode === 'light' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)',
           }}
+          _focus={{
+            bg: colorMode === 'light' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)',
+            outline: '2px solid',
+            outlineColor: 'primary.500',
+          }}
+          role="separator"
+          aria-orientation={isHorizontal ? 'vertical' : 'horizontal'}
+          aria-valuenow={ratio * 100}
+          aria-valuemin={10}
+          aria-valuemax={90}
+          aria-controls={`${leftOrTopId} ${rightOrBottomId}`}
+          tabIndex={0}
+          id={dividerId}
+          aria-label={`${isHorizontal ? 'Horizontal' : 'Vertical'} resize handle`}
+          onKeyDown={handleKeyDown}
           onMouseDown={(e) => {
             e.preventDefault();
             const initialPos = isHorizontal ? e.clientX : e.clientY;
@@ -146,6 +211,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
         height={isHorizontal ? '100%' : `${(1 - ratio) * 100}%`}
         width={isHorizontal ? `${(1 - ratio) * 100}%` : '100%'}
         overflow="hidden"
+        id={rightOrBottomId}
+        role="region"
+        aria-label={`${isHorizontal ? 'Right' : 'Bottom'} panel`}
       >
         {rightOrBottomContent}
       </Box>

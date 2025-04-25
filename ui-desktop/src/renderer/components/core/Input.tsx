@@ -9,6 +9,18 @@ export interface InputProps extends Omit<ChakraInputProps, 'size'> {
   error?: string;
   leftElement?: React.ReactNode;
   rightElement?: React.ReactNode;
+  /**
+   * ID for the input element, required for accessibility
+   */
+  id?: string;
+  /**
+   * Description for the input field, used for aria-describedby
+   */
+  description?: string;
+  /**
+   * Whether the field is required
+   */
+  isRequired?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -18,9 +30,15 @@ export const Input: React.FC<InputProps> = ({
   error,
   leftElement,
   rightElement,
+  id,
+  description,
+  isRequired = false,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
+  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const descriptionId = description ? `${inputId}-description` : undefined;
+  const errorId = error ? `${inputId}-error` : undefined;
   
   // Apply glassmorphism effect based on color mode and variant
   const getInputStyle = () => {
@@ -80,6 +98,14 @@ export const Input: React.FC<InputProps> = ({
       boxShadow: `0 0 0 1px ${colorMode === 'light' ? 'rgba(244, 67, 54, 0.6)' : 'rgba(244, 67, 54, 0.4)'}`,
     }
   } : {};
+
+  // Accessibility attributes
+  const accessibilityProps = {
+    id: inputId,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': [descriptionId, errorId].filter(Boolean).join(' ') || undefined,
+    'aria-required': isRequired,
+  };
   
   return (
     <Box width="100%">
@@ -92,8 +118,26 @@ export const Input: React.FC<InputProps> = ({
           mb={1} 
           display="block"
           color={colorMode === 'light' ? 'gray.700' : 'gray.300'}
+          htmlFor={inputId}
         >
           {label}
+          {isRequired && (
+            <Box as="span" color="error.500" ml={1} aria-hidden="true">
+              *
+            </Box>
+          )}
+        </Box>
+      )}
+      
+      {/* Description */}
+      {description && (
+        <Box 
+          id={descriptionId}
+          fontSize="sm" 
+          color={colorMode === 'light' ? 'gray.600' : 'gray.400'}
+          mb={2}
+        >
+          {description}
         </Box>
       )}
       
@@ -109,6 +153,7 @@ export const Input: React.FC<InputProps> = ({
             zIndex={2}
             display="flex"
             alignItems="center"
+            aria-hidden="true"
           >
             {leftElement}
           </Box>
@@ -124,6 +169,7 @@ export const Input: React.FC<InputProps> = ({
           {...getInputStyle()}
           {...getSizeStyle()}
           {...errorStyle}
+          {...accessibilityProps}
           {...rest}
         />
         
@@ -137,6 +183,7 @@ export const Input: React.FC<InputProps> = ({
             zIndex={2}
             display="flex"
             alignItems="center"
+            aria-hidden="true"
           >
             {rightElement}
           </Box>
@@ -146,9 +193,11 @@ export const Input: React.FC<InputProps> = ({
       {/* Error Message */}
       {error && (
         <Box 
+          id={errorId}
           mt={1} 
           fontSize="sm" 
           color="error.500"
+          role="alert"
         >
           {error}
         </Box>

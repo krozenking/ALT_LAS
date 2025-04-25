@@ -1,0 +1,60 @@
+name: UI Desktop CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'ui-desktop/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'ui-desktop/**'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ui-desktop/package.json
+    
+    - name: Install dependencies
+      run: |
+        cd ui-desktop
+        npm ci
+    
+    - name: Lint
+      run: |
+        cd ui-desktop
+        npm run lint
+    
+    - name: Type check
+      run: |
+        cd ui-desktop
+        npm run type-check
+    
+    - name: Test
+      run: |
+        cd ui-desktop
+        npm test
+    
+    - name: Build
+      run: |
+        cd ui-desktop
+        npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-${{ matrix.os }}
+        path: ui-desktop/out

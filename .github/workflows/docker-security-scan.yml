@@ -1,0 +1,135 @@
+name: Docker Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/Dockerfile*'
+      - 'docker/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/Dockerfile*'
+      - 'docker/**'
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
+
+jobs:
+  trivy-scan:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, archive-service, runner-service, segmentation-service]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile.secure
+          push: false
+          load: true
+          tags: ${{ matrix.service }}:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.service }}:scan
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+
+  hadolint:
+    name: Hadolint Dockerfile Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "**/Dockerfile*"
+          format: sarif
+          output-file: hadolint-results.sarif
+          no-fail: true
+          
+      - name: Upload Hadolint scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: hadolint-results.sarif
+
+  dockle:
+    name: Dockle Container Image Linting
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, archive-service, runner-service, segmentation-service]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile.secure
+          push: false
+          load: true
+          tags: ${{ matrix.service }}:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Dockle
+        uses: goodwithtech/dockle-action@v0.1.0
+        with:
+          image: ${{ matrix.service }}:scan
+          format: sarif
+          output: dockle-results-${{ matrix.service }}.sarif
+          exit-code: 1
+          exit-level: warn
+          
+      - name: Upload Dockle scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: dockle-results-${{ matrix.service }}.sarif
+
+  docker-bench-security:
+    name: Docker Bench Security
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Run Docker Bench Security
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /etc:/etc -v /usr/bin/docker:/usr/bin/docker \
+            docker/docker-bench-security > docker-bench-results.txt
+            
+      - name: Upload Docker Bench Security results
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-bench-results
+          path: docker-bench-results.txt

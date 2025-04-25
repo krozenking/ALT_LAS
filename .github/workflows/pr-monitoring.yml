@@ -1,0 +1,44 @@
+name: Pull Request Monitoring
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  monitor-pull-requests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up environment
+      run: |
+        mkdir -p logs
+        
+    - name: Run pull request monitoring
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        chmod +x ./scripts/enhanced_pr_monitor.sh
+        ./scripts/enhanced_pr_monitor.sh
+        
+    - name: Upload monitoring logs
+      uses: actions/upload-artifact@v3
+      with:
+        name: pr-monitoring-logs
+        path: |
+          pr_monitoring.log
+          pr_security_analysis.md
+          
+    - name: Check for security issues
+      run: |
+        if grep -q "Security update" pr_security_analysis.md; then
+          echo "::warning::Security updates detected in pull requests. Please review pr_security_analysis.md"
+        fi
+        
+        if grep -q "Major version update" pr_security_analysis.md; then
+          echo "::warning::Major version updates detected in pull requests. Please review pr_security_analysis.md"
+        fi

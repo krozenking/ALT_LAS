@@ -5,6 +5,7 @@ import DemoLayout from '@/components/layouts/DemoLayout';
 import { theme, highContrastTheme } from '@/styles/';
 import NotificationCenter from '@/components/feature/NotificationCenter';
 import FileManager from '@/components/feature/FileManager';
+import PerformanceMonitor from '@/components/feature/PerformanceMonitor';
 
 const App: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -34,6 +35,18 @@ const App: React.FC = () => {
     });
   };
   
+  // Handle metric alerts from performance monitor
+  const handleMetricAlert = (metric) => {
+    toast({
+      title: 'Performans Uyarısı',
+      description: `${metric.name}: ${metric.value}${metric.unit} (${metric.changePercentage}% artış)`,
+      status: 'error',
+      duration: 5000,
+      isClosable: true,
+      position: 'top-right',
+    });
+  };
+  
   return (
     <ChakraProvider theme={isHighContrast ? highContrastTheme : theme}>
       <Box width="100vw" height="100vh">
@@ -53,6 +66,7 @@ const App: React.FC = () => {
           </Button>
           <NotificationCenter />
           <FileManager />
+          <PerformanceMonitor onMetricAlert={handleMetricAlert} />
         </HStack>
         
         <DemoLayout 

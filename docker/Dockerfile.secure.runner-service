@@ -1,0 +1,69 @@
+# Secure Dockerfile for Runner Service
+# Created by Worker 8 (Security and DevOps Specialist)
+
+# Build stage
+FROM rust:1.65-slim AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Cargo files
+COPY runner-service/Cargo.toml runner-service/Cargo.lock ./
+
+# Create dummy source file to cache dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs
+
+# Build dependencies
+RUN cargo build --release
+
+# Copy application code
+COPY runner-service/src ./src
+
+# Build the application
+RUN cargo build --release
+
+# Runtime stage
+FROM debian:bullseye-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies (e.g., OpenSSL)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libssl1.1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appgroup && \
+    useradd -r -g appgroup -d /app -s /sbin/nologin -c "Docker image user" appuser
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /app/target/release/runner-service .
+
+# Set proper permissions
+RUN chown appuser:appgroup runner-service && \
+    chmod 755 runner-service
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8082
+
+# Add health check (assuming a /health endpoint exists)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8082/health || exit 1
+
+# Command to run the application
+CMD ["./runner-service"]

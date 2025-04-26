@@ -2,12 +2,12 @@
 
 ## Yeni Görevler
 ### Yüksek Öncelikli
-- [ ] **Docker Güvenlik Taraması CI/CD Entegrasyonu**: Docker güvenlik taramasını CI/CD pipeline'ına entegre etme
-  - [ ] Trivy entegrasyonu
-  - [ ] Hadolint entegrasyonu
-  - [ ] Dockle entegrasyonu
-  - [ ] Docker Bench Security entegrasyonu
-  - [ ] CI/CD pipeline yapılandırması
+- [x] **Docker Güvenlik Taraması CI/CD Entegrasyonu**: Docker güvenlik taramasını CI/CD pipeline'ına entegre etme
+  - [x] Trivy entegrasyonu
+  - [x] Hadolint entegrasyonu
+  - [x] Dockle entegrasyonu
+  - [x] Docker Bench Security entegrasyonu
+  - [x] CI/CD pipeline yapılandırması (GitHub Actions oluşturuldu)
 
 ### Orta Öncelikli
 - [ ] **Tüm Ortamlarda Güvenli Dockerfile Uygulaması**: Güvenli Dockerfile'ların tüm ortamlarda uygulanması
@@ -26,12 +26,8 @@
   - [ ] Denetim otomasyonu
 
 ## Mevcut Kalan Görevler
-### Docker Güvenlik İyileştirmeleri (%25)
-- [ ] Kalan servislerin güvenli Dockerfile'larının oluşturulması (%10)
-- [ ] Docker Compose güvenlik yapılandırması (%5)
-- [ ] Docker ağ güvenliği iyileştirmeleri (%5)
-- [ ] Docker volume güvenliği (%5)
-
+### Docker Güvenlik İyileştirmeleri (%25)- [x] Kalan servislerin güvenli Dockerfile'larının oluşturulması (%10) (AI Orchestrator, Segmentation, API Gateway, Archive, Runner)- [x] Docker Compose güvenlik yapılandırması (%5) (docker-compose.secure.yml oluşturuldu)
+- [x] Docker ağ güvenliği iyileştirmeleri (%5) (docs/docker_network_volume_security.md oluşturuldu)- [x] Docker volume güvenliği (%5) (docs/docker_network_volume_security.md oluşturuldu)
 ### Kubernetes Entegrasyonu (%25)
 - [ ] Kubernetes güvenlik politikaları (%10)
 - [ ] Pod güvenlik bağlamları (%5)

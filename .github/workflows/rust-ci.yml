@@ -1,0 +1,88 @@
+# GitHub Actions Workflow for Rust Services (OS Integration, Runner)
+# Created by Worker 1
+
+name: Rust CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'os-integration-service/**'
+      - 'runner-service/**'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'os-integration-service/**'
+      - 'runner-service/**'
+      - '.github/workflows/rust-ci.yml'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    name: Build & Test Rust Services
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [os-integration-service, runner-service]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Cache Cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/Cargo.lock', matrix.service)) }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+
+    - name: Cache Cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles(format('{0}/Cargo.lock', matrix.service)) }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-index-
+
+    - name: Cache Cargo build
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles(format('{0}/Cargo.lock', matrix.service)) }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-build-target-
+
+    - name: Build ${{ matrix.service }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --verbose --manifest-path ${{ matrix.service }}/Cargo.toml
+
+    - name: Run tests for ${{ matrix.service }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --verbose --manifest-path ${{ matrix.service }}/Cargo.toml
+
+    - name: Run clippy for ${{ matrix.service }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: --manifest-path ${{ matrix.service }}/Cargo.toml -- -D warnings
+
+    - name: Check formatting for ${{ matrix.service }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --manifest-path ${{ matrix.service }}/Cargo.toml -- --check
+

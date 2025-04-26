@@ -1,5 +1,6 @@
 # Secure Docker Compose Configuration
 # Created by Worker 8 (Security and DevOps Specialist)
+# Updated by Worker 1 to include OS Integration Service
 # This file uses secure Dockerfiles and applies security best practices.
 
 version: '3.8'
@@ -134,6 +135,37 @@ services:
           memory: 64M
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  os-integration-service:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.secure.os-integration-service
+    ports:
+      - "8083:8083"
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # Needed to bind to port 8083 as non-root
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/health"]
       interval: 30s
       timeout: 10s
       retries: 3

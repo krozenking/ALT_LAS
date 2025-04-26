@@ -1,10 +1,15 @@
 package config
 
+import (
+	"github.com/krozenking/ALT_LAS/archive-service/internal/logging"
+)
+
 // Config holds the application configuration
 type Config struct {
-	Server ServerConfig `json:"server"`
-	NATS   NATSConfig   `json:"nats"`
-	DB     DBConfig     `json:"db"`
+	Server  ServerConfig  `json:"server"`
+	NATS    NATSConfig    `json:"nats"`
+	DB      DBConfig      `json:"db"`
+	Logging LoggingConfig `json:"logging"`
 }
 
 // ServerConfig holds the HTTP server configuration
@@ -29,6 +34,12 @@ type DBConfig struct {
 	SSLMode  string `json:"sslmode"`
 }
 
+// LoggingConfig holds the logging configuration
+type LoggingConfig struct {
+	Level  string `json:"level"`
+	LogDir string `json:"log_dir"`
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -48,5 +59,14 @@ func DefaultConfig() *Config {
 			DBName:   "atlas_db",
 			SSLMode:  "disable",
 		},
+		Logging: LoggingConfig{
+			Level:  "INFO",
+			LogDir: "./logs",
+		},
 	}
+}
+
+// GetLogLevel returns the logging level as a LogLevel type
+func (c *Config) GetLogLevel() logging.LogLevel {
+	return logging.StringToLevel(c.Logging.Level)
 }

@@ -72,21 +72,22 @@
 - **Sonraki Adım**: Serde kütüphanesi kullanarak *.alt dosyalarını işleme modülünün geliştirilmesi
 
 ## İşçi 4: Archive Service Geliştirme Uzmanı
-- **Mevcut İlerleme**: %10
+- **Mevcut İlerleme**: %75
 - **Tamamlanan Görevler**: 
   - Temel Go yapısı
   - go.mod yapılandırması
   - Dockerfile oluşturma
+  - NATS kullanarak *.last dinleme modülü
+  - Başarı oranı kontrolü ve analizi
+  - *.atlas veritabanı entegrasyonu
+  - PostgreSQL şema tasarımı ve migrasyonlar
+  - Arşiv indeksleme ve arama API'leri
+  - Kapsamlı hata işleme ve loglama sistemi
+  - Birim ve entegrasyon testleri
 - **Kalan Görevler ve Yüzdeleri**:
-  - *.last dinleme modülü (%15)
-  - Başarı oranı kontrolü (%15)
-  - *.atlas veritabanı entegrasyonu (%20)
-  - Arşiv indeksleme ve arama (%15)
-  - Hata işleme ve loglama (%10)
-  - Birim ve entegrasyon testleri (%5)
-  - Performans optimizasyonu (%5)
-  - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: NATS kullanarak *.last dinleme modülünün geliştirilmesi
+  - Performans optimizasyonu (%10)
+  - Dağıtım ve CI/CD entegrasyonu (%15)
+- **Sonraki Adım**: Performans optimizasyonu ve CI/CD pipeline entegrasyonu
 
 ## İşçi 5: UI Geliştirme Uzmanı
 - **Mevcut İlerleme**: %0
@@ -208,7 +209,7 @@
 - **Sonraki Adım**: Rust kullanarak Policy Enforcement için temel yapının oluşturulması
 
 ## Genel Proje İlerlemesi
-- **Mevcut İlerleme**: %34
+- **Mevcut İlerleme**: %42
 - **Tamamlanan Görevler**: 
   - Proje mimarisi ve dokümantasyonu
   - Temel mikroservis yapıları
@@ -218,12 +219,13 @@
   - AI Orchestrator temel işlevselliği
   - Runner Service temel yapısı
   - Segmentation Service gelişmiş işlevselliği
+  - Archive Service temel işlevselliği
 - **Kalan Görevler ve Yüzdeleri**:
-  - Çekirdek Mikroservisler (%10)
+  - Çekirdek Mikroservisler (%6)
     - API Gateway (%1.5)
     - Segmentation Service (%0.5)
     - Runner Service (%4.5)
-    - Archive Service (%4.5)
+    - Archive Service (%0.5)
   - Kullanıcı Arayüzleri (%20)
     - Desktop UI (%8)
     - Web Dashboard (%6)

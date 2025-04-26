@@ -19,6 +19,39 @@ impl Default for AltMode {
     }
 }
 
+/// Represents the priority level of an ALT file or task
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+impl Default for Priority {
+    fn default() -> Self {
+        Priority::Medium
+    }
+}
+
+/// Represents the status of a task
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum TaskStatus {
+    Pending,
+    Running,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+impl Default for TaskStatus {
+    fn default() -> Self {
+        TaskStatus::Pending
+    }
+}
+
 /// Represents a task to be executed
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -28,6 +61,9 @@ pub struct Task {
     pub parameters: Option<HashMap<String, serde_json::Value>>,
     pub timeout_seconds: Option<u32>,
     pub retry_count: Option<u8>,
+    pub status: Option<TaskStatus>,
+    pub priority: Option<Priority>,
+    pub tags: Option<Vec<String>>,
 }
 
 /// Represents the main ALT file structure
@@ -42,6 +78,9 @@ pub struct AltFile {
     pub persona: Option<String>,
     pub tasks: Vec<Task>,
     pub metadata: Option<HashMap<String, serde_json::Value>>,
+    pub priority: Option<Priority>,
+    pub tags: Option<Vec<String>>,
+    pub expected_completion_time: Option<u32>,
 }
 
 impl AltFile {
@@ -57,6 +96,9 @@ impl AltFile {
             persona: Some("technical_expert".to_string()),
             tasks: Vec::new(),
             metadata: Some(HashMap::new()),
+            priority: Some(Priority::default()),
+            tags: None,
+            expected_completion_time: None,
         }
     }
 
@@ -91,6 +133,58 @@ impl AltFile {
             })
             .collect()
     }
+    
+    /// Gets all tasks with a specific tag
+    pub fn get_tasks_by_tag(&self, tag: &str) -> Vec<&Task> {
+        self.tasks
+            .iter()
+            .filter(|task| {
+                if let Some(tags) = &task.tags {
+                    tags.contains(&tag.to_string())
+                } else {
+                    false
+                }
+            })
+            .collect()
+    }
+    
+    /// Gets all tasks with a specific priority
+    pub fn get_tasks_by_priority(&self, priority: &Priority) -> Vec<&Task> {
+        self.tasks
+            .iter()
+            .filter(|task| {
+                if let Some(task_priority) = &task.priority {
+                    task_priority == priority
+                } else {
+                    false
+                }
+            })
+            .collect()
+    }
+    
+    /// Gets all tasks with a specific status
+    pub fn get_tasks_by_status(&self, status: &TaskStatus) -> Vec<&Task> {
+        self.tasks
+            .iter()
+            .filter(|task| {
+                if let Some(task_status) = &task.status {
+                    task_status == status
+                } else {
+                    false
+                }
+            })
+            .collect()
+    }
+    
+    /// Updates the status of a task
+    pub fn update_task_status(&mut self, task_id: &str, status: TaskStatus) -> bool {
+        if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
+            task.status = Some(status);
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// Creates a new task with the given description
@@ -102,5 +196,8 @@ pub fn create_task(description: String) -> Task {
         parameters: None,
         timeout_seconds: None,
         retry_count: None,
+        status: Some(TaskStatus::default()),
+        priority: Some(Priority::default()),
+        tags: None,
     }
 }

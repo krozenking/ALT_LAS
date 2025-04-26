@@ -1,16 +1,16 @@
-use super::models::AltFile;
-use log::{info, warn};
+use log::{info, error, warn, debug};
+use super::models::{AltFile, Task, Priority, TaskStatus};
 
-/// Validates an ALT file structure
+/// Validates an ALT file
 pub fn validate_alt_file(alt_file: &AltFile) -> Result<(), String> {
     info!("Validating ALT file with ID: {}", alt_file.id);
     
-    // Check if title is empty
+    // Check title
     if alt_file.title.trim().is_empty() {
         return Err("ALT file title cannot be empty".to_string());
     }
     
-    // Check if version is valid
+    // Check version
     if alt_file.version.trim().is_empty() {
         return Err("ALT file version cannot be empty".to_string());
     }
@@ -22,12 +22,18 @@ pub fn validate_alt_file(alt_file: &AltFile) -> Result<(), String> {
     
     // Validate each task
     for task in &alt_file.tasks {
-        // Check if task ID is empty
+        // Check task ID
         if task.id.trim().is_empty() {
             return Err("Task ID cannot be empty".to_string());
         }
         
-        // Check if task description is empty
+        // Check for duplicate task IDs
+        let duplicate_count = alt_file.tasks.iter().filter(|t| t.id == task.id).count();
+        if duplicate_count > 1 {
+            return Err(format!("Duplicate task ID found: {}", task.id));
+        }
+        
+        // Check task description
         if task.description.trim().is_empty() {
             return Err(format!("Task description cannot be empty for task ID: {}", task.id));
         }
@@ -44,6 +50,48 @@ pub fn validate_alt_file(alt_file: &AltFile) -> Result<(), String> {
         // Check for circular dependencies
         if has_circular_dependency(alt_file, &task.id, &mut Vec::new()) {
             return Err(format!("Circular dependency detected for task ID: {}", task.id));
+        }
+        
+        // Validate timeout if specified
+        if let Some(timeout) = task.timeout_seconds {
+            if timeout == 0 {
+                warn!("Task {} has a timeout of 0 seconds, which may cause immediate timeout", task.id);
+            } else if timeout > 3600 {
+                warn!("Task {} has a long timeout of {} seconds (> 1 hour)", task.id, timeout);
+            }
+        }
+        
+        // Validate retry count if specified
+        if let Some(retry) = task.retry_count {
+            if retry > 10 {
+                warn!("Task {} has a high retry count of {}", task.id, retry);
+            }
+        }
+    }
+    
+    // Validate expected completion time if specified
+    if let Some(completion_time) = alt_file.expected_completion_time {
+        let total_task_time: u32 = alt_file.tasks.iter()
+            .filter_map(|t| t.timeout_seconds)
+            .sum();
+            
+        if completion_time < total_task_time {
+            warn!("Expected completion time ({} seconds) is less than the sum of task timeouts ({} seconds)",
+                  completion_time, total_task_time);
+        }
+    }
+    
+    // Check for isolated tasks (not in dependency chain)
+    let all_dependencies: Vec<String> = alt_file.tasks.iter()
+        .filter_map(|t| t.dependencies.clone())
+        .flatten()
+        .collect();
+        
+    for task in &alt_file.tasks {
+        if !all_dependencies.contains(&task.id) && 
+           task.dependencies.is_none() && 
+           alt_file.tasks.len() > 1 {
+            warn!("Task {} is isolated (not in any dependency chain)", task.id);
         }
     }
     
@@ -81,6 +129,48 @@ fn has_circular_dependency(alt_file: &AltFile, task_id: &str, visited: &mut Vec<
     false
 }
 
+/// Validates a task execution sequence based on dependencies
+pub fn validate_execution_sequence(alt_file: &AltFile, sequence: &[String]) -> Result<(), String> {
+    debug!("Validating execution sequence with {} tasks", sequence.len());
+    
+    // Check if all tasks in the sequence exist in the ALT file
+    for task_id in sequence {
+        if alt_file.get_task(task_id).is_none() {
+            return Err(format!("Task {} not found in ALT file", task_id));
+        }
+    }
+    
+    // Check if all tasks from ALT file are in the sequence
+    for task in &alt_file.tasks {
+        if !sequence.contains(&task.id) {
+            return Err(format!("Task {} from ALT file is missing in the execution sequence", task.id));
+        }
+    }
+    
+    // Check if dependencies are satisfied in the sequence
+    for (i, task_id) in sequence.iter().enumerate() {
+        let task = alt_file.get_task(task_id).unwrap();
+        
+        if let Some(dependencies) = &task.dependencies {
+            for dep_id in dependencies {
+                // Find the position of the dependency in the sequence
+                if let Some(dep_pos) = sequence.iter().position(|id| id == dep_id) {
+                    // Check if dependency comes before the current task
+                    if dep_pos >= i {
+                        return Err(format!(
+                            "Dependency violation: Task {} depends on {}, but {} is not executed before {}",
+                            task_id, dep_id, dep_id, task_id
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    
+    debug!("Execution sequence validation successful");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,6 +187,9 @@ mod tests {
             parameters: None,
             timeout_seconds: None,
             retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
         };
         
         let task2 = Task {
@@ -106,6 +199,9 @@ mod tests {
             parameters: None,
             timeout_seconds: None,
             retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
         };
         
         alt_file.add_task(task1);
@@ -126,6 +222,9 @@ mod tests {
             parameters: None,
             timeout_seconds: None,
             retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
         };
         
         alt_file.add_task(task);
@@ -146,6 +245,9 @@ mod tests {
             parameters: None,
             timeout_seconds: None,
             retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
         };
         
         alt_file.add_task(task);
@@ -166,6 +268,9 @@ mod tests {
             parameters: None,
             timeout_seconds: None,
             retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
         };
         
         let task2 = Task {
@@ -175,6 +280,9 @@ mod tests {
             parameters: None,
             timeout_seconds: None,
             retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
         };
         
         alt_file.add_task(task1);
@@ -183,5 +291,47 @@ mod tests {
         let result = validate_alt_file(&alt_file);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Circular dependency detected"));
+    }
+    
+    #[test]
+    fn test_validate_execution_sequence() {
+        let mut alt_file = AltFile::new("Test ALT File".to_string());
+        
+        let task1 = Task {
+            id: "task1".to_string(),
+            description: "First task".to_string(),
+            dependencies: None,
+            parameters: None,
+            timeout_seconds: None,
+            retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
+        };
+        
+        let task2 = Task {
+            id: "task2".to_string(),
+            description: "Second task".to_string(),
+            dependencies: Some(vec!["task1".to_string()]),
+            parameters: None,
+            timeout_seconds: None,
+            retry_count: None,
+            status: Some(TaskStatus::Pending),
+            priority: Some(Priority::Medium),
+            tags: None,
+        };
+        
+        alt_file.add_task(task1);
+        alt_file.add_task(task2);
+        
+        // Valid sequence
+        let valid_sequence = vec!["task1".to_string(), "task2".to_string()];
+        let result = validate_execution_sequence(&alt_file, &valid_sequence);
+        assert!(result.is_ok());
+        
+        // Invalid sequence (dependency violation)
+        let invalid_sequence = vec!["task2".to_string(), "task1".to_string()];
+        let result = validate_execution_sequence(&alt_file, &invalid_sequence);
+        assert!(result.is_err());
     }
 }

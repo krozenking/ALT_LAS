@@ -350,6 +350,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
         placement="right"
         onClose={onClose}
         size="xl"
+        aria-labelledby="file-manager-header"
       >
         <DrawerOverlay />
         <DrawerContent
@@ -359,7 +360,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold">Dosya Yöneticisi</Text>
+              <Text fontSize="xl" fontWeight="bold" id="file-manager-header">Dosya Yöneticisi</Text>
               <HStack>
                 <Tooltip label="Liste Görünümü" aria-label="Liste Görünümü">
                   <IconButton
@@ -501,6 +502,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
                   borderWidth="1px" 
                   borderRadius="md" 
                   mr={selectedFile ? 4 : 0}
+                  role="region"
+                  aria-label="File list"
                 >
                   {sortedFiles.length > 0 ? (
                     viewMode === 'grid' ? (
@@ -527,7 +530,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                             alignItems="center"
                             justifyContent="center"
                             position="relative"
-                            role="group"
+                            role="listitem"
                             aria-label={`Dosya: ${file.name}`}
                             {...animations.performanceUtils.forceGPU}
                           >
@@ -663,6 +666,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
                     borderRadius="md" 
                     p={4}
                     overflowY="auto"
+                    role="region"
+                    aria-label="File details"
                   >
                     <VStack align="stretch" spacing={4}>
                       <Flex justifyContent="center" mb={2}>
@@ -684,6 +689,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                                   handleRenameComplete();
                                 }
                               }}
+                              aria-label="Rename file"
                               autoFocus
                             />
                           </InputGroup>
@@ -747,6 +753,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                                 cursor="pointer"
                                 onClick={() => handleRemoveTag(tag)}
                                 ml={1}
+                                aria-label={`Remove tag ${tag}`}
                               >
                                 ✕
                               </Box>
@@ -757,6 +764,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                         <Flex mt={2}>
                           <Input
                             size="sm"
+                            aria-label="Add new tag"
                             placeholder="Yeni etiket..."
                             value={newTag}
                             onChange={(e) => setNewTag(e.target.value)}

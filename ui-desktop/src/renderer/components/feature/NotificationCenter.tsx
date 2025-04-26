@@ -271,6 +271,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         placement="right"
         onClose={onClose}
         size="md"
+        aria-labelledby="notification-center-header"
       >
         <DrawerOverlay />
         <DrawerContent
@@ -280,7 +281,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold">Bildirimler</Text>
+              <Text fontSize="xl" fontWeight="bold" id="notification-center-header">Bildirimler</Text>
               <Flex>
                 <Menu>
                   <MenuButton 

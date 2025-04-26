@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Box, BoxProps, useColorMode, Input as ChakraInput, InputProps as ChakraInputProps } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -21,6 +21,8 @@ export const Input: React.FC<InputProps> = ({
   ...rest
 }) => {
   const { colorMode } = useColorMode();
+  const id = useId();
+  const errorId = error ? `${id}-error` : undefined;
   
   // Apply glassmorphism effect based on color mode and variant
   const getInputStyle = () => {
@@ -86,6 +88,7 @@ export const Input: React.FC<InputProps> = ({
       {/* Label */}
       {label && (
         <Box 
+          htmlFor={id}
           as="label" 
           fontSize="sm" 
           fontWeight="medium" 
@@ -124,6 +127,9 @@ export const Input: React.FC<InputProps> = ({
           {...getInputStyle()}
           {...getSizeStyle()}
           {...errorStyle}
+          id={id}
+          aria-invalid={!!error}
+          aria-describedby={errorId}
           {...rest}
         />
         
@@ -146,6 +152,7 @@ export const Input: React.FC<InputProps> = ({
       {/* Error Message */}
       {error && (
         <Box 
+          id={errorId}
           mt={1} 
           fontSize="sm" 
           color="error.500"

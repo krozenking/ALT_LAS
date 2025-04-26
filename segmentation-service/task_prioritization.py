@@ -1,51 +1,141 @@
 """
-Task Prioritization Module for ALT_LAS Segmentation Service
+Configurable Task Prioritization Module
 
-This module provides functionality to prioritize tasks in the segmentation process
-based on various factors such as dependencies, complexity, and user preferences.
+This module provides a configurable task prioritization system for ALT files.
+It allows customization of prioritization weights and parameters.
 """
 
-from typing import Dict, List, Any, Optional, Union, Tuple
 import logging
-from datetime import datetime
-import math
-
-from dsl_schema import AltFile, TaskSegment, TaskParameter
+import datetime
+import json
+import os
+from typing import Dict, List, Any, Optional, Tuple
+from dsl_schema import AltFile, TaskSegment
 
 # Configure logging
-logger = logging.getLogger('task_prioritization')
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("task-prioritization")
 
 class TaskPrioritizer:
-    """Class for prioritizing tasks in the segmentation process"""
+    """
+    Task prioritizer for ALT files
+    """
     
-    def __init__(self):
-        """Initialize the task prioritizer"""
-        # Priority weights for different factors
-        self.weights = {
-            "dependency": 0.35,    # Weight for dependency factor
-            "complexity": 0.25,    # Weight for complexity factor
-            "urgency": 0.20,       # Weight for urgency factor
-            "user_pref": 0.15,     # Weight for user preference factor
-            "confidence": 0.05     # Weight for confidence factor
+    def __init__(self, config_file: Optional[str] = None):
+        """
+        Initialize the task prioritizer
+        
+        Args:
+            config_file: Path to configuration file
+        """
+        # Default configuration
+        self.default_urgency = 5
+        self.default_user_pref = 5
+        self.dependency_weight = 0.4
+        self.urgency_weight = 0.3
+        self.user_pref_weight = 0.2
+        self.confidence_weight = 0.1
+        
+        # Load configuration if provided
+        if config_file and os.path.exists(config_file):
+            self._load_config(config_file)
+        
+        # Create config directory if it doesn't exist
+        self.config_dir = os.path.join(os.getcwd(), "config")
+        os.makedirs(self.config_dir, exist_ok=True)
+        
+        # Default config file path
+        self.default_config_file = os.path.join(self.config_dir, "prioritization_config.json")
+        
+        # Save default configuration if it doesn't exist
+        if not os.path.exists(self.default_config_file):
+            self._save_config(self.default_config_file)
+    
+    def _load_config(self, config_file: str) -> None:
+        """
+        Load configuration from file
+        
+        Args:
+            config_file: Path to configuration file
+        """
+        try:
+            with open(config_file, "r") as f:
+                config = json.load(f)
+            
+            # Update configuration
+            self.default_urgency = config.get("default_urgency", self.default_urgency)
+            self.default_user_pref = config.get("default_user_preference", self.default_user_pref)
+            self.dependency_weight = config.get("dependency_weight", self.dependency_weight)
+            self.urgency_weight = config.get("urgency_weight", self.urgency_weight)
+            self.user_pref_weight = config.get("user_preference_weight", self.user_pref_weight)
+            self.confidence_weight = config.get("confidence_weight", self.confidence_weight)
+            
+            logger.info(f"Loaded configuration from {config_file}")
+        except Exception as e:
+            logger.error(f"Error loading configuration from {config_file}: {str(e)}")
+    
+    def _save_config(self, config_file: str) -> None:
+        """
+        Save configuration to file
+        
+        Args:
+            config_file: Path to configuration file
+        """
+        try:
+            config = {
+                "default_urgency": self.default_urgency,
+                "default_user_preference": self.default_user_pref,
+                "dependency_weight": self.dependency_weight,
+                "urgency_weight": self.urgency_weight,
+                "user_preference_weight": self.user_pref_weight,
+                "confidence_weight": self.confidence_weight
+            }
+            
+            with open(config_file, "w") as f:
+                json.dump(config, f, indent=2)
+            
+            logger.info(f"Saved configuration to {config_file}")
+        except Exception as e:
+            logger.error(f"Error saving configuration to {config_file}: {str(e)}")
+    
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get current configuration
+        
+        Returns:
+            Current configuration
+        """
+        return {
+            "default_urgency": self.default_urgency,
+            "default_user_preference": self.default_user_pref,
+            "dependency_weight": self.dependency_weight,
+            "urgency_weight": self.urgency_weight,
+            "user_preference_weight": self.user_pref_weight,
+            "confidence_weight": self.confidence_weight
         }
+    
+    def update_config(self, config: Dict[str, Any]) -> None:
+        """
+        Update configuration
         
-        # Task type complexity scores (1-10 scale)
-        self.task_complexity = {
-            "search": 3,           # Search tasks are relatively simple
-            "create": 7,           # Create tasks are more complex
-            "analyze": 8,          # Analyze tasks are complex
-            "open": 2,             # Open tasks are simple
-            "transform": 6,        # Transform tasks are moderately complex
-            "execute": 5,          # Execute tasks are moderately complex
-            "summarize": 6,        # Summarize tasks are moderately complex
-            "schedule": 4          # Schedule tasks are moderately simple
-        }
+        Args:
+            config: New configuration
+        """
+        # Update configuration
+        self.default_urgency = config.get("default_urgency", self.default_urgency)
+        self.default_user_pref = config.get("default_user_preference", self.default_user_pref)
+        self.dependency_weight = config.get("dependency_weight", self.dependency_weight)
+        self.urgency_weight = config.get("urgency_weight", self.urgency_weight)
+        self.user_pref_weight = config.get("user_preference_weight", self.user_pref_weight)
+        self.confidence_weight = config.get("confidence_weight", self.confidence_weight)
         
-        # Default urgency for tasks (can be overridden by metadata)
-        self.default_urgency = 5   # Medium urgency (1-10 scale)
+        # Save configuration
+        self._save_config(self.default_config_file)
         
-        # Default user preference for tasks (can be overridden by metadata)
-        self.default_user_pref = 5 # Medium preference (1-10 scale)
+        logger.info("Updated configuration")
     
     def prioritize_alt_file(self, alt_file: AltFile) -> AltFile:
         """
@@ -57,70 +147,121 @@ class TaskPrioritizer:
         Returns:
             Prioritized ALT file
         """
-        # Calculate priorities for each segment
-        priorities = {}
-        for segment in alt_file.segments:
-            priority = self.calculate_priority(segment, alt_file)
-            priorities[segment.id] = priority
-        
-        # Add priority to segment metadata
-        for segment in alt_file.segments:
-            segment.metadata["priority"] = priorities[segment.id]
-            segment.metadata["priority_score"] = round(priorities[segment.id] * 10) / 10  # Round to 1 decimal place
-        
-        # Sort segments by priority (descending)
-        alt_file.segments.sort(key=lambda s: priorities[s.id], reverse=True)
-        
-        # Add execution order to segment metadata
-        for i, segment in enumerate(alt_file.segments):
-            segment.metadata["execution_order"] = i + 1
-        
-        # Add prioritization metadata to ALT file
-        alt_file.metadata["prioritized"] = True
-        alt_file.metadata["prioritization_timestamp"] = datetime.now().isoformat()
-        
-        return alt_file
+        try:
+            logger.info(f"Prioritizing ALT file: {alt_file.id}")
+            
+            # Calculate priority scores for each segment
+            for segment in alt_file.segments:
+                # Calculate factors
+                dependency_factor = self._calculate_dependency_factor(segment, alt_file)
+                urgency_factor = self._calculate_urgency_factor(segment, alt_file)
+                user_pref_factor = self._calculate_user_preference_factor(segment, alt_file)
+                confidence_factor = self._calculate_confidence_factor(segment)
+                
+                # Calculate weighted priority score
+                priority_score = (
+                    self.dependency_weight * dependency_factor +
+                    self.urgency_weight * urgency_factor +
+                    self.user_pref_weight * user_pref_factor +
+                    self.confidence_weight * confidence_factor
+                )
+                
+                # Store priority score in segment metadata
+                segment.metadata["priority_score"] = round(priority_score, 3)
+                
+                # Store individual factors for transparency
+                segment.metadata["dependency_factor"] = round(dependency_factor, 3)
+                segment.metadata["urgency_factor"] = round(urgency_factor, 3)
+                segment.metadata["user_preference_factor"] = round(user_pref_factor, 3)
+                segment.metadata["confidence_factor"] = round(confidence_factor, 3)
+            
+            # Determine execution order based on dependencies and priority scores
+            execution_order = self._determine_execution_order(alt_file)
+            
+            # Store execution order in segment metadata
+            for segment_id, order in execution_order.items():
+                for segment in alt_file.segments:
+                    if segment.id == segment_id:
+                        segment.metadata["execution_order"] = order
+                        break
+            
+            # Add prioritization metadata to ALT file
+            alt_file.metadata["prioritized"] = True
+            alt_file.metadata["prioritization_timestamp"] = datetime.datetime.now().isoformat()
+            alt_file.metadata["prioritization_config"] = self.get_config()
+            
+            logger.info(f"ALT file prioritized successfully: {alt_file.id}")
+            return alt_file
+        except Exception as e:
+            logger.error(f"Error prioritizing ALT file: {str(e)}")
+            raise
     
-    def calculate_priority(self, segment: TaskSegment, alt_file: AltFile) -> float:
+    def _determine_execution_order(self, alt_file: AltFile) -> Dict[str, int]:
         """
-        Calculate priority for a task segment
+        Determine execution order based on dependencies and priority scores
         
         Args:
-            segment: Task segment to prioritize
-            alt_file: Parent ALT file
+            alt_file: ALT file
             
         Returns:
-            Priority score (0-1 scale)
+            Execution order mapping (segment_id -> order)
         """
-        # Calculate individual factors
-        dependency_factor = self._calculate_dependency_factor(segment, alt_file)
-        complexity_factor = self._calculate_complexity_factor(segment)
-        urgency_factor = self._calculate_urgency_factor(segment)
-        user_pref_factor = self._calculate_user_preference_factor(segment, alt_file)
-        confidence_factor = self._calculate_confidence_factor(segment)
+        # Create dependency graph
+        dependency_graph = {}
+        for segment in alt_file.segments:
+            dependency_graph[segment.id] = segment.dependencies
         
-        # Calculate weighted sum
-        priority = (
-            self.weights["dependency"] * dependency_factor +
-            self.weights["complexity"] * complexity_factor +
-            self.weights["urgency"] * urgency_factor +
-            self.weights["user_pref"] * user_pref_factor +
-            self.weights["confidence"] * confidence_factor
+        # Topological sort with priority tie-breaking
+        execution_order = {}
+        visited = set()
+        temp_visited = set()
+        order = 1
+        
+        def visit(segment_id):
+            nonlocal order
+            
+            # Check for cyclic dependencies
+            if segment_id in temp_visited:
+                logger.warning(f"Cyclic dependency detected for segment: {segment_id}")
+                return
+            
+            # Skip if already visited
+            if segment_id in visited:
+                return
+            
+            # Mark as temporarily visited
+            temp_visited.add(segment_id)
+            
+            # Visit dependencies
+            for dependency in dependency_graph.get(segment_id, []):
+                visit(dependency)
+            
+            # Mark as visited
+            visited.add(segment_id)
+            temp_visited.remove(segment_id)
+            
+            # Assign execution order
+            execution_order[segment_id] = order
+            order += 1
+        
+        # Get segments sorted by priority score (highest first)
+        segments_by_priority = sorted(
+            alt_file.segments,
+            key=lambda s: s.metadata.get("priority_score", 0),
+            reverse=True
         )
         
-        # Normalize to 0-1 range
-        priority = max(0.0, min(1.0, priority))
+        # Visit segments in priority order
+        for segment in segments_by_priority:
+            if segment.id not in visited:
+                visit(segment.id)
         
-        # Log priority calculation
-        logger.debug(f"Priority calculation for segment {segment.id}:")
-        logger.debug(f"  Dependency factor: {dependency_factor} (weight: {self.weights['dependency']})")
-        logger.debug(f"  Complexity factor: {complexity_factor} (weight: {self.weights['complexity']})")
-        logger.debug(f"  Urgency factor: {urgency_factor} (weight: {self.weights['urgency']})")
-        logger.debug(f"  User preference factor: {user_pref_factor} (weight: {self.weights['user_pref']})")
-        logger.debug(f"  Confidence factor: {confidence_factor} (weight: {self.weights['confidence']})")
-        logger.debug(f"  Final priority: {priority}")
+        # Reverse the order (highest order should be first)
+        max_order = max(execution_order.values())
+        for segment_id in execution_order:
+            execution_order[segment_id] = max_order - execution_order[segment_id] + 1
         
-        return priority
+        return execution_order
     
     def _calculate_dependency_factor(self, segment: TaskSegment, alt_file: AltFile) -> float:
         """
@@ -133,118 +274,83 @@ class TaskPrioritizer:
         Returns:
             Dependency factor (0-1 scale)
         """
-        # If segment has no dependencies, it should be prioritized higher
+        # If no dependencies, assign highest dependency factor
         if not segment.dependencies:
             return 1.0
         
-        # Check if all dependencies are satisfied
-        all_segment_ids = [s.id for s in alt_file.segments]
-        unsatisfied_deps = [dep for dep in segment.dependencies if dep not in all_segment_ids]
+        # Count total segments and dependencies
+        total_segments = len(alt_file.segments)
+        dependency_count = len(segment.dependencies)
         
-        # If there are unsatisfied dependencies, lower priority
-        if unsatisfied_deps:
-            return 0.0
+        # Calculate dependency ratio (more dependencies = lower priority)
+        if total_segments > 1:
+            dependency_ratio = 1.0 - (dependency_count / (total_segments - 1))
+        else:
+            dependency_ratio = 1.0
         
-        # Calculate dependency depth (how deep in the dependency chain)
-        depth = self._calculate_dependency_depth(segment, alt_file)
-        
-        # Normalize depth to 0-1 scale (deeper = lower priority)
-        max_depth = len(alt_file.segments)
-        depth_factor = 1.0 - (depth / max_depth)
-        
-        return depth_factor
+        return dependency_ratio
     
-    def _calculate_dependency_depth(self, segment: TaskSegment, alt_file: AltFile) -> int:
-        """
-        Calculate dependency depth for a task segment
-        
-        Args:
-            segment: Task segment to calculate dependency depth for
-            alt_file: Parent ALT file
-            
-        Returns:
-            Dependency depth (0 = no dependencies, 1+ = has dependencies)
-        """
-        if not segment.dependencies:
-            return 0
-        
-        # Find max depth of dependencies
-        max_depth = 0
-        for dep_id in segment.dependencies:
-            # Find the dependency segment
-            dep_segment = next((s for s in alt_file.segments if s.id == dep_id), None)
-            if dep_segment:
-                # Calculate depth recursively
-                depth = 1 + self._calculate_dependency_depth(dep_segment, alt_file)
-                max_depth = max(max_depth, depth)
-        
-        return max_depth
-    
-    def _calculate_complexity_factor(self, segment: TaskSegment) -> float:
-        """
-        Calculate complexity factor for a task segment
-        
-        Args:
-            segment: Task segment to calculate complexity factor for
-            
-        Returns:
-            Complexity factor (0-1 scale)
-        """
-        # Get complexity score for task type
-        complexity = self.task_complexity.get(segment.task_type, 5)  # Default to medium complexity
-        
-        # Adjust complexity based on parameters
-        param_complexity = len(segment.parameters) * 0.5  # More parameters = more complex
-        
-        # Adjust complexity based on content length
-        content_complexity = min(len(segment.content) / 100, 1.0)  # Longer content = more complex
-        
-        # Calculate final complexity
-        final_complexity = (complexity + param_complexity + content_complexity) / 12  # Normalize to 0-1 scale
-        
-        return final_complexity
-    
-    def _calculate_urgency_factor(self, segment: TaskSegment) -> float:
+    def _calculate_urgency_factor(self, segment: TaskSegment, alt_file: AltFile) -> float:
         """
         Calculate urgency factor for a task segment
         
         Args:
             segment: Task segment to calculate urgency factor for
+            alt_file: Parent ALT file
             
         Returns:
             Urgency factor (0-1 scale)
         """
-        # Check if urgency is specified in metadata
+        # Check if urgency is specified in segment metadata
         if "urgency" in segment.metadata:
             urgency = segment.metadata["urgency"]
             # Convert string values to numeric
             if isinstance(urgency, str):
-                urgency_map = {"low": 3, "medium": 5, "high": 8, "critical": 10}
+                urgency_map = {"low": 3, "medium": 5, "high": 8}
                 urgency = urgency_map.get(urgency.lower(), self.default_urgency)
+        # Check if urgency is specified in ALT file metadata
+        elif "urgency_level" in alt_file.metadata:
+            urgency = alt_file.metadata["urgency_level"]
         else:
             # Use default urgency
             urgency = self.default_urgency
         
-        # Check if deadline is specified in metadata
+        # Check if deadline is specified
         if "deadline" in segment.metadata:
+            deadline_str = segment.metadata["deadline"]
             try:
-                deadline_str = segment.metadata["deadline"]
-                deadline = datetime.fromisoformat(deadline_str)
-                now = datetime.now()
+                deadline = datetime.datetime.fromisoformat(deadline_str)
+                now = datetime.datetime.now()
+                time_diff = deadline - now
                 
-                # Calculate time until deadline
-                time_until = (deadline - now).total_seconds()
-                
-                # Adjust urgency based on time until deadline
-                if time_until <= 0:
-                    # Past deadline, maximum urgency
+                # Calculate urgency based on time remaining
+                if time_diff.total_seconds() <= 0:
+                    # Past deadline, highest urgency
                     urgency = 10
-                elif time_until < 3600:  # Less than 1 hour
-                    urgency = max(urgency, 9)
-                elif time_until < 86400:  # Less than 1 day
-                    urgency = max(urgency, 8)
-                elif time_until < 259200:  # Less than 3 days
-                    urgency = max(urgency, 7)
+                else:
+                    # Scale urgency based on time remaining (up to 7 days)
+                    days_remaining = time_diff.total_seconds() / (24 * 60 * 60)
+                    if days_remaining < 7:
+                        urgency = max(urgency, 10 - days_remaining)
+            except (ValueError, TypeError):
+                # Invalid deadline format, ignore
+                pass
+        elif "deadline" in alt_file.metadata:
+            deadline_str = alt_file.metadata["deadline"]
+            try:
+                deadline = datetime.datetime.fromisoformat(deadline_str)
+                now = datetime.datetime.now()
+                time_diff = deadline - now
+                
+                # Calculate urgency based on time remaining
+                if time_diff.total_seconds() <= 0:
+                    # Past deadline, highest urgency
+                    urgency = 10
+                else:
+                    # Scale urgency based on time remaining (up to 7 days)
+                    days_remaining = time_diff.total_seconds() / (24 * 60 * 60)
+                    if days_remaining < 7:
+                        urgency = max(urgency, 10 - days_remaining)
             except (ValueError, TypeError):
                 # Invalid deadline format, ignore
                 pass
@@ -312,6 +418,66 @@ class TaskPrioritizer:
             confidence = 0.5
         
         return confidence
+    
+    def get_prioritization_stats(self, alt_file: AltFile) -> Dict[str, Any]:
+        """
+        Get prioritization statistics for an ALT file
+        
+        Args:
+            alt_file: Prioritized ALT file
+            
+        Returns:
+            Prioritization statistics
+        """
+        try:
+            # Check if ALT file has been prioritized
+            if not alt_file.metadata.get("prioritized", False):
+                raise ValueError("ALT file has not been prioritized")
+            
+            # Calculate statistics
+            stats = {
+                "total_segments": len(alt_file.segments),
+                "avg_priority_score": 0,
+                "max_priority_score": 0,
+                "min_priority_score": 1,
+                "priority_score_distribution": {},
+                "task_type_distribution": {},
+                "execution_order": {}
+            }
+            
+            # Calculate priority score statistics
+            total_priority_score = 0
+            for segment in alt_file.segments:
+                priority_score = segment.metadata.get("priority_score", 0)
+                total_priority_score += priority_score
+                
+                # Update max and min priority scores
+                stats["max_priority_score"] = max(stats["max_priority_score"], priority_score)
+                stats["min_priority_score"] = min(stats["min_priority_score"], priority_score)
+                
+                # Update priority score distribution
+                score_range = f"{int(priority_score * 10)}/10"
+                stats["priority_score_distribution"][score_range] = stats["priority_score_distribution"].get(score_range, 0) + 1
+                
+                # Update task type distribution
+                stats["task_type_distribution"][segment.task_type] = stats["task_type_distribution"].get(segment.task_type, 0) + 1
+                
+                # Update execution order
+                execution_order = segment.metadata.get("execution_order", 0)
+                stats["execution_order"][segment.id] = execution_order
+            
+            # Calculate average priority score
+            if len(alt_file.segments) > 0:
+                stats["avg_priority_score"] = total_priority_score / len(alt_file.segments)
+            
+            # Add prioritization metadata
+            stats["prioritization_timestamp"] = alt_file.metadata.get("prioritization_timestamp", "")
+            stats["prioritization_config"] = alt_file.metadata.get("prioritization_config", {})
+            
+            return stats
+        except Exception as e:
+            logger.error(f"Error getting prioritization statistics: {str(e)}")
+            raise
 
 # Create a global instance
 task_prioritizer = TaskPrioritizer()
@@ -380,6 +546,7 @@ if __name__ == "__main__":
     )
     
     alt_file = AltFile(
+        id="test_alt_file",
         command="Search for information about AI, analyze research papers, and create a report",
         language="en",
         mode="Normal",
@@ -399,3 +566,14 @@ if __name__ == "__main__":
         print(f"   Priority: {segment.metadata.get('priority_score')}")
         print(f"   Execution order: {segment.metadata.get('execution_order')}")
         print(f"   Dependencies: {segment.dependencies}")
+    
+    # Get prioritization statistics
+    stats = prioritizer.get_prioritization_stats(prioritized_alt)
+    print(f"\nPrioritization statistics:")
+    print(f"Total segments: {stats['total_segments']}")
+    print(f"Average priority score: {stats['avg_priority_score']:.3f}")
+    print(f"Max priority score: {stats['max_priority_score']:.3f}")
+    print(f"Min priority score: {stats['min_priority_score']:.3f}")
+    print(f"Priority score distribution: {stats['priority_score_distribution']}")
+    print(f"Task type distribution: {stats['task_type_distribution']}")
+    print(f"Execution order: {stats['execution_order']}")

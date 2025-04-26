@@ -6,6 +6,7 @@ import { theme, highContrastTheme } from '@/styles/';
 import NotificationCenter from '@/components/feature/NotificationCenter';
 import FileManager from '@/components/feature/FileManager';
 import PerformanceMonitor from '@/components/feature/PerformanceMonitor';
+import SettingsPanel from '@/components/feature/SettingsPanel';
 
 const App: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -47,6 +48,27 @@ const App: React.FC = () => {
     });
   };
   
+  // Handle setting changes
+  const handleSettingChange = (groupId, settingId, value) => {
+    // Ayar değişikliklerini işle
+    console.log(`Ayar değişti: ${groupId}.${settingId} = ${value}`);
+    
+    // Yüksek kontrast ayarı değiştiyse state'i güncelle
+    if (groupId === 'accessibility' && settingId === 'highContrast') {
+      setIsHighContrast(value);
+      localStorage.setItem('highContrastMode', String(value));
+    }
+    
+    toast({
+      title: 'Ayar Güncellendi',
+      description: `${settingId} ayarı güncellendi`,
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+      position: 'top',
+    });
+  };
+  
   return (
     <ChakraProvider theme={isHighContrast ? highContrastTheme : theme}>
       <Box width="100vw" height="100vh">
@@ -67,6 +89,7 @@ const App: React.FC = () => {
           <NotificationCenter />
           <FileManager />
           <PerformanceMonitor onMetricAlert={handleMetricAlert} />
+          <SettingsPanel onSettingChange={handleSettingChange} />
         </HStack>
         
         <DemoLayout 

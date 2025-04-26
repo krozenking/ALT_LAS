@@ -21,31 +21,31 @@
   - [x] Hata sınıfları ve kodları
   - [x] Hata yanıtlarının standardizasyonu
   - [x] Validation hata işleme
-- [ ] **Görev 1.5:** Swagger/OpenAPI entegrasyonu
-  - [ ] Swagger/OpenAPI şemasının oluşturulması
-  - [ ] API dokümantasyon UI'ının entegrasyonu
-  - [ ] Route'ların otomatik dokümantasyonu
-  - [ ] API örneklerinin eklenmesi
+- [x] **Görev 1.5:** Swagger/OpenAPI entegrasyonu
+  - [x] Swagger/OpenAPI şemasının oluşturulması
+  - [x] API dokümantasyon UI'ının entegrasyonu
+  - [x] Route'ların otomatik dokümantasyonu
+  - [x] API örneklerinin eklenmesi
 
 ## Kimlik Doğrulama ve Yetkilendirme (Hafta 3-4)
-- [ ] **Görev 1.6:** JWT tabanlı kimlik doğrulama sistemi
-  - [ ] JWT yapılandırması ve secret yönetimi
-  - [ ] Token oluşturma ve doğrulama
-  - [ ] Refresh token mekanizması
-  - [ ] Token blacklist/whitelist yönetimi
+- [x] **Görev 1.6:** JWT tabanlı kimlik doğrulama sistemi
+  - [x] JWT yapılandırması ve secret yönetimi
+  - [x] Token oluşturma ve doğrulama
+  - [x] Refresh token mekanizması
+  - [x] Token blacklist/whitelist yönetimi
 - [ ] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
-  - [ ] Rol ve izin modeli tasarımı
-  - [ ] Yetkilendirme middleware'i
+  - [x] Rol ve izin modeli tasarımı
+  - [x] Yetkilendirme middleware'i
   - [ ] Route bazlı yetkilendirme
   - [ ] Dinamik izin kontrolü
 - [ ] **Görev 1.8:** Kullanıcı yönetimi API'leri
-  - [ ] Kullanıcı kaydı ve doğrulama
-  - [ ] Kullanıcı profil yönetimi
+  - [x] Kullanıcı kaydı ve doğrulama
+  - [x] Kullanıcı profil yönetimi
   - [ ] Şifre sıfırlama ve değiştirme
   - [ ] Kullanıcı rolleri ve izinleri yönetimi
 - [ ] **Görev 1.9:** Oturum yönetimi ve token yenileme
-  - [ ] Oturum oluşturma ve sonlandırma
-  - [ ] Token yenileme endpoint'i
+  - [x] Oturum oluşturma ve sonlandırma
+  - [x] Token yenileme endpoint'i
   - [ ] Oturum zaman aşımı yönetimi
   - [ ] Çoklu cihaz oturum yönetimi
 - [ ] **Görev 1.10:** Güvenlik testleri
@@ -166,5 +166,5 @@
 - [x] API Gateway projesinin temel yapısını oluşturma
 - [x] Express.js ve TypeScript kurulumu
 - [x] Temel middleware yapılandırması
-- [ ] Swagger/OpenAPI entegrasyonu başlangıcı
-- [ ] Basit bir kimlik doğrulama mekanizması prototipi
+- [x] Swagger/OpenAPI entegrasyonu başlangıcı
+- [x] Basit bir kimlik doğrulama mekanizması prototipi

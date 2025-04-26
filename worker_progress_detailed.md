@@ -119,26 +119,17 @@
 - **Sonraki Adım**: Electron/React kullanarak Desktop UI için temel uygulama yapısının oluşturulması
 
 ## İşçi 6: OS Entegrasyon Uzmanı
-- **Mevcut İlerleme**: %25
+- **Mevcut İlerleme**: %70
 - **Tamamlanan Görevler**: 
   - OS Integration Service projesinin kurulumu (Rust/C++)
   - Temel API yapılandırması
   - Loglama ve hata işleme
   - Platform algılama mekanizması
   - Git LFS yapılandırması
+  - Windows entegrasyon modülü (API, Dosya Sistemi, Uygulama Kontrolü)
+  - macOS entegrasyon modülü (API, Dosya Sistemi, Uygulama Kontrolü)
+  - Linux entegrasyon modülü (API, Dosya Sistemi, Uygulama Kontrolü)
 - **Kalan Görevler ve Yüzdeleri**:
-  - Windows entegrasyon modülü (%20 tamamlandı, kalan %15)
-    - Windows API entegrasyonu (%5)
-    - Dosya sistemi erişimi (%5)
-    - Uygulama kontrolü (%5)
-  - macOS entegrasyon modülü (%15 tamamlandı, kalan %15)
-    - Cocoa framework entegrasyonu (%5)
-    - Dosya sistemi erişimi (%5)
-    - Uygulama kontrolü (%5)
-  - Linux entegrasyon modülü (%15 tamamlandı, kalan %15)
-    - X11/Wayland entegrasyonu (%5)
-    - Dosya sistemi erişimi (%5)
-    - Uygulama kontrolü (%5)
   - CUDA hızlandırmalı ekran yakalama (%10)
   - Bölgesel ekran yakalama (%5)
   - Fare ve klavye kontrolü (%5)
@@ -146,7 +137,7 @@
   - Birim ve entegrasyon testleri (%5)
   - Performans optimizasyonu (%5)
   - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: Windows API entegrasyonunun tamamlanması ve FFI sorunlarının çözülmesi
+- **Sonraki Adım**: CUDA hızlandırmalı ekran yakalama modülünün geliştirilmesi
 
 ## İşçi 7: AI Uzmanı
 - **Mevcut İlerleme**: %50

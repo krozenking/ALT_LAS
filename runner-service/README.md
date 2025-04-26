@@ -2,225 +2,312 @@
 
 ## Overview
 
-The Runner Service is a key component of the ALT_LAS system, responsible for processing ALT files, managing parallel task execution, integrating with AI services, and producing LAST files. This document provides detailed information about the Runner Service implementation, architecture, and usage.
+The Runner Service is a core component of the ALT_LAS system responsible for executing ALT files, managing task execution, and generating LAST files. It is implemented in Rust for performance, safety, and reliability.
 
 ## Architecture
 
-The Runner Service is built using a modular architecture with the following components:
+The Runner Service consists of the following main components:
 
 1. **ALT File Processing**: Handles parsing, validation, and processing of ALT files
-2. **Task Management**: Manages parallel execution of tasks with dependency resolution
-3. **AI Service Integration**: Communicates with the AI Orchestrator for AI-related tasks
-4. **LAST File Production**: Generates and writes LAST files based on task execution results
-5. **Performance Monitoring**: Tracks and optimizes service performance
+2. **Task Management**: Manages task execution, dependencies, and scheduling
+3. **AI Service Integration**: Communicates with AI services for task execution
+4. **LAST File Generation**: Creates LAST files from execution results
+5. **FFI Layer**: Provides a secure interface for other languages to interact with the Runner Service
 
-## Components
+## ALT File Processing
 
-### ALT File Processing
+The ALT file processing module handles the parsing and validation of ALT files. ALT files are JSON documents that define a series of tasks to be executed.
 
-The ALT file processing module handles the parsing and validation of ALT files. It includes:
+### Key Features:
+- JSON parsing and validation
+- Schema validation
+- Task dependency resolution
+- Support for different execution modes (Normal, Dream, Explore, Chaos)
 
-- **Models**: Data structures for ALT files and tasks
-- **Parser**: Functions for parsing ALT files from JSON
-- **Validator**: Functions for validating ALT file structure and content
+## Task Management
 
-### Task Management
+The task management module is responsible for scheduling and executing tasks defined in ALT files.
 
-The task management module handles the execution of tasks in parallel, respecting dependencies. It includes:
+### Key Features:
+- Parallel task execution
+- Dependency-based scheduling
+- Priority-based task scheduling
+- Task retry mechanisms
+- Timeout handling
+- Task status tracking
 
-- **Models**: Data structures for task execution and results
-- **Scheduler**: Manages task scheduling based on dependencies
-- **Executor**: Executes individual tasks
+## AI Service Integration
 
-### AI Service Integration
+The AI service integration module provides communication with external AI services for task execution.
 
-The AI service integration module handles communication with the AI Orchestrator. It includes:
+### Key Features:
+- HTTP/gRPC client for AI service communication
+- Streaming support for large responses
+- Model selection capabilities
+- Error handling and retry logic
+- Concurrency control
 
-- **Client**: HTTP client for communicating with the AI Orchestrator
-- **Processor**: Processes AI-related tasks
+## LAST File Generation
 
-### LAST File Production
+The LAST file generation module creates LAST files from execution results. LAST files contain the results of executing an ALT file, including task outputs, execution statistics, and artifacts.
 
-The LAST file production module handles the generation and writing of LAST files. It includes:
+### Key Features:
+- Comprehensive result tracking
+- Artifact collection and management
+- Execution graph visualization
+- HTML report generation
+- Performance optimizations for large files
+- Compressed file formats
+- Archive creation
 
-- **Models**: Data structures for LAST files
-- **Generator**: Functions for generating LAST files from task results
-- **Writer**: Functions for writing LAST files to disk
+### LAST File Structure
 
-### Performance Monitoring
+A LAST file contains the following information:
+- Metadata about the execution (ID, timestamp, etc.)
+- ALT file reference
+- Execution mode and parameters
+- Task results with status, outputs, and errors
+- Execution statistics (success rate, execution time)
+- Artifacts generated during execution
+- Execution graph showing task dependencies and execution flow
 
-The performance monitoring module tracks and optimizes service performance. It includes:
+### Artifact Management
 
-- **Metrics**: Tracks task execution metrics
-- **Timer**: Measures execution time
-- **Memory Tracker**: Monitors memory usage
+The LAST file generation system includes comprehensive artifact management:
+- Automatic extraction of artifacts from task outputs
+- Type detection based on file extensions
+- Size and MIME type tracking
+- Organization in a structured directory hierarchy
 
-## API Endpoints
+### Performance Optimizations
 
-The Runner Service exposes the following API endpoints:
+The LAST file generation system includes several performance optimizations:
+- Parallel processing of artifacts
+- Asynchronous file I/O
+- Batch processing capabilities
+- Configurable processing options
 
-- **GET /**: Returns a simple welcome message
-- **GET /health**: Returns the health status of the service
-- **POST /run**: Runs a task based on an ALT file
-- **GET /task/{id}**: Gets the status of a task
+## FFI Layer
 
-### POST /run
+The FFI (Foreign Function Interface) layer provides a secure interface for other languages to interact with the Runner Service.
 
-This endpoint runs a task based on an ALT file.
+### Key Features:
+- Safe memory management
+- Error handling and reporting
+- Support for ALT file parsing
+- Task result collection
+- LAST file generation
+- Batch processing
 
-**Request Body**:
-```json
-{
-  "alt_file": "JSON string containing the ALT file",
-  "mode": "Optional mode (normal, dream, explore, chaos)",
-  "persona": "Optional persona",
-  "metadata": "Optional metadata object"
+### FFI Functions
+
+The following functions are available through the FFI interface:
+
+- `runner_init()`: Initialize the FFI layer
+- `runner_get_last_error()`: Get the last error message
+- `runner_free_string()`: Free a string allocated by the FFI layer
+- `runner_parse_alt_file()`: Parse an ALT file from JSON string
+- `runner_add_task_result()`: Add task result to an ALT file
+- `runner_generate_last_file()`: Generate a LAST file from an ALT file and its task results
+- `runner_get_last_file_json()`: Get a LAST file as JSON string
+- `runner_batch_process()`: Batch process multiple ALT files
+- `runner_cleanup()`: Clean up resources
+- `runner_get_version()`: Get version information
+
+### Example Usage (C)
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include "runner_ffi.h"
+
+int main() {
+    // Initialize the FFI layer
+    runner_init();
+    
+    // Parse an ALT file
+    const char* alt_json = "{\"id\":\"test_alt_file\",\"title\":\"Test ALT File\",\"mode\":\"normal\",\"tasks\":[...]}";
+    int result = runner_parse_alt_file(alt_json);
+    
+    if (result == 0) {
+        char* error = runner_get_last_error();
+        printf("Error: %s\n", error);
+        runner_free_string(error);
+        return 1;
+    }
+    
+    // Add task results
+    const char* task_result = "{\"task_id\":\"task1\",\"status\":\"completed\",\"output\":{...}}";
+    runner_add_task_result("test_alt_file", task_result);
+    
+    // Generate LAST file
+    char* last_id = runner_generate_last_file("test_alt_file", "/tmp/output");
+    
+    if (last_id != NULL) {
+        printf("Generated LAST file: %s\n", last_id);
+        
+        // Get LAST file as JSON
+        char* last_json = runner_get_last_file_json(last_id);
+        
+        if (last_json != NULL) {
+            printf("LAST file JSON: %s\n", last_json);
+            runner_free_string(last_json);
+        }
+        
+        runner_free_string(last_id);
+    } else {
+        char* error = runner_get_last_error();
+        printf("Error: %s\n", error);
+        runner_free_string(error);
+    }
+    
+    // Clean up
+    runner_cleanup();
+    
+    return 0;
 }
 ```
 
-**Response**:
-```json
-{
-  "id": "Task ID",
-  "status": "processing",
-  "alt_file": "ALT file ID",
-  "last_file": "LAST file name",
-  "metadata": {
-    "timestamp": "ISO timestamp",
-    "task_id": "Task ID",
-    "alt_file_id": "ALT file ID"
-  }
-}
+### Example Usage (Python with ctypes)
+
+```python
+import ctypes
+import json
+import tempfile
+
+# Load the library
+lib = ctypes.CDLL("./librunner.so")
+
+# Define function prototypes
+lib.runner_init.restype = ctypes.c_int
+lib.runner_get_last_error.restype = ctypes.c_char_p
+lib.runner_free_string.argtypes = [ctypes.c_char_p]
+lib.runner_parse_alt_file.argtypes = [ctypes.c_char_p]
+lib.runner_parse_alt_file.restype = ctypes.c_int
+lib.runner_add_task_result.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+lib.runner_add_task_result.restype = ctypes.c_int
+lib.runner_generate_last_file.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+lib.runner_generate_last_file.restype = ctypes.c_char_p
+lib.runner_get_last_file_json.argtypes = [ctypes.c_char_p]
+lib.runner_get_last_file_json.restype = ctypes.c_char_p
+lib.runner_cleanup.restype = ctypes.c_int
+
+# Initialize the FFI layer
+lib.runner_init()
+
+try:
+    # Create an ALT file
+    alt_file = {
+        "id": "test_alt_file",
+        "title": "Test ALT File",
+        "mode": "normal",
+        "tasks": [
+            {
+                "id": "task1",
+                "description": "First task",
+                "dependencies": None
+            },
+            {
+                "id": "task2",
+                "description": "Second task",
+                "dependencies": ["task1"]
+            }
+        ]
+    }
+    
+    # Parse ALT file
+    alt_json = json.dumps(alt_file)
+    result = lib.runner_parse_alt_file(alt_json.encode('utf-8'))
+    
+    if result == 0:
+        error = lib.runner_get_last_error()
+        print(f"Error: {error.decode('utf-8')}")
+        lib.runner_free_string(error)
+        exit(1)
+    
+    # Add task results
+    task1_result = {
+        "task_id": "task1",
+        "status": "completed",
+        "output": {"text": "Task 1 output"}
+    }
+    
+    task2_result = {
+        "task_id": "task2",
+        "status": "failed",
+        "error": "Task 2 failed"
+    }
+    
+    lib.runner_add_task_result(
+        "test_alt_file".encode('utf-8'),
+        json.dumps(task1_result).encode('utf-8')
+    )
+    
+    lib.runner_add_task_result(
+        "test_alt_file".encode('utf-8'),
+        json.dumps(task2_result).encode('utf-8')
+    )
+    
+    # Generate LAST file
+    with tempfile.TemporaryDirectory() as temp_dir:
+        last_id_ptr = lib.runner_generate_last_file(
+            "test_alt_file".encode('utf-8'),
+            temp_dir.encode('utf-8')
+        )
+        
+        if last_id_ptr:
+            last_id = ctypes.string_at(last_id_ptr).decode('utf-8')
+            print(f"Generated LAST file: {last_id}")
+            
+            # Get LAST file as JSON
+            last_json_ptr = lib.runner_get_last_file_json(last_id.encode('utf-8'))
+            
+            if last_json_ptr:
+                last_json = ctypes.string_at(last_json_ptr).decode('utf-8')
+                last_data = json.loads(last_json)
+                print(f"LAST file success rate: {last_data['success_rate'] * 100:.2f}%")
+                
+                lib.runner_free_string(last_json_ptr)
+            
+            lib.runner_free_string(last_id_ptr)
+        else:
+            error = lib.runner_get_last_error()
+            print(f"Error: {error.decode('utf-8')}")
+            lib.runner_free_string(error)
+
+finally:
+    # Clean up
+    lib.runner_cleanup()
 ```
 
-### GET /task/{id}
+## Building and Testing
 
-This endpoint gets the status of a task.
+### Prerequisites
+- Rust 1.54 or later
+- Cargo
+- GraphViz (optional, for execution graph visualization)
 
-**Response**:
-```json
-{
-  "id": "Task ID",
-  "status": "completed|partial_success|failed|processing|error",
-  "alt_file": "ALT file ID",
-  "last_file": "LAST file name",
-  "metadata": {
-    "timestamp": "ISO timestamp",
-    "task_id": "Task ID",
-    "alt_file_id": "ALT file ID",
-    "success_rate": "Success rate (0.0-1.0)",
-    "execution_time_ms": "Execution time in milliseconds"
-  }
-}
+### Building
+```bash
+cargo build --release
+```
+
+### Testing
+```bash
+cargo test
+```
+
+### Building FFI Library
+```bash
+cargo build --release --features ffi
 ```
 
 ## Configuration
 
-The Runner Service can be configured using environment variables:
+The Runner Service can be configured through environment variables:
 
-- **OUTPUT_DIR**: Directory for output files (default: /tmp/runner-service/output)
-- **AI_SERVICE_URL**: URL of the AI Orchestrator service (default: http://ai-orchestrator:8000)
-- **AI_TIMEOUT_SECONDS**: Timeout for AI service requests in seconds (default: 60)
-- **MAX_CONCURRENT_TASKS**: Maximum number of concurrent tasks (default: 4)
-- **USE_MOCK_AI**: Whether to use mock AI service (default: false)
-
-## File Formats
-
-### ALT File Format
-
-ALT files are JSON files with the following structure:
-
-```json
-{
-  "id": "Unique ID",
-  "version": "Version string",
-  "created_at": "ISO timestamp",
-  "title": "Title string",
-  "description": "Optional description",
-  "mode": "normal|dream|explore|chaos",
-  "persona": "Optional persona",
-  "tasks": [
-    {
-      "id": "Task ID",
-      "description": "Task description",
-      "dependencies": ["Optional array of task IDs"],
-      "parameters": "Optional parameters object",
-      "timeout_seconds": "Optional timeout in seconds",
-      "retry_count": "Optional retry count"
-    }
-  ],
-  "metadata": "Optional metadata object"
-}
-```
-
-### LAST File Format
-
-LAST files are JSON files with the following structure:
-
-```json
-{
-  "id": "Unique ID",
-  "version": "Version string",
-  "created_at": "ISO timestamp",
-  "alt_file_id": "ALT file ID",
-  "alt_file_title": "ALT file title",
-  "execution_id": "Execution ID",
-  "status": "success|partial_success|failure",
-  "mode": "normal|dream|explore|chaos",
-  "persona": "Optional persona",
-  "task_results": {
-    "task_id": {
-      "task_id": "Task ID",
-      "execution_id": "Execution ID",
-      "status": "pending|running|completed|failed|cancelled|timeout",
-      "start_time": "ISO timestamp",
-      "end_time": "Optional ISO timestamp",
-      "duration_ms": "Optional duration in milliseconds",
-      "output": "Optional output object",
-      "error": "Optional error string",
-      "metadata": "Optional metadata object"
-    }
-  },
-  "summary": "Optional summary string",
-  "success_rate": "Success rate (0.0-1.0)",
-  "execution_time_ms": "Execution time in milliseconds",
-  "metadata": "Optional metadata object"
-}
-```
-
-## Performance Considerations
-
-The Runner Service is designed to handle parallel task execution efficiently. Here are some performance considerations:
-
-- **Task Scheduling**: Tasks are scheduled based on their dependencies, with independent tasks executed in parallel.
-- **Resource Usage**: The service monitors memory usage and execution time to optimize resource usage.
-- **Concurrency**: The maximum number of concurrent tasks can be configured to match available resources.
-- **Timeouts**: Tasks have configurable timeouts to prevent resource exhaustion.
-- **Retries**: Tasks can be configured to retry on failure, with a configurable retry count.
-
-## Error Handling
-
-The Runner Service includes comprehensive error handling:
-
-- **ALT File Validation**: ALT files are validated before processing, with detailed error messages for invalid files.
-- **Task Execution**: Task execution errors are captured and reported in the LAST file.
-- **AI Service Integration**: AI service errors are handled gracefully, with fallback to mock responses when necessary.
-- **LAST File Generation**: LAST file generation errors are logged and reported.
-
-## Testing
-
-The Runner Service includes comprehensive tests:
-
-- **Unit Tests**: Each component has unit tests to verify its functionality.
-- **Integration Tests**: Integration tests verify that components work together correctly.
-- **Performance Tests**: Performance tests verify that the service meets performance requirements.
-
-## Future Improvements
-
-Potential future improvements for the Runner Service include:
-
-- **Distributed Task Execution**: Support for distributed task execution across multiple nodes.
-- **Advanced Scheduling**: More advanced task scheduling algorithms based on resource usage and priority.
-- **Real-time Monitoring**: Real-time monitoring of task execution status.
-- **Enhanced AI Integration**: More advanced AI integration with support for multiple AI models.
-- **Improved Error Recovery**: More sophisticated error recovery mechanisms.
+- `RUNNER_LOG_LEVEL`: Log level (trace, debug, info, warn, error)
+- `RUNNER_MAX_CONCURRENT_TASKS`: Maximum number of concurrent tasks
+- `RUNNER_OUTPUT_DIR`: Default output directory for LAST files
+- `RUNNER_AI_SERVICE_URL`: URL of the AI service
+- `RUNNER_ENABLE_COMPRESSION`: Enable compression for LAST files (true/false)

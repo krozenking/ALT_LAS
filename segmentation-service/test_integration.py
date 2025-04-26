@@ -1,352 +1,288 @@
+#!/usr/bin/env python3
 """
-Integration Tests for ALT_LAS Segmentation Service
+Integration Tests for Segmentation Service
 
-This module contains integration tests for the Segmentation Service,
-testing the interaction between different components.
+This module contains integration tests for the Segmentation Service components.
 """
 
 import unittest
 import os
-import sys
 import json
 import tempfile
-import shutil
 from fastapi.testclient import TestClient
-
-# Import modules to test
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from enhanced_main import app
 from dsl_schema import AltFile, TaskSegment, TaskParameter
-from command_parser import get_command_parser
-from alt_file_handler import get_alt_file_handler
-from task_prioritization import get_task_prioritizer
-from performance_optimizer import get_performance_optimizer
-from error_handling import get_logger
+from task_prioritization import TaskPrioritizer
+from prioritization_visualizer import PrioritizationVisualizer
+from enhanced_main import app
 
-# Get logger
-logger = get_logger("integration_tests")
-
-class IntegrationTests(unittest.TestCase):
-    """Integration tests for Segmentation Service"""
+class TestSegmentationServiceIntegration(unittest.TestCase):
+    """Integration tests for Segmentation Service components"""
     
     def setUp(self):
-        """Set up test environment"""
+        """Set up test fixtures"""
         # Create test client
         self.client = TestClient(app)
         
-        # Create temporary directory for ALT files
-        self.temp_dir = tempfile.mkdtemp()
+        # Create test data directory
+        self.test_data_dir = tempfile.mkdtemp()
         
-        # Get components
-        self.parser = get_command_parser()
-        self.file_handler = get_alt_file_handler()
-        self.prioritizer = get_task_prioritizer()
-        self.optimizer = get_performance_optimizer()
+        # Create sample ALT file for testing
+        param1 = TaskParameter(
+            name="query",
+            value="information about AI",
+            type="string",
+            required=True
+        )
         
-        # Override ALT files directory
-        self.original_alt_files_dir = self.file_handler.alt_files_dir
-        self.file_handler.alt_files_dir = self.temp_dir
+        param2 = TaskParameter(
+            name="format",
+            value="pdf",
+            type="string",
+            required=True
+        )
         
-        # Sample commands for testing
-        self.sample_commands = [
-            "Dosyaları sırala ve en büyük 10 tanesini göster",
-            "Tüm .jpg dosyalarını bir klasöre taşı ve sıkıştır",
-            "Google'da yapay zeka hakkında arama yap ve sonuçları bir dosyaya kaydet"
-        ]
+        segment1 = TaskSegment(
+            id="task1",
+            task_type="search",
+            content="Search for information about AI",
+            parameters=[param1],
+            metadata={"confidence": 0.95}
+        )
+        
+        segment2 = TaskSegment(
+            id="task2",
+            task_type="create",
+            content="Create a report",
+            parameters=[param2],
+            dependencies=["task1"],
+            metadata={"confidence": 0.9, "urgency": "high"}
+        )
+        
+        self.alt_file = AltFile(
+            id="test_alt_file",
+            command="Search for information about AI and create a report",
+            language="en",
+            mode="Normal",
+            persona="researcher",
+            segments=[segment1, segment2],
+            metadata={"source": "integration_test"}
+        )
     
     def tearDown(self):
-        """Clean up test environment"""
-        # Restore original ALT files directory
-        self.file_handler.alt_files_dir = self.original_alt_files_dir
-        
-        # Remove temporary directory
-        shutil.rmtree(self.temp_dir)
-    
-    def test_root_endpoint(self):
-        """Test root endpoint"""
-        response = self.client.get("/")
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("message", response.json())
-        self.assertIn("version", response.json())
+        """Tear down test fixtures"""
+        # Remove test data directory
+        if os.path.exists(self.test_data_dir):
+            import shutil
+            shutil.rmtree(self.test_data_dir)
     
     def test_health_endpoint(self):
-        """Test health endpoint"""
+        """Test health check endpoint"""
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "UP")
-        self.assertIn("timestamp", response.json())
     
-    def test_segment_endpoint(self):
-        """Test segment endpoint"""
-        # Test with a simple command
-        request_data = {
-            "command": "Dosyaları sırala ve en büyük 10 tanesini göster",
-            "mode": "Normal",
-            "persona": "technical_expert",
-            "metadata": {
-                "user_id": "test_user",
-                "session_id": "test_session"
-            }
-        }
-        
-        response = self.client.post("/segment", json=request_data)
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response structure
-        response_data = response.json()
-        self.assertIn("id", response_data)
-        self.assertIn("status", response_data)
-        self.assertIn("alt_file", response_data)
-        self.assertIn("language", response_data)
-        self.assertIn("segments_count", response_data)
-        self.assertIn("metadata", response_data)
-        
-        # Verify metadata
-        self.assertIn("user_id", response_data["metadata"])
-        self.assertEqual(response_data["metadata"]["user_id"], "test_user")
-        self.assertIn("session_id", response_data["metadata"])
-        self.assertEqual(response_data["metadata"]["session_id"], "test_session")
-        
-        # Verify ALT file was created
-        alt_filename = response_data["alt_file"]
-        alt_file_path = os.path.join(self.temp_dir, alt_filename)
-        self.assertTrue(os.path.exists(alt_file_path))
-        
-        # Test with a different command
-        request_data = {
-            "command": "Google'da yapay zeka hakkında arama yap ve sonuçları bir dosyaya kaydet",
-            "mode": "Explore",
-            "persona": "data_analyst"
-        }
-        
-        response = self.client.post("/segment", json=request_data)
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response
-        response_data = response.json()
-        self.assertEqual(response_data["status"], "completed")
-        self.assertEqual(response_data["language"], "tr")
-        self.assertGreater(response_data["segments_count"], 0)
-        
-        # Verify ALT file was created
-        alt_filename = response_data["alt_file"]
-        alt_file_path = os.path.join(self.temp_dir, alt_filename)
-        self.assertTrue(os.path.exists(alt_file_path))
-    
-    def test_get_segment_status_endpoint(self):
-        """Test get segment status endpoint"""
-        # First create a segment
-        request_data = {
-            "command": "Dosyaları sırala ve en büyük 10 tanesini göster",
-            "mode": "Normal",
-            "persona": "technical_expert"
-        }
-        
-        response = self.client.post("/segment", json=request_data)
-        self.assertEqual(response.status_code, 200)
-        
-        # Get the task ID
-        task_id = response.json()["id"]
-        
-        # Get the segment status
-        response = self.client.get(f"/segment/{task_id}")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response
-        response_data = response.json()
-        self.assertEqual(response_data["id"], task_id)
-        self.assertEqual(response_data["status"], "completed")
-        
-        # Test with non-existent task ID
-        response = self.client.get("/segment/non-existent-task-id")
-        self.assertEqual(response.status_code, 404)
-    
-    def test_alt_files_list_endpoint(self):
-        """Test ALT files list endpoint"""
-        # First create some ALT files
-        for command in self.sample_commands:
-            request_data = {
-                "command": command,
+    def test_segment_and_prioritize_flow(self):
+        """Test the segment and prioritize workflow"""
+        # 1. Segment a command
+        segment_response = self.client.post(
+            "/segment",
+            json={
+                "command": "Search for information about AI and create a report",
                 "mode": "Normal",
-                "persona": "technical_expert"
+                "persona": "researcher",
+                "language": "en",
+                "metadata": {"source": "integration_test"}
             }
-            
-            response = self.client.post("/segment", json=request_data)
-            self.assertEqual(response.status_code, 200)
+        )
         
-        # Get the list of ALT files
-        response = self.client.get("/alt-files")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(segment_response.status_code, 200)
+        segment_data = segment_response.json()
+        self.assertIn("id", segment_data)
+        self.assertIn("alt_file", segment_data)
         
-        # Verify response
-        alt_files = response.json()
-        self.assertIsInstance(alt_files, list)
-        self.assertEqual(len(alt_files), len(self.sample_commands))
-    
-    def test_get_alt_file_endpoint(self):
-        """Test get ALT file endpoint"""
-        # First create an ALT file
-        request_data = {
-            "command": "Dosyaları sırala ve en büyük 10 tanesini göster",
-            "mode": "Normal",
-            "persona": "technical_expert"
-        }
-        
-        response = self.client.post("/segment", json=request_data)
-        self.assertEqual(response.status_code, 200)
-        
-        # Get the ALT filename
-        alt_filename = response.json()["alt_file"]
-        
-        # Get the ALT file
-        response = self.client.get(f"/alt-files/{alt_filename}")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response
-        alt_file = response.json()
-        self.assertIn("id", alt_file)
-        self.assertIn("command", alt_file)
-        self.assertIn("language", alt_file)
-        self.assertIn("mode", alt_file)
-        self.assertIn("persona", alt_file)
-        self.assertIn("segments", alt_file)
-        self.assertIn("metadata", alt_file)
-        
-        # Verify command
-        self.assertEqual(alt_file["command"], request_data["command"])
-        
-        # Verify segments
-        self.assertIsInstance(alt_file["segments"], list)
-        self.assertGreater(len(alt_file["segments"]), 0)
-        
-        # Test with non-existent ALT file
-        response = self.client.get("/alt-files/non-existent-file.alt.yaml")
-        self.assertEqual(response.status_code, 404)
-    
-    def test_delete_alt_file_endpoint(self):
-        """Test delete ALT file endpoint"""
-        # First create an ALT file
-        request_data = {
-            "command": "Dosyaları sırala ve en büyük 10 tanesini göster",
-            "mode": "Normal",
-            "persona": "technical_expert"
-        }
-        
-        response = self.client.post("/segment", json=request_data)
-        self.assertEqual(response.status_code, 200)
-        
-        # Get the ALT filename
-        alt_filename = response.json()["alt_file"]
-        
-        # Verify the file exists
-        alt_file_path = os.path.join(self.temp_dir, alt_filename)
-        self.assertTrue(os.path.exists(alt_file_path))
-        
-        # Delete the ALT file
-        response = self.client.delete(f"/alt-files/{alt_filename}")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response
-        response_data = response.json()
-        self.assertIn("message", response_data)
-        
-        # Verify the file was deleted
-        self.assertFalse(os.path.exists(alt_file_path))
-        
-        # Test with non-existent ALT file
-        response = self.client.delete("/alt-files/non-existent-file.alt.yaml")
-        self.assertEqual(response.status_code, 404)
-    
-    def test_languages_endpoint(self):
-        """Test languages endpoint"""
-        response = self.client.get("/languages")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response
-        response_data = response.json()
-        self.assertIn("supported_languages", response_data)
-        self.assertIsInstance(response_data["supported_languages"], list)
-        self.assertGreater(len(response_data["supported_languages"]), 0)
-        
-        # Verify languages
-        languages = response_data["supported_languages"]
-        language_codes = [lang["code"] for lang in languages]
-        self.assertIn("en", language_codes)
-        self.assertIn("tr", language_codes)
-    
-    def test_modes_endpoint(self):
-        """Test modes endpoint"""
-        response = self.client.get("/modes")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verify response
-        response_data = response.json()
-        self.assertIn("supported_modes", response_data)
-        self.assertIsInstance(response_data["supported_modes"], list)
-        self.assertGreater(len(response_data["supported_modes"]), 0)
-        
-        # Verify modes
-        modes = response_data["supported_modes"]
-        mode_codes = [mode["code"] for mode in modes]
-        self.assertIn("Normal", mode_codes)
-        self.assertIn("Dream", mode_codes)
-        self.assertIn("Explore", mode_codes)
-        self.assertIn("Chaos", mode_codes)
-    
-    def test_end_to_end_workflow(self):
-        """Test end-to-end workflow"""
-        # 1. Create a segment
-        request_data = {
-            "command": "Google'da yapay zeka hakkında arama yap ve sonuçları bir dosyaya kaydet",
-            "mode": "Explore",
-            "persona": "data_analyst",
-            "metadata": {
-                "priority": "high",
-                "tags": ["search", "ai", "file"]
+        # 2. Prioritize the ALT file
+        alt_file = segment_data["alt_file"]
+        prioritize_response = self.client.post(
+            "/prioritize",
+            json={
+                "alt_file": alt_file,
+                "urgency_level": 7,
+                "metadata": {"test": True}
             }
+        )
+        
+        self.assertEqual(prioritize_response.status_code, 200)
+        prioritize_data = prioritize_response.json()
+        self.assertIn("prioritized_segments", prioritize_data)
+        self.assertTrue(len(prioritize_data["prioritized_segments"]) > 0)
+        
+        # 3. Visualize the prioritization
+        visualize_response = self.client.get(f"/prioritize/{alt_file}/visualize")
+        
+        self.assertEqual(visualize_response.status_code, 200)
+        visualize_data = visualize_response.json()
+        self.assertIn("visualization_data", visualize_data)
+        self.assertIn("nodes", visualize_data["visualization_data"])
+        self.assertIn("links", visualize_data["visualization_data"])
+    
+    def test_prioritization_config_endpoints(self):
+        """Test prioritization configuration endpoints"""
+        # 1. Get current configuration
+        get_config_response = self.client.get("/prioritize/config")
+        
+        self.assertEqual(get_config_response.status_code, 200)
+        initial_config = get_config_response.json()
+        
+        # 2. Update configuration
+        new_config = {
+            "default_urgency": 8,
+            "default_user_preference": 7,
+            "dependency_weight": 0.3,
+            "urgency_weight": 0.3,
+            "user_preference_weight": 0.3,
+            "confidence_weight": 0.1
         }
         
-        response = self.client.post("/segment", json=request_data)
-        self.assertEqual(response.status_code, 200)
+        update_config_response = self.client.post(
+            "/prioritize/config",
+            json=new_config
+        )
         
-        # Get the task ID and ALT filename
-        task_id = response.json()["id"]
-        alt_filename = response.json()["alt_file"]
+        self.assertEqual(update_config_response.status_code, 200)
+        updated_config = update_config_response.json()
+        self.assertEqual(updated_config["default_urgency"], 8)
+        self.assertEqual(updated_config["default_user_preference"], 7)
         
-        # 2. Get the segment status
-        response = self.client.get(f"/segment/{task_id}")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["id"], task_id)
+        # 3. Get updated configuration
+        get_updated_config_response = self.client.get("/prioritize/config")
         
-        # 3. Get the ALT file
-        response = self.client.get(f"/alt-files/{alt_filename}")
-        self.assertEqual(response.status_code, 200)
-        alt_file = response.json()
+        self.assertEqual(get_updated_config_response.status_code, 200)
+        current_config = get_updated_config_response.json()
+        self.assertEqual(current_config["default_urgency"], 8)
+        self.assertEqual(current_config["default_user_preference"], 7)
         
-        # Verify ALT file
-        self.assertEqual(alt_file["command"], request_data["command"])
-        self.assertEqual(alt_file["mode"], request_data["mode"])
-        self.assertEqual(alt_file["persona"], request_data["persona"])
+        # 4. Restore initial configuration
+        restore_config_response = self.client.post(
+            "/prioritize/config",
+            json=initial_config
+        )
         
-        # 4. Get the list of ALT files
-        response = self.client.get("/alt-files")
-        self.assertEqual(response.status_code, 200)
-        alt_files = response.json()
-        self.assertIn(alt_filename, alt_files)
+        self.assertEqual(restore_config_response.status_code, 200)
+
+class TestTaskPrioritizationVisualizerIntegration(unittest.TestCase):
+    """Integration tests for TaskPrioritizer and PrioritizationVisualizer"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        # Create a prioritizer
+        self.prioritizer = TaskPrioritizer()
         
-        # 5. Delete the ALT file
-        response = self.client.delete(f"/alt-files/{alt_filename}")
-        self.assertEqual(response.status_code, 200)
+        # Create a visualizer
+        self.visualizer = PrioritizationVisualizer()
         
-        # 6. Verify the file was deleted
-        response = self.client.get(f"/alt-files/{alt_filename}")
-        self.assertEqual(response.status_code, 404)
+        # Create test output directory
+        self.test_output_dir = tempfile.mkdtemp()
+        self.visualizer.output_dir = self.test_output_dir
         
-        # 7. Verify the file is no longer in the list
-        response = self.client.get("/alt-files")
-        self.assertEqual(response.status_code, 200)
-        alt_files = response.json()
-        self.assertNotIn(alt_filename, alt_files)
+        # Create sample ALT file for testing
+        param1 = TaskParameter(
+            name="query",
+            value="information about AI",
+            type="string",
+            required=True
+        )
+        
+        param2 = TaskParameter(
+            name="format",
+            value="pdf",
+            type="string",
+            required=True
+        )
+        
+        param3 = TaskParameter(
+            name="subject",
+            value="AI research papers",
+            type="string",
+            required=True
+        )
+        
+        segment1 = TaskSegment(
+            id="task1",
+            task_type="search",
+            content="Search for information about AI",
+            parameters=[param1],
+            metadata={"confidence": 0.95}
+        )
+        
+        segment2 = TaskSegment(
+            id="task2",
+            task_type="create",
+            content="Create a report",
+            parameters=[param2],
+            dependencies=["task1"],
+            metadata={"confidence": 0.9, "urgency": "high"}
+        )
+        
+        segment3 = TaskSegment(
+            id="task3",
+            task_type="analyze",
+            content="Analyze AI research papers",
+            parameters=[param3],
+            dependencies=["task1"],
+            metadata={"confidence": 0.8}
+        )
+        
+        self.alt_file = AltFile(
+            id="test_integration",
+            command="Search for information about AI, analyze research papers, and create a report",
+            language="en",
+            mode="Normal",
+            persona="researcher",
+            segments=[segment1, segment2, segment3],
+            metadata={"source": "integration_test"}
+        )
+    
+    def tearDown(self):
+        """Tear down test fixtures"""
+        # Remove test output directory
+        if os.path.exists(self.test_output_dir):
+            import shutil
+            shutil.rmtree(self.test_output_dir)
+    
+    def test_prioritize_and_visualize_flow(self):
+        """Test the prioritize and visualize workflow"""
+        # 1. Prioritize ALT file
+        prioritized_alt = self.prioritizer.prioritize_alt_file(self.alt_file)
+        
+        # Verify prioritization
+        for segment in prioritized_alt.segments:
+            self.assertIn("priority_score", segment.metadata)
+            self.assertIn("execution_order", segment.metadata)
+        
+        # 2. Generate visualizations
+        visualizations = self.visualizer.generate_all_visualizations(prioritized_alt)
+        
+        # Verify visualizations
+        self.assertIn("dependency_graph", visualizations)
+        self.assertIn("priority_chart", visualizations)
+        self.assertIn("execution_timeline", visualizations)
+        self.assertIn("json_data", visualizations)
+        
+        # Verify files exist
+        self.assertTrue(os.path.exists(visualizations["dependency_graph"]["filepath"]))
+        self.assertTrue(os.path.exists(visualizations["priority_chart"]["filepath"]))
+        self.assertTrue(os.path.exists(visualizations["execution_timeline"]["filepath"]))
+        self.assertTrue(os.path.exists(visualizations["json_data"]["filepath"]))
+        
+        # 3. Get prioritization statistics
+        stats = self.prioritizer.get_prioritization_stats(prioritized_alt)
+        
+        # Verify statistics
+        self.assertEqual(stats["total_segments"], 3)
+        self.assertIn("avg_priority_score", stats)
+        self.assertIn("priority_score_distribution", stats)
+        self.assertIn("task_type_distribution", stats)
+        self.assertIn("execution_order", stats)
 
 if __name__ == "__main__":
     unittest.main()

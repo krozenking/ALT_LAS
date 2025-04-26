@@ -15,23 +15,19 @@
   - [x] Sistem teması algılama ve uyum
   - [x] Tema testleri ve hata düzeltmeleri
 
-## Devam Eden Görevler
+- [x] **Görev 5.3:** Render Optimizasyonu
+  - [x] Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
+  - [x] Büyük listeler için sanal listeleme implementasyonu
+  - [x] React.lazy ve Suspense ile kod bölme
+  - [x] useTransition ve useDeferredValue ile render önceliklendirme
+  - [x] Performans profilleme ve darboğaz analizi
 
-### Hafta 3-4: Performans Optimizasyonu
-
-- [ ] **Görev 5.3:** Render Optimizasyonu
-  - [ ] Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
-  - [ ] Büyük listeler için sanal listeleme implementasyonu
-  - [ ] React.lazy ve Suspense ile kod bölme
-  - [ ] useTransition ve useDeferredValue ile render önceliklendirme
-  - [ ] Performans profilleme ve darboğaz analizi
-
-- [ ] **Görev 5.4:** Animasyon Optimizasyonu
-  - [ ] GPU hızlandırmalı animasyonların implementasyonu
-  - [ ] Animasyon performans testleri ve iyileştirmeleri
-  - [ ] Animasyon zamanlama ve easing fonksiyonlarının optimize edilmesi
-  - [ ] Düşük performanslı cihazlar için animasyon alternatiflerinin oluşturulması
-  - [ ] Animasyon dokümantasyonunun hazırlanması
+- [x] **Görev 5.4:** Animasyon Optimizasyonu
+  - [x] GPU hızlandırmalı animasyonların implementasyonu
+  - [x] Animasyon performans testleri ve iyileştirmeleri
+  - [x] Animasyon zamanlama ve easing fonksiyonlarının optimize edilmesi
+  - [x] Düşük performanslı cihazlar için animasyon alternatiflerinin oluşturulması
+  - [x] Animasyon dokümantasyonunun hazırlanması
 
 ## Gelecek Görevler
 

@@ -29,3 +29,20 @@ Bu dosya, `worker1_todo.md` dosyasındaki tamamlanmamış görevleri takip etmek
 
 *(Diğer görevler `worker1_todo.md` dosyasında listelenmiştir ve ilerledikçe buraya eklenecektir)*
 
+---
+
+# ALT_LAS İşçi 2 (Segmentation Service Uzmanı) - Görev Takip Listesi
+
+## CI/CD Pipeline Entegrasyonu
+- [ ] CI/CD pipeline yapılandırması
+- [ ] Otomatik test çalıştırma
+- [ ] Kod kalitesi kontrolleri
+- [ ] Otomatik dağıtım
+
+## Gelişmiş DSL Özellikleri
+- [ ] DSL sözdizimi genişletme
+- [ ] Koşullu ifadeler
+- [ ] Döngüler ve yinelemeler
+- [ ] Değişken tanımlama ve kullanma
+- [ ] Fonksiyon tanımlama ve çağırma
+

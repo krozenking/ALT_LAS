@@ -28,21 +28,27 @@
 - **Sonraki Adım**: Docker yapılandırmasının güncellenmesi ve CI/CD pipeline entegrasyonu
 
 ## İşçi 2: Segmentation Service Geliştirme Uzmanı
-- **Mevcut İlerleme**: %10
+- **Mevcut İlerleme**: %70
 - **Tamamlanan Görevler**: 
   - Temel Python/FastAPI yapısı
   - Dockerfile oluşturma
   - requirements.txt hazırlama
+  - Komut ayrıştırma modülü (command_parser.py)
+  - DSL şeması tasarımı (dsl_schema.py)
+  - *.alt dosya formatı implementasyonu
+  - ALT dosya işleme sistemi (alt_file_handler.py)
+  - Metadata ekleme sistemi
+  - Çoklu dil desteği (Türkçe ve İngilizce)
+  - Mod ve persona parametreleri entegrasyonu
+  - FastAPI uygulaması güncellemesi (updated_main.py)
+  - Bağımlılıkların güncellenmesi (requirements_updated.txt)
 - **Kalan Görevler ve Yüzdeleri**:
-  - Komut ayrıştırma modülü (%20)
-  - DSL → *.alt dönüşümü (%20)
-  - Metadata ekleme sistemi (%15)
   - Görev önceliklendirme (%10)
-  - Hata işleme ve loglama (%10)
+  - Hata işleme ve loglama iyileştirmeleri (%5)
   - Birim ve entegrasyon testleri (%5)
   - Performans optimizasyonu (%5)
   - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: PyParsing kullanarak komut ayrıştırma modülünün geliştirilmesi
+- **Sonraki Adım**: Birim ve entegrasyon testlerinin yazılması ve görev önceliklendirme sisteminin geliştirilmesi
 
 ## İşçi 3: Runner Service Geliştirme Uzmanı
 - **Mevcut İlerleme**: %15
@@ -200,7 +206,7 @@
 - **Sonraki Adım**: Rust kullanarak Policy Enforcement için temel yapının oluşturulması
 
 ## Genel Proje İlerlemesi
-- **Mevcut İlerleme**: %22
+- **Mevcut İlerleme**: %30
 - **Tamamlanan Görevler**: 
   - Proje mimarisi ve dokümantasyonu
   - Temel mikroservis yapıları
@@ -209,10 +215,11 @@
   - API Gateway temel işlevselliği
   - AI Orchestrator temel işlevselliği
   - Runner Service temel yapısı
+  - Segmentation Service gelişmiş işlevselliği
 - **Kalan Görevler ve Yüzdeleri**:
-  - Çekirdek Mikroservisler (%15)
+  - Çekirdek Mikroservisler (%10)
     - API Gateway (%1.5)
-    - Segmentation Service (%4.5)
+    - Segmentation Service (%1.5)
     - Runner Service (%4.5)
     - Archive Service (%4.5)
   - Kullanıcı Arayüzleri (%20)

@@ -28,7 +28,7 @@
 - **Sonraki Adım**: Docker yapılandırmasının güncellenmesi ve CI/CD pipeline entegrasyonu
 
 ## İşçi 2: Segmentation Service Geliştirme Uzmanı
-- **Mevcut İlerleme**: %70
+- **Mevcut İlerleme**: %95
 - **Tamamlanan Görevler**: 
   - Temel Python/FastAPI yapısı
   - Dockerfile oluşturma
@@ -42,13 +42,15 @@
   - Mod ve persona parametreleri entegrasyonu
   - FastAPI uygulaması güncellemesi (updated_main.py)
   - Bağımlılıkların güncellenmesi (requirements_updated.txt)
+  - Görev önceliklendirme sistemi (task_prioritization.py)
+  - Hata işleme ve loglama iyileştirmeleri (error_handling.py)
+  - Birim ve entegrasyon testleri (test_*.py)
+  - Performans optimizasyonu (performance_optimizer.py, performance_improvements.md)
+  - Dağıtım ve CI/CD entegrasyonu (ci_cd_config.py, deployment_config.py, deploy.py)
+  - Kapsamlı dokümantasyon (README.md)
 - **Kalan Görevler ve Yüzdeleri**:
-  - Görev önceliklendirme (%10)
-  - Hata işleme ve loglama iyileştirmeleri (%5)
-  - Birim ve entegrasyon testleri (%5)
-  - Performans optimizasyonu (%5)
-  - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: Birim ve entegrasyon testlerinin yazılması ve görev önceliklendirme sisteminin geliştirilmesi
+  - Diğer servislerle entegrasyon testleri (%5)
+- **Sonraki Adım**: Diğer servislerle entegrasyon testlerinin tamamlanması ve genel sistem testleri
 
 ## İşçi 3: Runner Service Geliştirme Uzmanı
 - **Mevcut İlerleme**: %15
@@ -206,7 +208,7 @@
 - **Sonraki Adım**: Rust kullanarak Policy Enforcement için temel yapının oluşturulması
 
 ## Genel Proje İlerlemesi
-- **Mevcut İlerleme**: %30
+- **Mevcut İlerleme**: %34
 - **Tamamlanan Görevler**: 
   - Proje mimarisi ve dokümantasyonu
   - Temel mikroservis yapıları
@@ -219,7 +221,7 @@
 - **Kalan Görevler ve Yüzdeleri**:
   - Çekirdek Mikroservisler (%10)
     - API Gateway (%1.5)
-    - Segmentation Service (%1.5)
+    - Segmentation Service (%0.5)
     - Runner Service (%4.5)
     - Archive Service (%4.5)
   - Kullanıcı Arayüzleri (%20)

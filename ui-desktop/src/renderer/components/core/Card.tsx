@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -6,22 +6,21 @@ export interface CardProps extends BoxProps {
   variant?: 'glass' | 'solid' | 'outline';
   header?: React.ReactNode;
   footer?: React.ReactNode;
-  isHoverable?: boolean;
   /**
-   * Accessible label for the card when content is not descriptive enough
+   * Accessible label for the card when the content is not descriptive enough
    */
   ariaLabel?: string;
   /**
-   * Accessible role for the card (e.g., 'region', 'article', etc.)
+   * ARIA role for the card
    */
   ariaRole?: string;
 }
 
-export const Card: React.FC<CardProps> = ({
+// Using React.memo to prevent unnecessary re-renders
+export const Card: React.FC<CardProps> = memo(({
   variant = 'glass',
   header,
   footer,
-  isHoverable = true,
   children,
   ariaLabel,
   ariaRole = 'region',
@@ -29,8 +28,8 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   const { colorMode } = useColorMode();
   
-  // Apply glassmorphism effect based on color mode and variant
-  const getCardStyle = () => {
+  // Memoize variant style to prevent recalculation on every render
+  const getVariantStyle = useMemo(() => {
     if (variant === 'glass') {
       return colorMode === 'light' 
         ? glassmorphism.create(0.7, 10, 1)
@@ -38,89 +37,70 @@ export const Card: React.FC<CardProps> = ({
     } else if (variant === 'solid') {
       return {
         bg: colorMode === 'light' ? 'white' : 'gray.800',
+        border: '1px solid',
+        borderColor: colorMode === 'light' ? 'gray.200' : 'gray.700',
         boxShadow: 'md',
-        borderRadius: 'md',
       };
     } else if (variant === 'outline') {
       return {
         bg: 'transparent',
         border: '1px solid',
-        borderColor: colorMode === 'light' ? 'gray.200' : 'gray.700',
-        borderRadius: 'md',
+        borderColor: colorMode === 'light' ? 'gray.300' : 'gray.600',
       };
     }
     
     return {};
-  };
+  }, [variant, colorMode]);
   
-  // Hover effect
-  const hoverStyle = isHoverable ? {
-    _hover: {
-      transform: 'translateY(-4px)',
-      boxShadow: 'lg',
-      transition: 'all 0.3s ease',
-    }
-  } : {};
-
   // Accessibility attributes
-  const accessibilityProps = {
+  const accessibilityProps = useMemo(() => ({
     role: ariaRole,
     'aria-label': ariaLabel,
-    tabIndex: 0,
-    _focus: {
-      boxShadow: 'outline',
-      outline: 'none',
-    }
-  };
+  }), [ariaRole, ariaLabel]);
   
   return (
     <Box
+      borderRadius="lg"
+      overflow="hidden"
       display="flex"
       flexDirection="column"
-      overflow="hidden"
-      transition="all 0.2s ease-in-out"
-      {...getCardStyle()}
-      {...hoverStyle}
+      {...getVariantStyle}
       {...accessibilityProps}
       {...rest}
     >
-      {/* Card Header */}
       {header && (
-        <Box
-          p={4}
-          borderBottom="1px solid"
-          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
+        <Box 
+          p={6} 
+          borderBottom="1px solid" 
+          borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
           className="card-header"
-          role="heading"
-          aria-level={2}
         >
           {header}
         </Box>
       )}
       
-      {/* Card Content */}
-      <Box
-        p={4}
+      <Box 
+        p={6} 
         flex="1"
-        className="card-content"
+        className="card-body"
       >
         {children}
       </Box>
       
-      {/* Card Footer */}
       {footer && (
-        <Box
-          p={4}
-          borderTop="1px solid"
-          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
+        <Box 
+          p={6} 
+          borderTop="1px solid" 
+          borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
           className="card-footer"
-          aria-label="Card footer"
         >
           {footer}
         </Box>
       )}
     </Box>
   );
-};
+});
+
+Card.displayName = 'Card';
 
 export default Card;

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
 export interface IconButtonProps extends BoxProps {
-  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
+  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline' | 'high-contrast' | 'high-contrast-secondary';
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
   isLoading?: boolean;
@@ -12,7 +12,8 @@ export interface IconButtonProps extends BoxProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
-export const IconButton: React.FC<IconButtonProps> = ({
+// Using React.memo to prevent unnecessary re-renders
+export const IconButton: React.FC<IconButtonProps> = memo(({
   variant = 'glass',
   size = 'md',
   isDisabled = false,
@@ -24,8 +25,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
 }) => {
   const { colorMode } = useColorMode();
   
-  // Apply glassmorphism effect based on color mode and variant
-  const getGlassStyle = () => {
+  // Memoize variant style to prevent recalculation on every render
+  const getGlassStyle = useMemo(() => {
     if (variant === 'glass') {
       return colorMode === 'light' 
         ? glassmorphism.create(0.7, 8, 1)
@@ -62,13 +63,39 @@ export const IconButton: React.FC<IconButtonProps> = ({
         borderColor: colorMode === 'light' ? 'primary.500' : 'primary.400',
         color: colorMode === 'light' ? 'primary.500' : 'primary.400',
       };
+    } else if (variant === 'high-contrast') {
+      return {
+        bg: colorMode === 'light' 
+          ? 'highContrast.light.primary' 
+          : 'highContrast.dark.primary',
+        color: colorMode === 'light' 
+          ? 'white' 
+          : 'black',
+        border: '2px solid',
+        borderColor: colorMode === 'light' 
+          ? 'black' 
+          : 'white',
+      };
+    } else if (variant === 'high-contrast-secondary') {
+      return {
+        bg: colorMode === 'light' 
+          ? 'highContrast.light.secondary' 
+          : 'highContrast.dark.secondary',
+        color: colorMode === 'light' 
+          ? 'white' 
+          : 'black',
+        border: '2px solid',
+        borderColor: colorMode === 'light' 
+          ? 'black' 
+          : 'white',
+      };
     }
     
     return {};
-  };
+  }, [variant, colorMode]);
   
-  // Size styles
-  const getSizeStyle = () => {
+  // Memoize size styles to prevent recalculation on every render
+  const getSizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
         return { 
@@ -90,18 +117,18 @@ export const IconButton: React.FC<IconButtonProps> = ({
           fontSize: 'md' 
         };
     }
-  };
+  }, [size]);
   
-  // Disabled styles
-  const disabledStyle = isDisabled ? {
+  // Memoize disabled styles
+  const disabledStyle = useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
     _active: {},
-  } : {};
+  } : {}, [isDisabled]);
   
-  // Loading styles
-  const loadingStyle = isLoading ? {
+  // Memoize loading styles
+  const loadingStyle = useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
     _before: {
@@ -118,24 +145,66 @@ export const IconButton: React.FC<IconButtonProps> = ({
       borderTopColor: 'transparent',
       animation: 'spin 0.8s linear infinite',
     },
-  } : {};
+  } : {}, [isLoading]);
+  
+  // Memoize hover and active styles
+  const interactionStyles = useMemo(() => {
+    if (isDisabled || isLoading) return {};
+    
+    if (variant.startsWith('high-contrast')) {
+      return {
+        _hover: {
+          transform: 'scale(1.05)',
+          boxShadow: 'lg',
+        },
+        _active: {
+          transform: 'scale(1)',
+        },
+        _focus: {
+          boxShadow: 'high-contrast-focus',
+          outline: 'none',
+        },
+      };
+    }
+    
+    return {
+      _hover: {
+        transform: 'translateY(-2px)',
+        boxShadow: 'md',
+      },
+      _active: {
+        transform: 'translateY(0)',
+      },
+      _focus: {
+        boxShadow: 'outline',
+        outline: 'none',
+      },
+    };
+  }, [variant, isDisabled, isLoading]);
   
   // Accessibility attributes
-  const accessibilityProps = {
+  const accessibilityProps = useMemo(() => ({
     role: 'button',
     'aria-label': ariaLabel,
     'aria-disabled': isDisabled,
     'aria-busy': isLoading,
     tabIndex: isDisabled ? -1 : 0,
-    onKeyDown: !isDisabled && !isLoading 
-      ? (e: React.KeyboardEvent) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onClick?.(e as unknown as React.MouseEvent);
-          }
-        }
-      : undefined,
-  };
+  }), [ariaLabel, isDisabled, isLoading]);
+  
+  // Keyboard event handler with useCallback
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isDisabled && !isLoading && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick?.(e as unknown as React.MouseEvent);
+    }
+  }, [isDisabled, isLoading, onClick]);
+  
+  // Click handler with useCallback
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (!isDisabled && !isLoading && onClick) {
+      onClick(e);
+    }
+  }, [isDisabled, isLoading, onClick]);
   
   return (
     <Box
@@ -145,28 +214,21 @@ export const IconButton: React.FC<IconButtonProps> = ({
       justifyContent="center"
       borderRadius="md"
       transition="all 0.2s ease-in-out"
-      _hover={!isDisabled && !isLoading ? {
-        transform: 'translateY(-2px)',
-        boxShadow: 'md',
-      } : {}}
-      _active={!isDisabled && !isLoading ? {
-        transform: 'translateY(0)',
-      } : {}}
-      _focus={{
-        boxShadow: 'outline',
-        outline: 'none',
-      }}
-      {...getGlassStyle()}
-      {...getSizeStyle()}
+      onKeyDown={handleKeyDown}
+      onClick={handleClick}
+      {...getGlassStyle}
+      {...getSizeStyle}
       {...disabledStyle}
       {...loadingStyle}
+      {...interactionStyles}
       {...accessibilityProps}
-      onClick={!isDisabled && !isLoading ? onClick : undefined}
       {...rest}
     >
       {isLoading ? <Box opacity={0}>{icon}</Box> : icon}
     </Box>
   );
-};
+});
+
+IconButton.displayName = 'IconButton';
 
 export default IconButton;

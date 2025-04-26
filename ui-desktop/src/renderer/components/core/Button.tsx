@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
 export interface ButtonProps extends BoxProps {
-  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
+  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline' | 'high-contrast' | 'high-contrast-secondary' | 'high-contrast-outline';
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
   isLoading?: boolean;
@@ -11,27 +11,28 @@ export interface ButtonProps extends BoxProps {
   rightIcon?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
   /**
-   * Accessible label for the button when the button content is not descriptive enough
+   * Accessible label for the button when the content is not descriptive enough
    */
   ariaLabel?: string;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+// Using React.memo to prevent unnecessary re-renders
+export const Button: React.FC<ButtonProps> = memo(({
   variant = 'glass',
   size = 'md',
   isDisabled = false,
   isLoading = false,
   leftIcon,
   rightIcon,
-  onClick,
   children,
+  onClick,
   ariaLabel,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
   
-  // Apply glassmorphism effect based on color mode and variant
-  const getGlassStyle = () => {
+  // Memoize style functions to prevent recalculation on every render
+  const getVariantStyle = useCallback(() => {
     if (variant === 'glass') {
       return colorMode === 'light' 
         ? glassmorphism.create(0.7, 8, 1)
@@ -68,34 +69,86 @@ export const Button: React.FC<ButtonProps> = ({
         borderColor: colorMode === 'light' ? 'primary.500' : 'primary.400',
         color: colorMode === 'light' ? 'primary.500' : 'primary.400',
       };
+    } else if (variant === 'high-contrast') {
+      return {
+        bg: colorMode === 'light' 
+          ? 'highContrast.light.primary' 
+          : 'highContrast.dark.primary',
+        color: colorMode === 'light' 
+          ? 'white' 
+          : 'black',
+        border: '2px solid',
+        borderColor: colorMode === 'light' 
+          ? 'black' 
+          : 'white',
+      };
+    } else if (variant === 'high-contrast-secondary') {
+      return {
+        bg: colorMode === 'light' 
+          ? 'highContrast.light.secondary' 
+          : 'highContrast.dark.secondary',
+        color: colorMode === 'light' 
+          ? 'white' 
+          : 'black',
+        border: '2px solid',
+        borderColor: colorMode === 'light' 
+          ? 'black' 
+          : 'white',
+      };
+    } else if (variant === 'high-contrast-outline') {
+      return {
+        bg: 'transparent',
+        color: colorMode === 'light' 
+          ? 'highContrast.light.text' 
+          : 'highContrast.dark.text',
+        border: '3px solid',
+        borderColor: colorMode === 'light' 
+          ? 'highContrast.light.primary' 
+          : 'highContrast.dark.primary',
+      };
     }
     
     return {};
-  };
+  }, [variant, colorMode]);
   
-  // Size styles
-  const getSizeStyle = () => {
+  // Memoize size styles to prevent recalculation on every render
+  const getSizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
-        return { px: 3, py: 1, fontSize: 'sm' };
+        return { 
+          px: 3, 
+          py: 1, 
+          fontSize: 'sm',
+          height: '32px',
+        };
       case 'lg':
-        return { px: 6, py: 3, fontSize: 'lg' };
+        return { 
+          px: 6, 
+          py: 3, 
+          fontSize: 'lg',
+          height: '48px',
+        };
       case 'md':
       default:
-        return { px: 4, py: 2, fontSize: 'md' };
+        return { 
+          px: 4, 
+          py: 2, 
+          fontSize: 'md',
+          height: '40px',
+        };
     }
-  };
+  }, [size]);
   
-  // Disabled styles
-  const disabledStyle = isDisabled ? {
+  // Memoize disabled styles
+  const disabledStyle = useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
     _active: {},
-  } : {};
+  } : {}, [isDisabled]);
   
-  // Loading styles
-  const loadingStyle = isLoading ? {
+  // Memoize loading styles
+  const loadingStyle = useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
     _before: {
@@ -112,14 +165,63 @@ export const Button: React.FC<ButtonProps> = ({
       borderTopColor: 'transparent',
       animation: 'spin 0.8s linear infinite',
     },
-  } : {};
+  } : {}, [isLoading]);
+  
+  // Memoize hover and active styles
+  const interactionStyles = useMemo(() => {
+    if (isDisabled || isLoading) return {};
+    
+    if (variant.startsWith('high-contrast')) {
+      return {
+        _hover: {
+          transform: 'scale(1.05)',
+          bg: variant === 'high-contrast' 
+            ? (colorMode === 'light' ? 'blue.800' : 'cyan.300')
+            : variant === 'high-contrast-secondary'
+              ? (colorMode === 'light' ? 'red.800' : 'yellow.300')
+              : 'transparent',
+        },
+        _active: {
+          transform: 'scale(1)',
+        },
+        _focus: {
+          boxShadow: 'high-contrast-focus',
+          outline: 'none',
+        },
+      };
+    }
+    
+    return {
+      _hover: {
+        transform: 'translateY(-2px)',
+        boxShadow: 'md',
+        ...(variant === 'glass-primary' && {
+          bg: colorMode === 'light' 
+            ? 'rgba(62, 92, 118, 0.9)' 
+            : 'rgba(62, 92, 118, 0.7)',
+        }),
+        ...(variant === 'glass-secondary' && {
+          bg: colorMode === 'light' 
+            ? 'rgba(199, 144, 96, 0.9)' 
+            : 'rgba(199, 144, 96, 0.7)',
+        }),
+      },
+      _active: {
+        transform: 'translateY(0)',
+      },
+      _focus: {
+        boxShadow: 'outline',
+        outline: 'none',
+      },
+    };
+  }, [variant, colorMode, isDisabled, isLoading]);
   
   // Accessibility attributes
-  const accessibilityProps = {
+  const accessibilityProps = useMemo(() => ({
     role: 'button',
+    'aria-label': ariaLabel || (typeof children === 'string' ? children : undefined),
     'aria-disabled': isDisabled,
     'aria-busy': isLoading,
-    'aria-label': ariaLabel,
     tabIndex: isDisabled ? -1 : 0,
     onKeyDown: !isDisabled && !isLoading 
       ? (e: React.KeyboardEvent) => {
@@ -129,7 +231,23 @@ export const Button: React.FC<ButtonProps> = ({
           }
         }
       : undefined,
-  };
+  }), [ariaLabel, children, isDisabled, isLoading, onClick]);
+  
+  // Handle click event with useCallback to prevent recreation on every render
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (!isDisabled && !isLoading && onClick) {
+      onClick(e);
+    }
+  }, [isDisabled, isLoading, onClick]);
+  
+  // Combine all styles
+  const combinedStyles = useMemo(() => ({
+    ...getVariantStyle(),
+    ...getSizeStyle,
+    ...disabledStyle,
+    ...loadingStyle,
+    ...interactionStyles,
+  }), [getVariantStyle, getSizeStyle, disabledStyle, loadingStyle, interactionStyles]);
   
   return (
     <Box
@@ -140,38 +258,18 @@ export const Button: React.FC<ButtonProps> = ({
       borderRadius="md"
       fontWeight="medium"
       transition="all 0.2s ease-in-out"
-      _hover={!isDisabled && !isLoading ? {
-        transform: 'translateY(-2px)',
-        boxShadow: 'md',
-      } : {}}
-      _active={!isDisabled && !isLoading ? {
-        transform: 'translateY(0)',
-      } : {}}
-      _focus={{
-        boxShadow: 'outline',
-        outline: 'none',
-      }}
-      {...getGlassStyle()}
-      {...getSizeStyle()}
-      {...disabledStyle}
-      {...loadingStyle}
+      onClick={handleClick}
+      {...combinedStyles}
       {...accessibilityProps}
-      onClick={!isDisabled && !isLoading ? onClick : undefined}
       {...rest}
     >
-      {leftIcon && (
-        <Box mr={2} display="inline-flex" alignItems="center" aria-hidden="true">
-          {leftIcon}
-        </Box>
-      )}
+      {leftIcon && <Box mr={2}>{leftIcon}</Box>}
       {isLoading ? <Box opacity={0}>{children}</Box> : children}
-      {rightIcon && (
-        <Box ml={2} display="inline-flex" alignItems="center" aria-hidden="true">
-          {rightIcon}
-        </Box>
-      )}
+      {rightIcon && <Box ml={2}>{rightIcon}</Box>}
     </Box>
   );
-};
+});
+
+Button.displayName = 'Button';
 
 export default Button;

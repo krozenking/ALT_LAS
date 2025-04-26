@@ -1,26 +1,26 @@
 # İşçi 1: Backend Lider - API Gateway Geliştirme Todo Listesi
 
 ## Temel Altyapı (Hafta 1-2)
-- [ ] **Görev 1.1:** API Gateway projesinin kurulumu (Express.js/Node.js)
-  - [ ] Monorepo yapısında API Gateway projesinin oluşturulması
-  - [ ] Temel Express.js uygulamasının kurulumu
-  - [ ] Proje yapılandırması ve bağımlılıkların yönetimi
-  - [ ] TypeScript entegrasyonu
-- [ ] **Görev 1.2:** Temel middleware yapılandırması
-  - [ ] CORS yapılandırması
-  - [ ] Rate limiting implementasyonu
-  - [ ] Body parsing middleware'i
-  - [ ] Güvenlik middleware'leri (helmet, vb.)
-- [ ] **Görev 1.3:** Loglama altyapısının kurulumu (Winston)
-  - [ ] Winston logger yapılandırması
-  - [ ] Log formatları ve seviyeleri
-  - [ ] Log rotasyonu ve saklama stratejisi
-  - [ ] Request/response loglama middleware'i
-- [ ] **Görev 1.4:** Hata işleme mekanizmasının geliştirilmesi
-  - [ ] Global hata yakalama middleware'i
-  - [ ] Hata sınıfları ve kodları
-  - [ ] Hata yanıtlarının standardizasyonu
-  - [ ] Validation hata işleme
+- [x] **Görev 1.1:** API Gateway projesinin kurulumu (Express.js/Node.js)
+  - [x] Monorepo yapısında API Gateway projesinin oluşturulması
+  - [x] Temel Express.js uygulamasının kurulumu
+  - [x] Proje yapılandırması ve bağımlılıkların yönetimi
+  - [x] TypeScript entegrasyonu
+- [x] **Görev 1.2:** Temel middleware yapılandırması
+  - [x] CORS yapılandırması
+  - [x] Rate limiting implementasyonu
+  - [x] Body parsing middleware'i
+  - [x] Güvenlik middleware'leri (helmet, vb.)
+- [x] **Görev 1.3:** Loglama altyapısının kurulumu (Winston)
+  - [x] Winston logger yapılandırması
+  - [x] Log formatları ve seviyeleri
+  - [x] Log rotasyonu ve saklama stratejisi
+  - [x] Request/response loglama middleware'i
+- [x] **Görev 1.4:** Hata işleme mekanizmasının geliştirilmesi
+  - [x] Global hata yakalama middleware'i
+  - [x] Hata sınıfları ve kodları
+  - [x] Hata yanıtlarının standardizasyonu
+  - [x] Validation hata işleme
 - [ ] **Görev 1.5:** Swagger/OpenAPI entegrasyonu
   - [ ] Swagger/OpenAPI şemasının oluşturulması
   - [ ] API dokümantasyon UI'ının entegrasyonu
@@ -163,8 +163,8 @@
   - [ ] Ortam yapılandırması (dev, test, prod)
 
 ## Acil Görevler (Şu an için)
-- [ ] API Gateway projesinin temel yapısını oluşturma
-- [ ] Express.js ve TypeScript kurulumu
-- [ ] Temel middleware yapılandırması
+- [x] API Gateway projesinin temel yapısını oluşturma
+- [x] Express.js ve TypeScript kurulumu
+- [x] Temel middleware yapılandırması
 - [ ] Swagger/OpenAPI entegrasyonu başlangıcı
 - [ ] Basit bir kimlik doğrulama mekanizması prototipi

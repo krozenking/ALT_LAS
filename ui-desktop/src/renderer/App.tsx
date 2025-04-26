@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Box, Flex, useColorMode, Button, HStack, Text, useToast } from '@chakra-ui/react';
 import { ChakraProvider } from '@chakra-ui/react';
 import DemoLayout from '@/components/layouts/DemoLayout';
 import { theme, highContrastTheme } from '@/styles/';
 import NotificationCenter from '@/components/feature/NotificationCenter';
+import FileManager from '@/components/feature/FileManager';
 
 const App: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
-  const [isHighContrast, setIsHighContrast] = useState(false);
+  const [isHighContrast, setIsHighContrast] = React.useState(false);
   const toast = useToast();
   
   // Check for high contrast preference in localStorage
-  useEffect(() => {
+  React.useEffect(() => {
     const savedPreference = localStorage.getItem('highContrastMode');
     if (savedPreference === 'true') {
       setIsHighContrast(true);
@@ -51,6 +52,7 @@ const App: React.FC = () => {
             {isHighContrast ? 'Standart Mod' : 'Yüksek Kontrast'}
           </Button>
           <NotificationCenter />
+          <FileManager />
         </HStack>
         
         <DemoLayout 

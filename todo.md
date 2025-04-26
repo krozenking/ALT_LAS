@@ -1,48 +1,52 @@
-# Çalışan 1 (Backend Lider - API Gateway) Görevleri
+# ALT_LAS İşçi 5 (UI/UX Geliştirici) - Görev Takip Listesi
 
-Bu dosya, `worker1_todo.md` dosyasındaki tamamlanmamış görevleri takip etmek için oluşturulmuştur.
+## Tamamlanan Görevler
+- [x] **Görev 5.1:** WCAG 2.1 AA Uyumluluğu
+  - [x] Tüm bileşenlerin ARIA rolleri ve özelliklerinin eklenmesi
+  - [x] Klavye navigasyonu ve odak yönetiminin iyileştirilmesi
+  - [x] Renk kontrastı ve görsel ipuçlarının optimize edilmesi
+  - [x] Ekran okuyucu uyumluluğunun test edilmesi ve iyileştirilmesi
+  - [x] Erişilebilirlik dokümantasyonunun hazırlanması
 
-## Kimlik Doğrulama ve Yetkilendirme (Devam)
+- [x] **Görev 5.2:** Yüksek Kontrast Tema
+  - [x] Yüksek kontrast tema tasarımı
+  - [x] Yüksek kontrast tema implementasyonu
+  - [x] Tema geçiş mekanizmasının iyileştirilmesi
+  - [x] Sistem teması algılama ve uyum
+  - [x] Tema testleri ve hata düzeltmeleri
 
-- [ ] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
-  - [x] Route bazlı yetkilendirme (Tüm ana servis rotaları tamamlandı)
-  - [x] Dinamik izin kontrolü (Middleware güncellendi, Auth rotalarına uygulandı)
-- [ ] **Görev 1.8:** Kullanıcı yönetimi API'leri
-  - [x] Şifre sıfırlama ve değiştirme (API endpointleri eklendi)
-  - [x] Kullanıcı rolleri ve izinleri yönetimi (API endpointleri ve servis fonksiyonları eklendi)
-- [x] **Görev 1.9:** Oturum yönetimi ve token yenileme (Token yenileme uygulandı, zaman aşımı ve çoklu cihaz eksik)
-  - [ ] Oturum zaman aşımı yönetimi
-  - [ ] Çoklu cihaz oturum yönetimi
-- [ ] **Görev 1.10:** Güvenlik testleri
-  - [ ] Kimlik doğrulama testleri
-  - [ ] Yetkilendirme testleri
-  - [ ] Token yönetimi testleri
-  - [ ] Güvenlik açığı taraması
+## Devam Eden Görevler
 
-## Servis Entegrasyonu (Başlangıç)
+### Hafta 3-4: Performans Optimizasyonu
 
-- [ ] **Görev 1.11:** Segmentation Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
+- [ ] **Görev 5.3:** Render Optimizasyonu
+  - [ ] Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
+  - [ ] Büyük listeler için sanal listeleme implementasyonu
+  - [ ] React.lazy ve Suspense ile kod bölme
+  - [ ] useTransition ve useDeferredValue ile render önceliklendirme
+  - [ ] Performans profilleme ve darboğaz analizi
 
-*(Diğer görevler `worker1_todo.md` dosyasında listelenmiştir ve ilerledikçe buraya eklenecektir)*
+- [ ] **Görev 5.4:** Animasyon Optimizasyonu
+  - [ ] GPU hızlandırmalı animasyonların implementasyonu
+  - [ ] Animasyon performans testleri ve iyileştirmeleri
+  - [ ] Animasyon zamanlama ve easing fonksiyonlarının optimize edilmesi
+  - [ ] Düşük performanslı cihazlar için animasyon alternatiflerinin oluşturulması
+  - [ ] Animasyon dokümantasyonunun hazırlanması
 
----
+## Gelecek Görevler
 
-# ALT_LAS İşçi 2 (Segmentation Service Uzmanı) - Görev Takip Listesi
+### Hafta 5-6: Akıllı Bildirim Sistemi
+- [ ] **Görev 5.5:** Bildirim Merkezi
+- [ ] **Görev 5.6:** Odaklanma Modu
 
-## CI/CD Pipeline Entegrasyonu
-- [ ] CI/CD pipeline yapılandırması
-- [ ] Otomatik test çalıştırma
-- [ ] Kod kalitesi kontrolleri
-- [ ] Otomatik dağıtım
+### Hafta 7-8: Gelişmiş Ekran Yakalama Özellikleri
+- [ ] **Görev 5.7:** Akıllı Nesne Seçimi
+- [ ] **Görev 5.8:** Ekran Kaydı Özellikleri
 
-## Gelişmiş DSL Özellikleri
-- [ ] DSL sözdizimi genişletme
-- [ ] Koşullu ifadeler
-- [ ] Döngüler ve yinelemeler
-- [ ] Değişken tanımlama ve kullanma
-- [ ] Fonksiyon tanımlama ve çağırma
+### Hafta 9-10: Adaptif Düzen Sistemi
+- [ ] **Görev 5.9:** Görev Bazlı Düzenler
+- [ ] **Görev 5.10:** Responsive Tasarım İyileştirmeleri
 
+### Hafta 11-12: Lisans Uyumluluğu ve Dokümantasyon
+- [ ] **Görev 5.11:** Lisans Uyumluluğu
+- [ ] **Görev 5.12:** Kapsamlı UI Dokümantasyonu

@@ -483,6 +483,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
         placement="right"
         onClose={onClose}
         size="xl"
+        aria-labelledby="performance-monitor-header"
       >
         <DrawerOverlay />
         <DrawerContent
@@ -492,7 +493,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold">Performans Monitörü</Text>
+              <Text fontSize="xl" fontWeight="bold" id="performance-monitor-header">Performans Monitörü</Text>
               <HStack>
                 <Button
                   size="sm"

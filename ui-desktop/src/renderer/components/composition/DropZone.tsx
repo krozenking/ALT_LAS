@@ -45,6 +45,8 @@ export const DropZone: React.FC<DropZoneProps> = ({
       p={4}
       {...glassStyle}
       {...activeStyle}
+      aria-label="Drop target for panels"
+      aria-dropeffect={isActive ? "move" : "none"}
       {...rest}
     >
       {children || (

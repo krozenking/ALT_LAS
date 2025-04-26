@@ -123,6 +123,10 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
         borderColor: colorMode === 'light' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)',
         opacity: 0.7,
       } : undefined}
+      role="separator"
+      aria-orientation={orientation === 'horizontal' ? 'vertical' : (orientation === 'vertical' ? 'horizontal' : undefined)} // Orientation of the boundary it controls
+      tabIndex={0}
+      aria-label="Resize handle"
       {...rest}
     />
   );

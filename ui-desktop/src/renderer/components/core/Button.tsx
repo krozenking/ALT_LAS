@@ -131,6 +131,8 @@ export const Button: React.FC<ButtonProps> = ({
       {...loadingStyle}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       {...rest}
+      aria-disabled={isDisabled}
+      aria-busy={isLoading}
     >
       {leftIcon && (
         <Box mr={2} display="inline-flex" alignItems="center">

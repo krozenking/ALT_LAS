@@ -609,6 +609,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         placement="right"
         onClose={onClose}
         size="xl"
+        aria-labelledby="settings-panel-header"
       >
         <DrawerOverlay />
         <DrawerContent
@@ -618,7 +619,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold">Ayarlar</Text>
+              <Text fontSize="xl" fontWeight="bold" id="settings-panel-header">Ayarlar</Text>
               <HStack>
                 <FormControl display="flex" alignItems="center">
                   <FormLabel htmlFor="show-advanced" mb="0" fontSize="sm">

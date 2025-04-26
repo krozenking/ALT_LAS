@@ -60,6 +60,7 @@ export const Card: React.FC<CardProps> = ({
       transition="all 0.2s ease-in-out"
       {...getCardStyle()}
       {...hoverStyle}
+      role="group"
       {...rest}
     >
       {/* Card Header */}

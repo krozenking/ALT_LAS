@@ -94,6 +94,13 @@ export const SplitView: React.FC<SplitViewProps> = ({
           _hover={{
             bg: colorMode === 'light' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)',
           }}
+          role="separator"
+          aria-orientation={isHorizontal ? "vertical" : "horizontal"}
+          tabIndex={0}
+          aria-valuenow={Math.round(ratio * 100)}
+          aria-valuemin={10} // Corresponds to 0.1 ratio
+          aria-valuemax={90} // Corresponds to 0.9 ratio
+          aria-label="Resize splitter"
           onMouseDown={(e) => {
             e.preventDefault();
             const initialPos = isHorizontal ? e.clientX : e.clientY;

@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: ALT_LAS API Gateway
-  description: API Gateway for ALT_LAS project - Bilgisayar sistemlerini yapay zeka ile yönetmek için tasarlanmış platform
+  description: API Gateway for ALT_LAS project - Platform designed to manage computer systems with artificial intelligence
   version: 1.0.0
   license:
     name: MIT
@@ -36,7 +36,7 @@ components:
       properties:
         command:
           type: string
-          description: Komut metni
+          description: Command text
         mode:
           type: string
           enum: [Normal, Dream, Explore, Chaos]
@@ -125,11 +125,11 @@ components:
 paths:
   /:
     get:
-      summary: API Gateway ana sayfası
-      description: API Gateway'in çalıştığını doğrulamak için kullanılır
+      summary: API Gateway homepage
+      description: Used to verify that the API Gateway is running
       responses:
         '200':
-          description: Başarılı yanıt
+          description: Successful response
           content:
             application/json:
               schema:
@@ -140,11 +140,11 @@ paths:
   
   /health:
     get:
-      summary: Sağlık kontrolü
-      description: API Gateway'in sağlık durumunu kontrol eder
+      summary: Health check
+      description: Checks the health status of the API Gateway
       responses:
         '200':
-          description: Servis çalışıyor
+          description: Service is running
           content:
             application/json:
               schema:
@@ -156,8 +156,8 @@ paths:
   
   /api/v1/segmentation:
     post:
-      summary: Komut segmentasyonu
-      description: Bir komutu alt görevlere böler ve *.alt dosyası oluşturur
+      summary: Command segmentation
+      description: Splits a command into subtasks and creates an *.alt file
       security:
         - bearerAuth: []
       requestBody:
@@ -168,21 +168,21 @@ paths:
               $ref: '#/components/schemas/SegmentationRequest'
       responses:
         '200':
-          description: Başarılı segmentasyon
+          description: Successful segmentation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SegmentationResponse'
         '400':
-          description: Geçersiz istek
+          description: Invalid request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
-          description: Yetkilendirme hatası
+          description: Authorization error
         '500':
-          description: Sunucu hatası
+          description: Server error
           content:
             application/json:
               schema:
@@ -190,8 +190,8 @@ paths:
   
   /api/v1/segmentation/{id}:
     get:
-      summary: Segmentasyon durumu
-      description: Bir segmentasyon işleminin durumunu sorgular
+      summary: Segmentation status
+      description: Queries the status of a segmentation process
       security:
         - bearerAuth: []
       parameters:
@@ -202,13 +202,13 @@ paths:
             type: string
       responses:
         '200':
-          description: Segmentasyon durumu
+          description: Segmentation status
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SegmentationResponse'
         '404':
-          description: Bulunamadı
+          description: Not found
           content:
             application/json:
               schema:
@@ -216,8 +216,8 @@ paths:
   
   /api/v1/runner:
     post:
-      summary: Alt görev çalıştırma
-      description: *.alt dosyasını işler ve *.last dosyası oluşturur
+      summary: Subtask execution
+      description: Processes the *.alt file and creates an *.last file
       security:
         - bearerAuth: []
       requestBody:
@@ -228,21 +228,21 @@ paths:
               $ref: '#/components/schemas/RunnerRequest'
       responses:
         '200':
-          description: Başarılı çalıştırma
+          description: Successful execution
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RunnerResponse'
         '400':
-          description: Geçersiz istek
+          description: Invalid request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
-          description: Yetkilendirme hatası
+          description: Authorization error
         '500':
-          description: Sunucu hatası
+          description: Server error
           content:
             application/json:
               schema:
@@ -250,8 +250,8 @@ paths:
   
   /api/v1/runner/{id}:
     get:
-      summary: Çalıştırma durumu
-      description: Bir çalıştırma işleminin durumunu sorgular
+      summary: Execution status
+      description: Queries the status of an execution process
       security:
         - bearerAuth: []
       parameters:
@@ -262,13 +262,13 @@ paths:
             type: string
       responses:
         '200':
-          description: Çalıştırma durumu
+          description: Execution status
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RunnerResponse'
         '404':
-          description: Bulunamadı
+          description: Not found
           content:
             application/json:
               schema:
@@ -276,8 +276,8 @@ paths:
   
   /api/v1/archive:
     post:
-      summary: Sonuç arşivleme
-      description: *.last dosyasını arşivler ve *.atlas veritabanına kaydeder
+      summary: Result archiving
+      description: Archives the *.last file and saves it to the *.atlas database
       security:
         - bearerAuth: []
       requestBody:
@@ -288,21 +288,21 @@ paths:
               $ref: '#/components/schemas/ArchiveRequest'
       responses:
         '200':
-          description: Başarılı arşivleme
+          description: Successful archiving
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ArchiveResponse'
         '400':
-          description: Geçersiz istek
+          description: Invalid request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
-          description: Yetkilendirme hatası
+          description: Authorization error
         '500':
-          description: Sunucu hatası
+          description: Server error
           content:
             application/json:
               schema:
@@ -310,8 +310,8 @@ paths:
   
   /api/v1/archive/{id}:
     get:
-      summary: Arşiv kaydı sorgulama
-      description: Bir arşiv kaydını sorgular
+      summary: Query archive record
+      description: Queries an archive record
       security:
         - bearerAuth: []
       parameters:
@@ -322,14 +322,15 @@ paths:
             type: string
       responses:
         '200':
-          description: Arşiv kaydı
+          description: Archive record
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ArchiveResponse'
         '404':
-          description: Bulunamadı
+          description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+

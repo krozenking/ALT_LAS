@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { 
   Box, 
   Flex, 
@@ -56,7 +56,7 @@ interface NotificationCenterProps {
   onNotificationClear?: () => void;
 }
 
-// Helper function to get priority color
+// Helper function to get priority color - Memoize edilebilir
 const getPriorityColor = (priority: NotificationPriority, colorMode: string): string => {
   switch (priority) {
     case 'critical':
@@ -71,7 +71,7 @@ const getPriorityColor = (priority: NotificationPriority, colorMode: string): st
   }
 };
 
-// Helper function to get category icon
+// Helper function to get category icon - Memoize edilebilir
 const getCategoryIcon = (category: NotificationCategory): string => {
   switch (category) {
     case 'system':
@@ -86,7 +86,7 @@ const getCategoryIcon = (category: NotificationCategory): string => {
   }
 };
 
-// Format relative time
+// Format relative time - Memoize edilebilir
 const formatRelativeTime = (date: Date): string => {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -105,7 +105,286 @@ const formatRelativeTime = (date: Date): string => {
   }
 };
 
-export const NotificationCenter: React.FC<NotificationCenterProps> = ({
+// Memoize edilmiş NotificationBell bileşeni
+const NotificationBell = memo(({ unreadCount, onOpen }: { unreadCount: number, onOpen: () => void }) => {
+  return (
+    <Box position="relative" display="inline-block">
+      <IconButton
+        aria-label="Bildirimler"
+        icon={<Box fontSize="xl">🔔</Box>}
+        variant="glass"
+        onClick={onOpen}
+        {...animations.performanceUtils.forceGPU}
+      />
+      
+      {/* Unread Badge */}
+      {unreadCount > 0 && (
+        <Badge
+          position="absolute"
+          top="-2px"
+          right="-2px"
+          borderRadius="full"
+          bg="red.500"
+          color="white"
+          fontSize="xs"
+          fontWeight="bold"
+          p="1"
+          minW="18px"
+          textAlign="center"
+          animation={`${animations.keyframes.pulse} 2s infinite`}
+          {...animations.performanceUtils.forceGPU}
+        >
+          {unreadCount}
+        </Badge>
+      )}
+    </Box>
+  );
+});
+
+// Memoize edilmiş NotificationItem bileşeni
+const NotificationItem = memo(({ 
+  notification, 
+  colorMode, 
+  onMarkAsRead 
+}: { 
+  notification: Notification, 
+  colorMode: string, 
+  onMarkAsRead: (id: string) => void 
+}) => {
+  // Kategori ikonunu memoize et
+  const categoryIcon = useMemo(() => getCategoryIcon(notification.category), [notification.category]);
+  
+  // Zaman formatını memoize et
+  const formattedTime = useMemo(() => formatRelativeTime(notification.timestamp), [notification.timestamp]);
+  
+  // Renk şemasını memoize et
+  const colorScheme = useMemo(() => {
+    return notification.priority === 'critical' ? 'red' :
+           notification.priority === 'high' ? 'orange' :
+           notification.priority === 'medium' ? 'blue' : 'gray';
+  }, [notification.priority]);
+  
+  // Olay işleyicilerini memoize et
+  const handleClick = useCallback(() => {
+    onMarkAsRead(notification.id);
+  }, [notification.id, onMarkAsRead]);
+  
+  return (
+    <Box
+      key={notification.id}
+      p={4}
+      borderBottomWidth="1px"
+      borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
+      bg={!notification.read ? (colorMode === 'light' ? 'blue.50' : 'blue.900') : 'transparent'}
+      onClick={handleClick}
+      cursor="pointer"
+      transition="background-color 0.2s"
+      _hover={{
+        bg: colorMode === 'light' ? 'gray.100' : 'gray.700'
+      }}
+      role="region"
+      aria-label={`Bildirim: ${notification.title}`}
+    >
+      <Flex justifyContent="space-between" alignItems="flex-start">
+        <Flex alignItems="center">
+          <Box 
+            mr={3} 
+            fontSize="xl"
+            aria-hidden="true"
+          >
+            {categoryIcon}
+          </Box>
+          <Box>
+            <Flex alignItems="center">
+              <Text fontWeight="bold" mr={2}>{notification.title}</Text>
+              <Badge 
+                colorScheme={colorScheme}
+                fontSize="xs"
+              >
+                {notification.priority}
+              </Badge>
+            </Flex>
+            <Text fontSize="sm" color={colorMode === 'light' ? 'gray.600' : 'gray.300'}>
+              {notification.message}
+            </Text>
+          </Box>
+        </Flex>
+        <Text 
+          fontSize="xs" 
+          color={colorMode === 'light' ? 'gray.500' : 'gray.400'}
+          ml={2}
+        >
+          {formattedTime}
+        </Text>
+      </Flex>
+      
+      {/* Notification Actions */}
+      {notification.actions && notification.actions.length > 0 && (
+        <NotificationActions actions={notification.actions} />
+      )}
+    </Box>
+  );
+});
+
+// Memoize edilmiş NotificationActions bileşeni
+const NotificationActions = memo(({ actions }: { actions: NotificationAction[] }) => {
+  return (
+    <Flex mt={3} justifyContent="flex-end">
+      {actions.map((action, index) => (
+        <Button
+          key={index}
+          size="sm"
+          variant={index === 0 ? 'solid' : 'outline'}
+          colorScheme={index === 0 ? 'blue' : 'gray'}
+          ml={2}
+          onClick={(e) => {
+            e.stopPropagation();
+            action.onClick();
+          }}
+        >
+          {action.label}
+        </Button>
+      ))}
+    </Flex>
+  );
+});
+
+// Memoize edilmiş NotificationFilters bileşeni
+const NotificationFilters = memo(({ 
+  onSetActiveFilter, 
+  onSetActivePriorityFilter, 
+  onMarkAllAsRead, 
+  onClearAllNotifications 
+}: { 
+  onSetActiveFilter: (filter: NotificationCategory | 'all') => void, 
+  onSetActivePriorityFilter: (priority: NotificationPriority | 'all') => void, 
+  onMarkAllAsRead: () => void, 
+  onClearAllNotifications: () => void 
+}) => {
+  // Kategori filtre işleyicilerini memoize et
+  const handleFilterAll = useCallback(() => onSetActiveFilter('all'), [onSetActiveFilter]);
+  const handleFilterSystem = useCallback(() => onSetActiveFilter('system'), [onSetActiveFilter]);
+  const handleFilterTask = useCallback(() => onSetActiveFilter('task'), [onSetActiveFilter]);
+  const handleFilterAlert = useCallback(() => onSetActiveFilter('alert'), [onSetActiveFilter]);
+  const handleFilterInfo = useCallback(() => onSetActiveFilter('info'), [onSetActiveFilter]);
+  
+  // Öncelik filtre işleyicilerini memoize et
+  const handlePriorityAll = useCallback(() => onSetActivePriorityFilter('all'), [onSetActivePriorityFilter]);
+  const handlePriorityCritical = useCallback(() => onSetActivePriorityFilter('critical'), [onSetActivePriorityFilter]);
+  const handlePriorityHigh = useCallback(() => onSetActivePriorityFilter('high'), [onSetActivePriorityFilter]);
+  const handlePriorityMedium = useCallback(() => onSetActivePriorityFilter('medium'), [onSetActivePriorityFilter]);
+  const handlePriorityLow = useCallback(() => onSetActivePriorityFilter('low'), [onSetActivePriorityFilter]);
+  
+  return (
+    <Flex>
+      <Menu>
+        <MenuButton 
+          as={Button} 
+          variant="ghost" 
+          size="sm" 
+          mr={2}
+          aria-label="Filtrele"
+        >
+          Filtrele
+        </MenuButton>
+        <MenuList>
+          <MenuItem onClick={handleFilterAll}>
+            Tüm Kategoriler
+          </MenuItem>
+          <MenuItem onClick={handleFilterSystem}>
+            Sistem
+          </MenuItem>
+          <MenuItem onClick={handleFilterTask}>
+            Görevler
+          </MenuItem>
+          <MenuItem onClick={handleFilterAlert}>
+            Uyarılar
+          </MenuItem>
+          <MenuItem onClick={handleFilterInfo}>
+            Bilgiler
+          </MenuItem>
+          <Divider my={2} />
+          <MenuItem onClick={handlePriorityAll}>
+            Tüm Öncelikler
+          </MenuItem>
+          <MenuItem onClick={handlePriorityCritical}>
+            Kritik
+          </MenuItem>
+          <MenuItem onClick={handlePriorityHigh}>
+            Yüksek
+          </MenuItem>
+          <MenuItem onClick={handlePriorityMedium}>
+            Orta
+          </MenuItem>
+          <MenuItem onClick={handlePriorityLow}>
+            Düşük
+          </MenuItem>
+        </MenuList>
+      </Menu>
+      <Menu>
+        <MenuButton 
+          as={Button} 
+          variant="ghost" 
+          size="sm"
+          aria-label="İşlemler"
+        >
+          İşlemler
+        </MenuButton>
+        <MenuList>
+          <MenuItem onClick={onMarkAllAsRead}>
+            Tümünü Okundu İşaretle
+          </MenuItem>
+          <MenuItem onClick={onClearAllNotifications}>
+            Tümünü Temizle
+          </MenuItem>
+        </MenuList>
+      </Menu>
+    </Flex>
+  );
+});
+
+// Memoize edilmiş NotificationList bileşeni
+const NotificationList = memo(({ 
+  notifications, 
+  colorMode, 
+  onMarkAsRead, 
+  showOnlyUnread = false 
+}: { 
+  notifications: Notification[], 
+  colorMode: string, 
+  onMarkAsRead: (id: string) => void, 
+  showOnlyUnread?: boolean 
+}) => {
+  // Gösterilecek bildirimleri filtrele
+  const displayedNotifications = useMemo(() => {
+    return showOnlyUnread ? notifications.filter(n => !n.read) : notifications;
+  }, [notifications, showOnlyUnread]);
+  
+  if (displayedNotifications.length === 0) {
+    return (
+      <Box p={8} textAlign="center">
+        <Text color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
+          {showOnlyUnread ? 'Okunmamış bildirim bulunmuyor' : 'Bildirim bulunmuyor'}
+        </Text>
+      </Box>
+    );
+  }
+  
+  return (
+    <>
+      {displayedNotifications.map(notification => (
+        <NotificationItem 
+          key={notification.id}
+          notification={notification}
+          colorMode={colorMode}
+          onMarkAsRead={onMarkAsRead}
+        />
+      ))}
+    </>
+  );
+});
+
+export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   initialNotifications = [],
   onNotificationAdd,
   onNotificationRemove,
@@ -118,8 +397,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const [activeFilter, setActiveFilter] = useState<NotificationCategory | 'all'>('all');
   const [activePriorityFilter, setActivePriorityFilter] = useState<NotificationPriority | 'all'>('all');
   
-  // Count unread notifications
-  const unreadCount = notifications.filter(notification => !notification.read).length;
+  // Count unread notifications - useMemo ile optimize edildi
+  const unreadCount = useMemo(() => {
+    return notifications.filter(notification => !notification.read).length;
+  }, [notifications]);
   
   // Add notification
   const addNotification = useCallback((notification: Notification) => {
@@ -173,12 +454,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   }, [onNotificationClear]);
   
-  // Filter notifications
-  const filteredNotifications = notifications.filter(notification => {
-    const categoryMatch = activeFilter === 'all' || notification.category === activeFilter;
-    const priorityMatch = activePriorityFilter === 'all' || notification.priority === activePriorityFilter;
-    return categoryMatch && priorityMatch;
-  });
+  // Filter notifications - useMemo ile optimize edildi
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notification => {
+      const categoryMatch = activeFilter === 'all' || notification.category === activeFilter;
+      const priorityMatch = activePriorityFilter === 'all' || notification.priority === activePriorityFilter;
+      return categoryMatch && priorityMatch;
+    });
+  }, [notifications, activeFilter, activePriorityFilter]);
   
   // Demo notifications for testing
   useEffect(() => {
@@ -231,39 +514,17 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   }, []);
   
+  // Bileşen displayName'leri
+  NotificationBell.displayName = 'NotificationBell';
+  NotificationItem.displayName = 'NotificationItem';
+  NotificationActions.displayName = 'NotificationActions';
+  NotificationFilters.displayName = 'NotificationFilters';
+  NotificationList.displayName = 'NotificationList';
+  
   return (
     <>
       {/* Notification Bell Icon */}
-      <Box position="relative" display="inline-block">
-        <IconButton
-          aria-label="Bildirimler"
-          icon={<Box fontSize="xl">🔔</Box>}
-          variant="glass"
-          onClick={onOpen}
-          {...animations.performanceUtils.forceGPU}
-        />
-        
-        {/* Unread Badge */}
-        {unreadCount > 0 && (
-          <Badge
-            position="absolute"
-            top="-2px"
-            right="-2px"
-            borderRadius="full"
-            bg="red.500"
-            color="white"
-            fontSize="xs"
-            fontWeight="bold"
-            p="1"
-            minW="18px"
-            textAlign="center"
-            animation={`${animations.keyframes.pulse} 2s infinite`}
-            {...animations.performanceUtils.forceGPU}
-          >
-            {unreadCount}
-          </Badge>
-        )}
-      </Box>
+      <NotificationBell unreadCount={unreadCount} onOpen={onOpen} />
       
       {/* Notification Drawer */}
       <Drawer
@@ -282,70 +543,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
               <Text fontSize="xl" fontWeight="bold" id="notification-center-header">Bildirimler</Text>
-              <Flex>
-                <Menu>
-                  <MenuButton 
-                    as={Button} 
-                    variant="ghost" 
-                    size="sm" 
-                    mr={2}
-                    aria-label="Filtrele"
-                  >
-                    Filtrele
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem onClick={() => setActiveFilter('all')}>
-                      Tüm Kategoriler
-                    </MenuItem>
-                    <MenuItem onClick={() => setActiveFilter('system')}>
-                      Sistem
-                    </MenuItem>
-                    <MenuItem onClick={() => setActiveFilter('task')}>
-                      Görevler
-                    </MenuItem>
-                    <MenuItem onClick={() => setActiveFilter('alert')}>
-                      Uyarılar
-                    </MenuItem>
-                    <MenuItem onClick={() => setActiveFilter('info')}>
-                      Bilgiler
-                    </MenuItem>
-                    <Divider my={2} />
-                    <MenuItem onClick={() => setActivePriorityFilter('all')}>
-                      Tüm Öncelikler
-                    </MenuItem>
-                    <MenuItem onClick={() => setActivePriorityFilter('critical')}>
-                      Kritik
-                    </MenuItem>
-                    <MenuItem onClick={() => setActivePriorityFilter('high')}>
-                      Yüksek
-                    </MenuItem>
-                    <MenuItem onClick={() => setActivePriorityFilter('medium')}>
-                      Orta
-                    </MenuItem>
-                    <MenuItem onClick={() => setActivePriorityFilter('low')}>
-                      Düşük
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
-                <Menu>
-                  <MenuButton 
-                    as={Button} 
-                    variant="ghost" 
-                    size="sm"
-                    aria-label="İşlemler"
-                  >
-                    İşlemler
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem onClick={markAllAsRead}>
-                      Tümünü Okundu İşaretle
-                    </MenuItem>
-                    <MenuItem onClick={clearAllNotifications}>
-                      Tümünü Temizle
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
-              </Flex>
+              <NotificationFilters 
+                onSetActiveFilter={setActiveFilter}
+                onSetActivePriorityFilter={setActivePriorityFilter}
+                onMarkAllAsRead={markAllAsRead}
+                onClearAllNotifications={clearAllNotifications}
+              />
             </Flex>
           </DrawerHeader>
           
@@ -359,178 +562,21 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               <TabPanels>
                 {/* All Notifications */}
                 <TabPanel p={0}>
-                  {filteredNotifications.length > 0 ? (
-                    filteredNotifications.map(notification => (
-                      <Box
-                        key={notification.id}
-                        p={4}
-                        borderBottomWidth="1px"
-                        borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
-                        bg={!notification.read ? (colorMode === 'light' ? 'blue.50' : 'blue.900') : 'transparent'}
-                        onClick={() => markAsRead(notification.id)}
-                        cursor="pointer"
-                        transition="background-color 0.2s"
-                        _hover={{
-                          bg: colorMode === 'light' ? 'gray.100' : 'gray.700'
-                        }}
-                        role="region"
-                        aria-label={`Bildirim: ${notification.title}`}
-                      >
-                        <Flex justifyContent="space-between" alignItems="flex-start">
-                          <Flex alignItems="center">
-                            <Box 
-                              mr={3} 
-                              fontSize="xl"
-                              aria-hidden="true"
-                            >
-                              {getCategoryIcon(notification.category)}
-                            </Box>
-                            <Box>
-                              <Flex alignItems="center">
-                                <Text fontWeight="bold" mr={2}>{notification.title}</Text>
-                                <Badge 
-                                  colorScheme={
-                                    notification.priority === 'critical' ? 'red' :
-                                    notification.priority === 'high' ? 'orange' :
-                                    notification.priority === 'medium' ? 'blue' : 'gray'
-                                  }
-                                  fontSize="xs"
-                                >
-                                  {notification.priority}
-                                </Badge>
-                              </Flex>
-                              <Text fontSize="sm" color={colorMode === 'light' ? 'gray.600' : 'gray.300'}>
-                                {notification.message}
-                              </Text>
-                            </Box>
-                          </Flex>
-                          <Text 
-                            fontSize="xs" 
-                            color={colorMode === 'light' ? 'gray.500' : 'gray.400'}
-                            ml={2}
-                          >
-                            {formatRelativeTime(notification.timestamp)}
-                          </Text>
-                        </Flex>
-                        
-                        {/* Notification Actions */}
-                        {notification.actions && notification.actions.length > 0 && (
-                          <Flex mt={3} justifyContent="flex-end">
-                            {notification.actions.map((action, index) => (
-                              <Button
-                                key={index}
-                                size="sm"
-                                variant={index === 0 ? 'solid' : 'outline'}
-                                colorScheme={index === 0 ? 'blue' : 'gray'}
-                                ml={2}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  action.onClick();
-                                }}
-                              >
-                                {action.label}
-                              </Button>
-                            ))}
-                          </Flex>
-                        )}
-                      </Box>
-                    ))
-                  ) : (
-                    <Box p={8} textAlign="center">
-                      <Text color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-                        Bildirim bulunmuyor
-                      </Text>
-                    </Box>
-                  )}
+                  <NotificationList 
+                    notifications={filteredNotifications}
+                    colorMode={colorMode}
+                    onMarkAsRead={markAsRead}
+                  />
                 </TabPanel>
                 
                 {/* Unread Notifications */}
                 <TabPanel p={0}>
-                  {filteredNotifications.filter(n => !n.read).length > 0 ? (
-                    filteredNotifications
-                      .filter(notification => !notification.read)
-                      .map(notification => (
-                        <Box
-                          key={notification.id}
-                          p={4}
-                          borderBottomWidth="1px"
-                          borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
-                          bg={colorMode === 'light' ? 'blue.50' : 'blue.900'}
-                          onClick={() => markAsRead(notification.id)}
-                          cursor="pointer"
-                          transition="background-color 0.2s"
-                          _hover={{
-                            bg: colorMode === 'light' ? 'gray.100' : 'gray.700'
-                          }}
-                          role="region"
-                          aria-label={`Bildirim: ${notification.title}`}
-                        >
-                          <Flex justifyContent="space-between" alignItems="flex-start">
-                            <Flex alignItems="center">
-                              <Box 
-                                mr={3} 
-                                fontSize="xl"
-                                aria-hidden="true"
-                              >
-                                {getCategoryIcon(notification.category)}
-                              </Box>
-                              <Box>
-                                <Flex alignItems="center">
-                                  <Text fontWeight="bold" mr={2}>{notification.title}</Text>
-                                  <Badge 
-                                    colorScheme={
-                                      notification.priority === 'critical' ? 'red' :
-                                      notification.priority === 'high' ? 'orange' :
-                                      notification.priority === 'medium' ? 'blue' : 'gray'
-                                    }
-                                    fontSize="xs"
-                                  >
-                                    {notification.priority}
-                                  </Badge>
-                                </Flex>
-                                <Text fontSize="sm" color={colorMode === 'light' ? 'gray.600' : 'gray.300'}>
-                                  {notification.message}
-                                </Text>
-                              </Box>
-                            </Flex>
-                            <Text 
-                              fontSize="xs" 
-                              color={colorMode === 'light' ? 'gray.500' : 'gray.400'}
-                              ml={2}
-                            >
-                              {formatRelativeTime(notification.timestamp)}
-                            </Text>
-                          </Flex>
-                          
-                          {/* Notification Actions */}
-                          {notification.actions && notification.actions.length > 0 && (
-                            <Flex mt={3} justifyContent="flex-end">
-                              {notification.actions.map((action, index) => (
-                                <Button
-                                  key={index}
-                                  size="sm"
-                                  variant={index === 0 ? 'solid' : 'outline'}
-                                  colorScheme={index === 0 ? 'blue' : 'gray'}
-                                  ml={2}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    action.onClick();
-                                  }}
-                                >
-                                  {action.label}
-                                </Button>
-                              ))}
-                            </Flex>
-                          )}
-                        </Box>
-                      ))
-                  ) : (
-                    <Box p={8} textAlign="center">
-                      <Text color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-                        Okunmamış bildirim bulunmuyor
-                      </Text>
-                    </Box>
-                  )}
+                  <NotificationList 
+                    notifications={filteredNotifications}
+                    colorMode={colorMode}
+                    onMarkAsRead={markAsRead}
+                    showOnlyUnread={true}
+                  />
                 </TabPanel>
               </TabPanels>
             </Tabs>
@@ -539,6 +585,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       </Drawer>
     </>
   );
-};
+});
+
+// Ensure displayName is set for React DevTools
+NotificationCenter.displayName = 'NotificationCenter';
 
 export default NotificationCenter;

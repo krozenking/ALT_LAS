@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { 
   Box, 
   Flex, 
@@ -67,8 +67,339 @@ interface PerformanceMonitorProps {
   onMetricAlert?: (metric: PerformanceMetric) => void;
 }
 
+// Kategori ikonu getir - Memoize edilebilir
+const getCategoryIcon = (category: 'cpu' | 'memory' | 'disk' | 'network' | 'system'): string => {
+  switch (category) {
+    case 'cpu': return '🔄';
+    case 'memory': return '🧠';
+    case 'disk': return '💾';
+    case 'network': return '🌐';
+    case 'system': return '⚙️';
+  }
+};
+
+// Memoize edilmiş PerformanceButton bileşeni
+const PerformanceButton = memo(({ 
+  criticalCount, 
+  onOpen 
+}: { 
+  criticalCount: number, 
+  onOpen: () => void 
+}) => {
+  return (
+    <>
+      {/* Performans Monitörü Açma Butonu */}
+      <Tooltip label="Performans Monitörü" aria-label="Performans Monitörü">
+        <IconButton
+          aria-label="Performans Monitörü"
+          icon={<Box fontSize="xl">📊</Box>}
+          variant="glass"
+          onClick={onOpen}
+          {...animations.performanceUtils.forceGPU}
+        />
+      </Tooltip>
+      
+      {/* Kritik Metrik Sayacı */}
+      {criticalCount > 0 && (
+        <Badge
+          position="absolute"
+          top="-2px"
+          right="-2px"
+          borderRadius="full"
+          bg="red.500"
+          color="white"
+          fontSize="xs"
+          fontWeight="bold"
+          p="1"
+          minW="18px"
+          textAlign="center"
+          animation={`${animations.keyframes.pulse} 2s infinite`}
+          {...animations.performanceUtils.forceGPU}
+        >
+          {criticalCount}
+        </Badge>
+      )}
+    </>
+  );
+});
+
+// Memoize edilmiş MetricCard bileşeni
+const MetricCard = memo(({ metric, colorMode }: { metric: PerformanceMetric, colorMode: string }) => {
+  // Trend rengini belirle - useMemo ile optimize edildi
+  const trendColor = useMemo(() => {
+    if (metric.critical) return 'red.500';
+    
+    if (metric.category === 'cpu' || metric.category === 'memory' || metric.category === 'disk') {
+      // Bu kategorilerde artış genellikle olumsuzdur
+      return metric.trend === 'increase' ? 'orange.500' : 
+             metric.trend === 'decrease' ? 'green.500' : 'gray.500';
+    } else {
+      // Diğer kategorilerde duruma göre değişir
+      return metric.trend === 'increase' ? 'green.500' : 
+             metric.trend === 'decrease' ? 'orange.500' : 'gray.500';
+    }
+  }, [metric.critical, metric.category, metric.trend]);
+  
+  // İlerleme çubuğu rengi - useMemo ile optimize edildi
+  const progressColor = useMemo(() => {
+    if (metric.critical) return 'red.500';
+    
+    if (metric.unit === '%') {
+      if (metric.value > 80) return 'orange.500';
+      if (metric.value > 60) return 'yellow.500';
+      return 'green.500';
+    }
+    
+    return 'blue.500';
+  }, [metric.critical, metric.unit, metric.value]);
+  
+  // İlerleme çubuğu renk şeması - useMemo ile optimize edildi
+  const progressColorScheme = useMemo(() => {
+    return progressColor.split('.')[0];
+  }, [progressColor]);
+  
+  // Trend oku görünürlüğü - useMemo ile optimize edildi
+  const arrowVisibility = useMemo(() => {
+    return metric.trend === 'stable' ? 'hidden' : 'visible';
+  }, [metric.trend]);
+  
+  // Trend oku tipi - useMemo ile optimize edildi
+  const arrowType = useMemo(() => {
+    return metric.trend === 'increase' ? 'increase' : 
+           metric.trend === 'decrease' ? 'decrease' : 'increase';
+  }, [metric.trend]);
+  
+  // Değişim yüzdesi metni - useMemo ile optimize edildi
+  const changeText = useMemo(() => {
+    return metric.changePercentage > 0 ? `${metric.changePercentage}%` : 'Sabit';
+  }, [metric.changePercentage]);
+  
+  return (
+    <Card 
+      borderWidth="1px" 
+      borderRadius="lg" 
+      overflow="hidden"
+      boxShadow="sm"
+      bg={colorMode === 'light' ? 'white' : 'gray.700'}
+      borderColor={metric.critical ? 'red.500' : 'transparent'}
+      transition="all 0.2s"
+      _hover={{ boxShadow: 'md' }}
+      role="region"
+      aria-label={`${metric.name} metriği`}
+    >
+      <CardHeader pb={0}>
+        <Flex justifyContent="space-between" alignItems="center">
+          <Text fontWeight="medium" fontSize="md">{metric.name}</Text>
+          {metric.critical && (
+            <Badge colorScheme="red" variant="solid" borderRadius="full">
+              Kritik
+            </Badge>
+          )}
+        </Flex>
+      </CardHeader>
+      
+      <CardBody>
+        <Stat>
+          <StatNumber fontSize="2xl">
+            {metric.value}{metric.unit}
+          </StatNumber>
+          <StatHelpText>
+            <StatArrow 
+              type={arrowType} 
+              color={trendColor}
+              visibility={arrowVisibility}
+            />
+            {changeText}
+          </StatHelpText>
+        </Stat>
+        
+        {metric.unit === '%' && (
+          <Progress 
+            value={metric.value} 
+            colorScheme={progressColorScheme} 
+            size="sm" 
+            borderRadius="full"
+            mt={2}
+            aria-label={`${metric.name} ilerleme çubuğu`}
+          />
+        )}
+      </CardBody>
+    </Card>
+  );
+});
+
+// Memoize edilmiş CategoryFilters bileşeni
+const CategoryFilters = memo(({ 
+  activeCategory, 
+  onCategoryChange 
+}: { 
+  activeCategory: 'all' | 'cpu' | 'memory' | 'disk' | 'network' | 'system', 
+  onCategoryChange: (category: 'all' | 'cpu' | 'memory' | 'disk' | 'network' | 'system') => void 
+}) => {
+  // Kategori değiştirme işleyicileri - useCallback ile optimize edildi
+  const handleAllCategory = useCallback(() => onCategoryChange('all'), [onCategoryChange]);
+  const handleCpuCategory = useCallback(() => onCategoryChange('cpu'), [onCategoryChange]);
+  const handleMemoryCategory = useCallback(() => onCategoryChange('memory'), [onCategoryChange]);
+  const handleDiskCategory = useCallback(() => onCategoryChange('disk'), [onCategoryChange]);
+  const handleNetworkCategory = useCallback(() => onCategoryChange('network'), [onCategoryChange]);
+  const handleSystemCategory = useCallback(() => onCategoryChange('system'), [onCategoryChange]);
+  
+  // Kategori ikonları - useMemo ile optimize edildi
+  const cpuIcon = useMemo(() => getCategoryIcon('cpu'), []);
+  const memoryIcon = useMemo(() => getCategoryIcon('memory'), []);
+  const diskIcon = useMemo(() => getCategoryIcon('disk'), []);
+  const networkIcon = useMemo(() => getCategoryIcon('network'), []);
+  const systemIcon = useMemo(() => getCategoryIcon('system'), []);
+  
+  return (
+    <HStack spacing={2} overflowX="auto" py={2} mb={4} className="category-filters">
+      <Button
+        size="sm"
+        variant={activeCategory === 'all' ? 'solid' : 'outline'}
+        onClick={handleAllCategory}
+      >
+        Tümü
+      </Button>
+      <Button
+        size="sm"
+        variant={activeCategory === 'cpu' ? 'solid' : 'outline'}
+        onClick={handleCpuCategory}
+        leftIcon={<Box>{cpuIcon}</Box>}
+      >
+        CPU
+      </Button>
+      <Button
+        size="sm"
+        variant={activeCategory === 'memory' ? 'solid' : 'outline'}
+        onClick={handleMemoryCategory}
+        leftIcon={<Box>{memoryIcon}</Box>}
+      >
+        Bellek
+      </Button>
+      <Button
+        size="sm"
+        variant={activeCategory === 'disk' ? 'solid' : 'outline'}
+        onClick={handleDiskCategory}
+        leftIcon={<Box>{diskIcon}</Box>}
+      >
+        Disk
+      </Button>
+      <Button
+        size="sm"
+        variant={activeCategory === 'network' ? 'solid' : 'outline'}
+        onClick={handleNetworkCategory}
+        leftIcon={<Box>{networkIcon}</Box>}
+      >
+        Ağ
+      </Button>
+      <Button
+        size="sm"
+        variant={activeCategory === 'system' ? 'solid' : 'outline'}
+        onClick={handleSystemCategory}
+        leftIcon={<Box>{systemIcon}</Box>}
+      >
+        Sistem
+      </Button>
+    </HStack>
+  );
+});
+
+// Memoize edilmiş ControlPanel bileşeni
+const ControlPanel = memo(({ 
+  showCriticalOnly, 
+  onToggleCritical, 
+  sortBy, 
+  sortDirection, 
+  onSortChange 
+}: { 
+  showCriticalOnly: boolean, 
+  onToggleCritical: () => void, 
+  sortBy: 'name' | 'value' | 'trend', 
+  sortDirection: 'asc' | 'desc', 
+  onSortChange: (sortBy: 'name' | 'value' | 'trend') => void 
+}) => {
+  // Sıralama değiştirme işleyicileri - useCallback ile optimize edildi
+  const handleNameSort = useCallback(() => onSortChange('name'), [onSortChange]);
+  const handleValueSort = useCallback(() => onSortChange('value'), [onSortChange]);
+  const handleTrendSort = useCallback(() => onSortChange('trend'), [onSortChange]);
+  
+  return (
+    <HStack spacing={2}>
+      <Button
+        size="sm"
+        variant={showCriticalOnly ? 'solid' : 'outline'}
+        onClick={onToggleCritical}
+        leftIcon={<Box>⚠️</Box>}
+      >
+        Kritik Metrikler
+      </Button>
+      <Menu>
+        <MenuButton as={Button} size="sm" rightIcon={<Box>⏷</Box>}>
+          Sırala
+        </MenuButton>
+        <MenuList>
+          <MenuItem 
+            onClick={handleNameSort}
+            icon={<Box>{sortBy === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            İsme Göre
+          </MenuItem>
+          <MenuItem 
+            onClick={handleValueSort}
+            icon={<Box>{sortBy === 'value' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            Değere Göre
+          </MenuItem>
+          <MenuItem 
+            onClick={handleTrendSort}
+            icon={<Box>{sortBy === 'trend' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            Trende Göre
+          </MenuItem>
+        </MenuList>
+      </Menu>
+    </HStack>
+  );
+});
+
+// Memoize edilmiş MetricGrid bileşeni
+const MetricGrid = memo(({ 
+  metrics, 
+  colorMode, 
+  showCriticalOnly 
+}: { 
+  metrics: PerformanceMetric[], 
+  colorMode: string, 
+  showCriticalOnly: boolean 
+}) => {
+  if (metrics.length === 0) {
+    return (
+      <Flex 
+        height="100%" 
+        alignItems="center" 
+        justifyContent="center" 
+        p={8}
+      >
+        <Text color="gray.500">
+          {showCriticalOnly 
+            ? 'Kritik metrik bulunamadı' 
+            : 'Seçilen kategoride metrik bulunamadı'}
+        </Text>
+      </Flex>
+    );
+  }
+  
+  return (
+    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+      {metrics.map(metric => (
+        <MetricCard key={metric.id} metric={metric} colorMode={colorMode} />
+      ))}
+    </SimpleGrid>
+  );
+});
+
 // Performans monitörü bileşeni
-export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
+export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
   initialMetrics = [],
   refreshInterval = 5000, // 5 saniye
   onMetricAlert
@@ -81,6 +412,11 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   const [sortBy, setSortBy] = useState<'name' | 'value' | 'trend'>('value');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Kritik metrik sayısı - useMemo ile optimize edildi
+  const criticalCount = useMemo(() => {
+    return metrics.filter(m => m.critical).length;
+  }, [metrics]);
   
   // Demo metrikler
   useEffect(() => {
@@ -309,173 +645,69 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
     };
   }, [refreshInterval, onMetricAlert]);
   
-  // Metrikleri filtrele
-  const filteredMetrics = metrics.filter(metric => {
-    const categoryMatch = activeCategory === 'all' || metric.category === activeCategory;
-    const criticalMatch = !showCriticalOnly || metric.critical;
-    return categoryMatch && criticalMatch;
-  });
+  // Metrikleri filtrele - useMemo ile optimize edildi
+  const filteredMetrics = useMemo(() => {
+    return metrics.filter(metric => {
+      const categoryMatch = activeCategory === 'all' || metric.category === activeCategory;
+      const criticalMatch = !showCriticalOnly || metric.critical;
+      return categoryMatch && criticalMatch;
+    });
+  }, [metrics, activeCategory, showCriticalOnly]);
   
-  // Metrikleri sırala
-  const sortedMetrics = [...filteredMetrics].sort((a, b) => {
-    let comparison = 0;
-    
-    switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'value':
-        comparison = a.value - b.value;
-        break;
-      case 'trend':
-        // Trend sıralaması: artış > sabit > azalış
-        const trendOrder = { 'increase': 2, 'stable': 1, 'decrease': 0 };
-        comparison = trendOrder[a.trend] - trendOrder[b.trend];
-        break;
-    }
-    
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  // Metrikleri sırala - useMemo ile optimize edildi
+  const sortedMetrics = useMemo(() => {
+    return [...filteredMetrics].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'value':
+          comparison = a.value - b.value;
+          break;
+        case 'trend':
+          // Trend sıralaması: artış > sabit > azalış
+          const trendOrder = { 'increase': 2, 'stable': 1, 'decrease': 0 };
+          comparison = trendOrder[a.trend] - trendOrder[b.trend];
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredMetrics, sortBy, sortDirection]);
   
-  // Sıralama değiştir
-  const handleSortChange = (newSortBy: 'name' | 'value' | 'trend') => {
+  // Sıralama değiştir - useCallback ile optimize edildi
+  const handleSortChange = useCallback((newSortBy: 'name' | 'value' | 'trend') => {
     if (sortBy === newSortBy) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(newSortBy);
       setSortDirection('desc');
     }
-  };
+  }, [sortBy]);
   
-  // Metrik kartı bileşeni
-  const MetricCard = React.memo(({ metric }: { metric: PerformanceMetric }) => {
-    // Trend rengini belirle
-    const getTrendColor = () => {
-      if (metric.critical) return 'red.500';
-      
-      if (metric.category === 'cpu' || metric.category === 'memory' || metric.category === 'disk') {
-        // Bu kategorilerde artış genellikle olumsuzdur
-        return metric.trend === 'increase' ? 'orange.500' : 
-               metric.trend === 'decrease' ? 'green.500' : 'gray.500';
-      } else {
-        // Diğer kategorilerde duruma göre değişir
-        return metric.trend === 'increase' ? 'green.500' : 
-               metric.trend === 'decrease' ? 'orange.500' : 'gray.500';
-      }
-    };
-    
-    // İlerleme çubuğu rengi
-    const getProgressColor = () => {
-      if (metric.critical) return 'red.500';
-      
-      if (metric.unit === '%') {
-        if (metric.value > 80) return 'orange.500';
-        if (metric.value > 60) return 'yellow.500';
-        return 'green.500';
-      }
-      
-      return 'blue.500';
-    };
-    
-    return (
-      <Card 
-        borderWidth="1px" 
-        borderRadius="lg" 
-        overflow="hidden"
-        boxShadow="sm"
-        bg={colorMode === 'light' ? 'white' : 'gray.700'}
-        borderColor={metric.critical ? 'red.500' : 'transparent'}
-        transition="all 0.2s"
-        _hover={{ boxShadow: 'md' }}
-        role="region"
-        aria-label={`${metric.name} metriği`}
-      >
-        <CardHeader pb={0}>
-          <Flex justifyContent="space-between" alignItems="center">
-            <Text fontWeight="medium" fontSize="md">{metric.name}</Text>
-            {metric.critical && (
-              <Badge colorScheme="red" variant="solid" borderRadius="full">
-                Kritik
-              </Badge>
-            )}
-          </Flex>
-        </CardHeader>
-        
-        <CardBody>
-          <Stat>
-            <StatNumber fontSize="2xl">
-              {metric.value}{metric.unit}
-            </StatNumber>
-            <StatHelpText>
-              <StatArrow 
-                type={metric.trend === 'increase' ? 'increase' : 
-                      metric.trend === 'decrease' ? 'decrease' : 'increase'} 
-                color={getTrendColor()}
-                visibility={metric.trend === 'stable' ? 'hidden' : 'visible'}
-              />
-              {metric.changePercentage > 0 ? `${metric.changePercentage}%` : 'Sabit'}
-            </StatHelpText>
-          </Stat>
-          
-          {metric.unit === '%' && (
-            <Progress 
-              value={metric.value} 
-              colorScheme={getProgressColor().split('.')[0]} 
-              size="sm" 
-              borderRadius="full"
-              mt={2}
-              aria-label={`${metric.name} ilerleme çubuğu`}
-            />
-          )}
-        </CardBody>
-      </Card>
-    );
-  });
+  // Kategori değiştir - useCallback ile optimize edildi
+  const handleCategoryChange = useCallback((category: 'all' | 'cpu' | 'memory' | 'disk' | 'network' | 'system') => {
+    setActiveCategory(category);
+  }, []);
   
-  // Kategori ikonu getir
-  const getCategoryIcon = (category: 'cpu' | 'memory' | 'disk' | 'network' | 'system'): string => {
-    switch (category) {
-      case 'cpu': return '🔄';
-      case 'memory': return '🧠';
-      case 'disk': return '💾';
-      case 'network': return '🌐';
-      case 'system': return '⚙️';
-    }
-  };
+  // Kritik metrik filtresini değiştir - useCallback ile optimize edildi
+  const handleToggleCritical = useCallback(() => {
+    setShowCriticalOnly(prev => !prev);
+  }, []);
+  
+  // Bileşen displayName'leri
+  PerformanceButton.displayName = 'PerformanceButton';
+  MetricCard.displayName = 'MetricCard';
+  CategoryFilters.displayName = 'CategoryFilters';
+  ControlPanel.displayName = 'ControlPanel';
+  MetricGrid.displayName = 'MetricGrid';
   
   return (
     <>
       {/* Performans Monitörü Açma Butonu */}
-      <Tooltip label="Performans Monitörü" aria-label="Performans Monitörü">
-        <IconButton
-          aria-label="Performans Monitörü"
-          icon={<Box fontSize="xl">📊</Box>}
-          variant="glass"
-          onClick={onOpen}
-          {...animations.performanceUtils.forceGPU}
-        />
-      </Tooltip>
-      
-      {/* Kritik Metrik Sayacı */}
-      {metrics.filter(m => m.critical).length > 0 && (
-        <Badge
-          position="absolute"
-          top="-2px"
-          right="-2px"
-          borderRadius="full"
-          bg="red.500"
-          color="white"
-          fontSize="xs"
-          fontWeight="bold"
-          p="1"
-          minW="18px"
-          textAlign="center"
-          animation={`${animations.keyframes.pulse} 2s infinite`}
-          {...animations.performanceUtils.forceGPU}
-        >
-          {metrics.filter(m => m.critical).length}
-        </Badge>
-      )}
+      <PerformanceButton criticalCount={criticalCount} onOpen={onOpen} />
       
       {/* Performans Monitörü Drawer */}
       <Drawer
@@ -494,125 +726,39 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
               <Text fontSize="xl" fontWeight="bold" id="performance-monitor-header">Performans Monitörü</Text>
-              <HStack>
-                <Button
-                  size="sm"
-                  colorScheme={showCriticalOnly ? 'red' : 'gray'}
-                  variant={showCriticalOnly ? 'solid' : 'outline'}
-                  onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-                  leftIcon={<Box>⚠️</Box>}
-                >
-                  Kritik Metrikler
-                </Button>
-                <Menu>
-                  <MenuButton as={Button} size="sm" rightIcon={<Box>⏷</Box>}>
-                    Sırala
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem 
-                      onClick={() => handleSortChange('name')}
-                      icon={<Box>{sortBy === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                    >
-                      İsme Göre
-                    </MenuItem>
-                    <MenuItem 
-                      onClick={() => handleSortChange('value')}
-                      icon={<Box>{sortBy === 'value' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                    >
-                      Değere Göre
-                    </MenuItem>
-                    <MenuItem 
-                      onClick={() => handleSortChange('trend')}
-                      icon={<Box>{sortBy === 'trend' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                    >
-                      Trende Göre
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
-              </HStack>
+              <ControlPanel 
+                showCriticalOnly={showCriticalOnly}
+                onToggleCritical={handleToggleCritical}
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
+              />
             </Flex>
           </DrawerHeader>
           
           <DrawerBody p={4}>
             <Flex direction="column" height="100%">
               {/* Kategori Filtreleri */}
-              <HStack spacing={2} overflowX="auto" py={2} mb={4} className="category-filters">
-                <Button
-                  size="sm"
-                  variant={activeCategory === 'all' ? 'solid' : 'outline'}
-                  onClick={() => setActiveCategory('all')}
-                >
-                  Tümü
-                </Button>
-                <Button
-                  size="sm"
-                  variant={activeCategory === 'cpu' ? 'solid' : 'outline'}
-                  onClick={() => setActiveCategory('cpu')}
-                  leftIcon={<Box>{getCategoryIcon('cpu')}</Box>}
-                >
-                  CPU
-                </Button>
-                <Button
-                  size="sm"
-                  variant={activeCategory === 'memory' ? 'solid' : 'outline'}
-                  onClick={() => setActiveCategory('memory')}
-                  leftIcon={<Box>{getCategoryIcon('memory')}</Box>}
-                >
-                  Bellek
-                </Button>
-                <Button
-                  size="sm"
-                  variant={activeCategory === 'disk' ? 'solid' : 'outline'}
-                  onClick={() => setActiveCategory('disk')}
-                  leftIcon={<Box>{getCategoryIcon('disk')}</Box>}
-                >
-                  Disk
-                </Button>
-                <Button
-                  size="sm"
-                  variant={activeCategory === 'network' ? 'solid' : 'outline'}
-                  onClick={() => setActiveCategory('network')}
-                  leftIcon={<Box>{getCategoryIcon('network')}</Box>}
-                >
-                  Ağ
-                </Button>
-                <Button
-                  size="sm"
-                  variant={activeCategory === 'system' ? 'solid' : 'outline'}
-                  onClick={() => setActiveCategory('system')}
-                  leftIcon={<Box>{getCategoryIcon('system')}</Box>}
-                >
-                  Sistem
-                </Button>
-              </HStack>
+              <CategoryFilters 
+                activeCategory={activeCategory}
+                onCategoryChange={handleCategoryChange}
+              />
               
               {/* Metrik Kartları */}
-              {sortedMetrics.length > 0 ? (
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                  {sortedMetrics.map(metric => (
-                    <MetricCard key={metric.id} metric={metric} />
-                  ))}
-                </SimpleGrid>
-              ) : (
-                <Flex 
-                  height="100%" 
-                  alignItems="center" 
-                  justifyContent="center" 
-                  p={8}
-                >
-                  <Text color="gray.500">
-                    {showCriticalOnly 
-                      ? 'Kritik metrik bulunamadı' 
-                      : 'Seçilen kategoride metrik bulunamadı'}
-                  </Text>
-                </Flex>
-              )}
+              <MetricGrid 
+                metrics={sortedMetrics}
+                colorMode={colorMode}
+                showCriticalOnly={showCriticalOnly}
+              />
             </Flex>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
     </>
   );
-};
+});
+
+// Ensure displayName is set for React DevTools
+PerformanceMonitor.displayName = 'PerformanceMonitor';
 
 export default PerformanceMonitor;

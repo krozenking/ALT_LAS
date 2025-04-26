@@ -54,7 +54,7 @@ import {
   PopoverArrow,
   PopoverCloseButton
 } from '@chakra-ui/react';
-import { animations } from '@/styles/animations';
+import { animations } from '@styles/animations';
 
 // Ayarlar arayüzü
 export interface SettingsGroup {
@@ -97,7 +97,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onImportSettings
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { colorMode } = useColorMode();
+  const { colorMode, setColorMode } = useColorMode(); // Added setColorMode
   const [settings, setSettings] = useState<SettingsGroup[]>(initialSettings);
   const [activeGroup, setActiveGroup] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
@@ -357,6 +357,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     
     if (onSettingChange) {
       onSettingChange(groupId, settingId, value);
+    }
+    
+    // Update color mode if high contrast setting is changed
+    if (groupId === 'accessibility' && settingId === 'highContrast') {
+      setColorMode(value ? 'highContrast' : 'dark'); // Toggle between highContrast and dark
     }
   };
   

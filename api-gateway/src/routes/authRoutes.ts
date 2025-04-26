@@ -1,128 +1,10 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorMiddleware';
-import { authenticateJWT } from '../middleware/authMiddleware';
+import { authenticateJWT, authorize } from '../services/jwtService';
+import authService from '../services/authService';
 import logger from '../utils/logger';
 
-// Swagger JSDoc için route tanımlamaları
-/**
- * @swagger
- * tags:
- *   name: Auth
- *   description: Kimlik doğrulama ve yetkilendirme işlemleri
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     LoginRequest:
- *       type: object
- *       required:
- *         - username
- *         - password
- *       properties:
- *         username:
- *           type: string
- *           description: Kullanıcı adı
- *         password:
- *           type: string
- *           format: password
- *           description: Kullanıcı şifresi
- *     LoginResponse:
- *       type: object
- *       properties:
- *         token:
- *           type: string
- *           description: JWT token
- *         refreshToken:
- *           type: string
- *           description: Yenileme token'ı
- *         user:
- *           type: object
- *           properties:
- *             id:
- *               type: string
- *             username:
- *               type: string
- *             roles:
- *               type: array
- *               items:
- *                 type: string
- *     RegisterRequest:
- *       type: object
- *       required:
- *         - username
- *         - password
- *       properties:
- *         username:
- *           type: string
- *           description: Kullanıcı adı
- *         password:
- *           type: string
- *           format: password
- *           description: Kullanıcı şifresi
- *         roles:
- *           type: array
- *           items:
- *             type: string
- *           description: Kullanıcı rolleri
- *     RefreshTokenRequest:
- *       type: object
- *       required:
- *         - refreshToken
- *       properties:
- *         refreshToken:
- *           type: string
- *           description: Yenileme token'ı
- */
-
 const router = Router();
-
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     summary: Kullanıcı girişi
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginRequest'
- *     responses:
- *       200:
- *         description: Başarılı giriş
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
- *       401:
- *         description: Geçersiz kimlik bilgileri
- *       500:
- *         description: Sunucu hatası
- */
-router.post('/login', asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
-  
-  // Gerçek uygulamada veritabanından kullanıcı doğrulaması yapılır
-  // Şimdilik mock yanıt döndürüyoruz
-  if (username === 'admin' && password === 'password') {
-    logger.info(`Kullanıcı girişi başarılı: ${username}`);
-    res.json({
-      token: 'mock_jwt_token',
-      refreshToken: 'mock_refresh_token',
-      user: {
-        id: '1',
-        username: 'admin',
-        roles: ['admin']
-      }
-    });
-  } else {
-    logger.warn(`Geçersiz giriş denemesi: ${username}`);
-    res.status(401).json({ message: 'Geçersiz kullanıcı adı veya şifre' });
-  }
-}));
 
 /**
  * @swagger
@@ -151,20 +33,45 @@ router.post('/login', asyncHandler(async (req, res) => {
  *         description: Sunucu hatası
  */
 router.post('/register', asyncHandler(async (req, res) => {
-  const { username, password, roles = ['user'] } = req.body;
+  const { username, password, roles } = req.body;
   
-  // Gerçek uygulamada veritabanına kullanıcı kaydı yapılır
-  // Şimdilik mock yanıt döndürüyoruz
-  logger.info(`Yeni kullanıcı kaydı: ${username}`);
-  res.status(201).json({
-    token: 'mock_jwt_token',
-    refreshToken: 'mock_refresh_token',
-    user: {
-      id: Math.random().toString(36).substring(7),
-      username,
-      roles
-    }
-  });
+  const result = await authService.register(username, password, roles);
+  logger.info(`Yeni kullanıcı kaydedildi: ${username}`);
+  
+  res.status(201).json(result);
+}));
+
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Kullanıcı girişi
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Başarılı giriş
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       401:
+ *         description: Geçersiz kimlik bilgileri
+ *       500:
+ *         description: Sunucu hatası
+ */
+router.post('/login', asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+  
+  const result = await authService.login(username, password);
+  logger.info(`Kullanıcı girişi başarılı: ${username}`);
+  
+  res.json(result);
 }));
 
 /**
@@ -194,23 +101,10 @@ router.post('/register', asyncHandler(async (req, res) => {
 router.post('/refresh', asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   
-  // Gerçek uygulamada refresh token doğrulaması yapılır
-  // Şimdilik mock yanıt döndürüyoruz
-  if (refreshToken) {
-    logger.info('Token yenileme başarılı');
-    res.json({
-      token: 'new_mock_jwt_token',
-      refreshToken: 'new_mock_refresh_token',
-      user: {
-        id: '1',
-        username: 'admin',
-        roles: ['admin']
-      }
-    });
-  } else {
-    logger.warn('Geçersiz refresh token');
-    res.status(401).json({ message: 'Geçersiz refresh token' });
-  }
+  const result = await authService.refreshToken(refreshToken);
+  logger.info('Token yenileme başarılı');
+  
+  res.json(result);
 }));
 
 /**
@@ -230,8 +124,12 @@ router.post('/refresh', asyncHandler(async (req, res) => {
  *         description: Sunucu hatası
  */
 router.post('/logout', authenticateJWT, asyncHandler(async (req, res) => {
-  // Gerçek uygulamada token blacklist'e eklenir
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1] || '';
+  
+  await authService.logout(token);
   logger.info(`Kullanıcı çıkışı: ${req.user?.username}`);
+  
   res.json({ message: 'Başarıyla çıkış yapıldı' });
 }));
 
@@ -265,9 +163,56 @@ router.post('/logout', authenticateJWT, asyncHandler(async (req, res) => {
  *         description: Sunucu hatası
  */
 router.get('/me', authenticateJWT, asyncHandler(async (req, res) => {
-  // Kullanıcı bilgilerini döndür
-  logger.info(`Kullanıcı bilgileri istendi: ${req.user?.username}`);
-  res.json(req.user);
+  const userId = req.user?.userId;
+  
+  if (!userId) {
+    return res.status(401).json({ message: 'Yetkilendirme gerekli' });
+  }
+  
+  const user = await authService.getUserById(userId);
+  logger.info(`Kullanıcı bilgileri istendi: ${user.username}`);
+  
+  res.json(user);
+}));
+
+/**
+ * @swagger
+ * /api/auth/users:
+ *   get:
+ *     summary: Tüm kullanıcıları listeler (sadece admin)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Kullanıcı listesi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   username:
+ *                     type: string
+ *                   roles:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       403:
+ *         description: Yetkisiz erişim
+ *       500:
+ *         description: Sunucu hatası
+ */
+router.get('/users', authenticateJWT, authorize(['admin']), asyncHandler(async (req, res) => {
+  const users = await authService.getAllUsers();
+  logger.info('Tüm kullanıcılar listelendi');
+  
+  res.json(users);
 }));
 
 export default router;

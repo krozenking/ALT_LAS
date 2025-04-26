@@ -9,7 +9,7 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Dict, List, Any, Optional, Union, Tuple, Set
+from typing import Dict, List, Any, Optional, Union, Tuple, Set, Callable
 from enum import Enum
 from dataclasses import dataclass, field
 
@@ -34,6 +34,15 @@ class DistributionStrategy(str, Enum):
     MODEL_SPECIFIC = "model_specific"
     CAPABILITY_BASED = "capability_based"
     LATENCY_OPTIMIZED = "latency_optimized"
+
+class ResultAggregationStrategy(str, Enum):
+    """Result aggregation strategy enumeration."""
+    FIRST_RESPONSE = "first_response"
+    ALL_RESPONSES = "all_responses"
+    MAJORITY_VOTE = "majority_vote"
+    WEIGHTED_AVERAGE = "weighted_average"
+    ENSEMBLE = "ensemble"
+    CUSTOM = "custom"
 
 @dataclass
 class NodeInfo:
@@ -582,8 +591,9 @@ class DistributedModelOrchestrator:
         self,
         request: InferenceRequest,
         model_ids: List[str],
-        strategy: DistributionStrategy = DistributionStrategy.CAPABILITY_BASED
-    ) -> List[InferenceResponse]:
+        strategy: DistributionStrategy = DistributionStrategy.CAPABILITY_BASED,
+        aggregation_strategy: ResultAggregationStrategy = ResultAggregationStrategy.ALL_RESPONSES
+    ) -> Union[InferenceResponse, List[InferenceResponse]]:
         """
         Run inference in parallel across multiple nodes.
         
@@ -591,44 +601,603 @@ class DistributedModelOrchestrator:
             request: Base inference request
             model_ids: List of model IDs to use
             strategy: Node selection strategy
+            aggregation_strategy: How to aggregate results
             
         Returns:
-            List of inference responses
+            Single or list of inference responses based on aggregation strategy
         """
         # Create a request for each model
         requests = [
             InferenceRequest(
                 model_id=model_id,
                 inputs=request.inputs,
-                parameters=request.parameters
+                parameters=request.parameters,
+                metadata=request.metadata
             )
             for model_id in model_ids
         ]
         
-        # Run inference in parallel
-        tasks = [
-            self.run_distributed_inference(req, strategy)
-            for req in requests
-        ]
+        # Run all requests in parallel
+        tasks = []
+        for req in requests:
+            task = asyncio.create_task(
+                self.run_distributed_inference(req, strategy)
+            )
+            tasks.append(task)
         
-        # Gather results
-        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        # Wait for all tasks to complete
+        if aggregation_strategy == ResultAggregationStrategy.FIRST_RESPONSE:
+            # Return as soon as first response is available
+            done, pending = await asyncio.wait(
+                tasks, 
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            
+            # Cancel remaining tasks
+            for task in pending:
+                task.cancel()
+            
+            # Return first result
+            return next(iter(done)).result()
+            
+        else:
+            # Wait for all responses
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Filter out exceptions
+            valid_results = [
+                r for r in results 
+                if not isinstance(r, Exception)
+            ]
+            
+            if not valid_results:
+                raise RuntimeError("All parallel inference requests failed")
+            
+            # Apply aggregation strategy
+            if aggregation_strategy == ResultAggregationStrategy.ALL_RESPONSES:
+                return valid_results
+                
+            elif aggregation_strategy == ResultAggregationStrategy.MAJORITY_VOTE:
+                return self._aggregate_by_majority_vote(valid_results)
+                
+            elif aggregation_strategy == ResultAggregationStrategy.WEIGHTED_AVERAGE:
+                return self._aggregate_by_weighted_average(valid_results)
+                
+            elif aggregation_strategy == ResultAggregationStrategy.ENSEMBLE:
+                return self._aggregate_by_ensemble(valid_results)
+                
+            else:
+                # Default to returning all responses
+                return valid_results
+    
+    def _aggregate_by_majority_vote(self, responses: List[InferenceResponse]) -> InferenceResponse:
+        """
+        Aggregate responses by majority vote.
         
-        # Handle exceptions
-        results = []
-        for i, response in enumerate(responses):
-            if isinstance(response, Exception):
-                logger.error(f"Error in parallel inference for model {model_ids[i]}: {str(response)}")
+        Args:
+            responses: List of inference responses
+            
+        Returns:
+            Aggregated response
+        """
+        # This is a simplified implementation that works for classification tasks
+        # In a real system, you'd need to handle different output formats
+        
+        # Count outputs
+        output_counts = {}
+        for response in responses:
+            output = str(response.outputs)
+            output_counts[output] = output_counts.get(output, 0) + 1
+        
+        # Find majority
+        majority_output, count = max(
+            output_counts.items(),
+            key=lambda x: x[1]
+        )
+        
+        # Create aggregated response
+        return InferenceResponse(
+            model_id=responses[0].model_id,
+            outputs=majority_output,
+            metadata={
+                "aggregation_strategy": "majority_vote",
+                "vote_count": count,
+                "total_votes": len(responses),
+                "confidence": count / len(responses)
+            }
+        )
+    
+    def _aggregate_by_weighted_average(self, responses: List[InferenceResponse]) -> InferenceResponse:
+        """
+        Aggregate responses by weighted average.
+        
+        Args:
+            responses: List of inference responses
+            
+        Returns:
+            Aggregated response
+        """
+        # This is a simplified implementation that works for numerical outputs
+        # In a real system, you'd need to handle different output formats
+        
+        try:
+            # Try to convert outputs to numbers
+            outputs = []
+            weights = []
+            
+            for response in responses:
+                # Extract output
+                try:
+                    output = float(response.outputs)
+                    outputs.append(output)
+                    
+                    # Extract weight from metadata if available
+                    weight = response.metadata.get("confidence", 1.0)
+                    weights.append(weight)
+                except (ValueError, TypeError):
+                    # Skip non-numeric outputs
+                    continue
+            
+            if not outputs:
+                raise ValueError("No numeric outputs found")
+            
+            # Normalize weights
+            total_weight = sum(weights)
+            if total_weight == 0:
+                # Equal weights if all weights are zero
+                weights = [1.0] * len(outputs)
+                total_weight = len(outputs)
+            
+            # Calculate weighted average
+            weighted_sum = sum(output * weight for output, weight in zip(outputs, weights))
+            weighted_average = weighted_sum / total_weight
+            
+            # Create aggregated response
+            return InferenceResponse(
+                model_id=responses[0].model_id,
+                outputs=str(weighted_average),
+                metadata={
+                    "aggregation_strategy": "weighted_average",
+                    "num_models": len(outputs),
+                    "weights": weights
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in weighted average aggregation: {str(e)}")
+            
+            # Fall back to first response
+            return responses[0]
+    
+    def _aggregate_by_ensemble(self, responses: List[InferenceResponse]) -> InferenceResponse:
+        """
+        Aggregate responses by ensemble methods.
+        
+        Args:
+            responses: List of inference responses
+            
+        Returns:
+            Aggregated response
+        """
+        # This is a placeholder for a more sophisticated ensemble method
+        # In a real system, you'd implement model-specific ensemble techniques
+        
+        # For now, we'll just concatenate the outputs
+        ensemble_output = "\n".join([
+            f"Model {response.model_id}: {response.outputs}"
+            for response in responses
+        ])
+        
+        # Create aggregated response
+        return InferenceResponse(
+            model_id="ensemble",
+            outputs=ensemble_output,
+            metadata={
+                "aggregation_strategy": "ensemble",
+                "num_models": len(responses),
+                "model_ids": [response.model_id for response in responses]
+            }
+        )
+    
+    async def run_distributed_batch_inference(
+        self,
+        requests: List[InferenceRequest],
+        strategy: DistributionStrategy = DistributionStrategy.LEAST_LOADED
+    ) -> List[InferenceResponse]:
+        """
+        Run batch inference across distributed nodes.
+        
+        Args:
+            requests: List of inference requests
+            strategy: Node selection strategy
+            
+        Returns:
+            List of inference responses
+        """
+        # Group requests by model ID
+        model_requests = {}
+        for request in requests:
+            model_id = request.model_id
+            if model_id not in model_requests:
+                model_requests[model_id] = []
+            model_requests[model_id].append(request)
+        
+        # For each model, select optimal nodes
+        model_nodes = {}
+        for model_id, reqs in model_requests.items():
+            # Select nodes for this model
+            nodes = await self._select_nodes_for_batch(model_id, len(reqs), strategy)
+            model_nodes[model_id] = nodes
+        
+        # Distribute requests to nodes
+        tasks = []
+        for model_id, reqs in model_requests.items():
+            nodes = model_nodes[model_id]
+            
+            # Distribute requests evenly across nodes
+            for i, request in enumerate(reqs):
+                # Select node using round-robin
+                node_idx = i % len(nodes)
+                node_id = nodes[node_idx]
+                
+                # Create task for this request
+                task_id = str(uuid.uuid4())
+                task = DistributedTask(
+                    task_id=task_id,
+                    request=request,
+                    node_id=node_id,
+                    status="pending"
+                )
+                
+                self.tasks[task_id] = task
+                
+                # Create async task
+                if node_id == self._node_id:
+                    # Run locally
+                    async_task = asyncio.create_task(self._run_local_inference(task))
+                else:
+                    # Run remotely
+                    async_task = asyncio.create_task(self._run_remote_inference(task))
+                
+                tasks.append(async_task)
+        
+        # Wait for all tasks to complete
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        responses = []
+        for result in results:
+            if isinstance(result, Exception):
                 # Create error response
-                results.append(InferenceResponse(
-                    model_id=model_ids[i],
+                responses.append(InferenceResponse(
+                    model_id="error",
                     outputs="Error during inference",
-                    metadata={"error": str(response)}
+                    metadata={"error": str(result)}
                 ))
             else:
-                results.append(response)
+                responses.append(result)
+        
+        return responses
+    
+    async def _select_nodes_for_batch(
+        self,
+        model_id: str,
+        num_requests: int,
+        strategy: DistributionStrategy
+    ) -> List[str]:
+        """
+        Select nodes for a batch of requests.
+        
+        Args:
+            model_id: ID of the model
+            num_requests: Number of requests in the batch
+            strategy: Node selection strategy
+            
+        Returns:
+            List of node IDs
+        """
+        # Get online nodes
+        online_nodes = [
+            node for node in self.nodes.values() 
+            if node.status == NodeStatus.ONLINE
+        ]
+        
+        if not online_nodes:
+            logger.warning("No online nodes available")
+            return [self._node_id]  # Fall back to local node
+        
+        # Filter nodes that have the model available
+        suitable_nodes = [
+            node for node in online_nodes
+            if model_id in node.available_models
+        ]
+        
+        # If no nodes have the model, use any online node
+        if not suitable_nodes:
+            suitable_nodes = online_nodes
+        
+        # Apply selection strategy
+        if strategy == DistributionStrategy.CAPABILITY_BASED:
+            # Sort nodes by capability
+            model_info = await self.model_manager.get_model(model_id)
+            
+            if model_info and model_info.supports_gpu:
+                # Prefer nodes with GPU for GPU-capable models
+                gpu_nodes = [
+                    node for node in suitable_nodes
+                    if node.capabilities.get("cuda_available", False)
+                ]
+                
+                if gpu_nodes:
+                    # Sort GPU nodes by GPU usage (ascending)
+                    sorted_nodes = sorted(
+                        gpu_nodes,
+                        key=lambda node: node.resources.get("gpu_percent", 100)
+                    )
+                    
+                    # If we need more nodes than available GPU nodes,
+                    # add CPU nodes at the end
+                    if num_requests > len(sorted_nodes):
+                        cpu_nodes = [
+                            node for node in suitable_nodes
+                            if not node.capabilities.get("cuda_available", False)
+                        ]
+                        
+                        # Sort CPU nodes by CPU usage (ascending)
+                        sorted_cpu_nodes = sorted(
+                            cpu_nodes,
+                            key=lambda node: node.resources.get("cpu_percent", 100)
+                        )
+                        
+                        sorted_nodes.extend(sorted_cpu_nodes)
+                    
+                    return [node.node_id for node in sorted_nodes]
+            
+            # Fall back to CPU selection
+            sorted_nodes = sorted(
+                suitable_nodes,
+                key=lambda node: node.resources.get("cpu_percent", 100)
+            )
+            
+            return [node.node_id for node in sorted_nodes]
+            
+        elif strategy == DistributionStrategy.LATENCY_OPTIMIZED:
+            # Sort nodes by response time
+            nodes_with_timing = [
+                node for node in suitable_nodes
+                if node.average_response_time is not None
+            ]
+            
+            if nodes_with_timing:
+                sorted_nodes = sorted(
+                    nodes_with_timing,
+                    key=lambda node: node.average_response_time
+                )
+                
+                # If we need more nodes than those with timing data,
+                # add the rest at the end
+                if num_requests > len(sorted_nodes):
+                    nodes_without_timing = [
+                        node for node in suitable_nodes
+                        if node.average_response_time is None
+                    ]
+                    
+                    # Sort by task count (ascending)
+                    sorted_untimed_nodes = sorted(
+                        nodes_without_timing,
+                        key=lambda node: node.current_tasks
+                    )
+                    
+                    sorted_nodes.extend(sorted_untimed_nodes)
+                
+                return [node.node_id for node in sorted_nodes]
+            
+            # Fall back to least loaded if no timing data
+            sorted_nodes = sorted(
+                suitable_nodes,
+                key=lambda node: node.current_tasks
+            )
+            
+            return [node.node_id for node in sorted_nodes]
+            
+        else:
+            # Default to least loaded
+            sorted_nodes = sorted(
+                suitable_nodes,
+                key=lambda node: node.current_tasks
+            )
+            
+            return [node.node_id for node in sorted_nodes]
+    
+    async def run_distributed_pipeline_inference(
+        self,
+        requests: List[InferenceRequest],
+        dependencies: List[List[int]],
+        strategy: DistributionStrategy = DistributionStrategy.CAPABILITY_BASED
+    ) -> List[InferenceResponse]:
+        """
+        Run pipeline inference with dependencies across distributed nodes.
+        
+        Args:
+            requests: List of inference requests in execution order
+            dependencies: List of dependency indices for each request
+            strategy: Node selection strategy
+            
+        Returns:
+            List of inference responses
+        """
+        if len(requests) != len(dependencies):
+            raise ValueError("Length of requests and dependencies must match")
+        
+        # Results storage
+        results: List[Optional[InferenceResponse]] = [None] * len(requests)
+        
+        # Track completed stages
+        completed_stages = set()
+        
+        # Process stages in topological order
+        while len(completed_stages) < len(requests):
+            # Find stages that can be executed (all dependencies satisfied)
+            ready_stages = []
+            for i, deps in enumerate(dependencies):
+                if i not in completed_stages and all(d in completed_stages for d in deps):
+                    ready_stages.append(i)
+            
+            if not ready_stages:
+                # No stages ready but not all completed - circular dependency
+                raise ValueError("Circular dependency detected in pipeline")
+            
+            # Execute ready stages in parallel
+            stage_tasks = []
+            for stage_idx in ready_stages:
+                # Get request for this stage
+                request = requests[stage_idx]
+                
+                # Update inputs with results from dependencies if needed
+                if dependencies[stage_idx]:
+                    # Create a copy of the request to modify
+                    request = InferenceRequest(
+                        model_id=request.model_id,
+                        inputs=request.inputs,
+                        parameters=request.parameters,
+                        metadata=dict(request.metadata) if request.metadata else {}
+                    )
+                    
+                    # Add dependency results to metadata
+                    request.metadata["dependency_results"] = {
+                        f"stage_{dep}": results[dep].outputs
+                        for dep in dependencies[stage_idx]
+                    }
+                
+                # Create task for this stage
+                task = asyncio.create_task(
+                    self.run_distributed_inference(request, strategy)
+                )
+                stage_tasks.append((stage_idx, task))
+            
+            # Wait for all ready stages to complete
+            for stage_idx, task in stage_tasks:
+                try:
+                    result = await task
+                    results[stage_idx] = result
+                    completed_stages.add(stage_idx)
+                except Exception as e:
+                    logger.error(f"Error in pipeline stage {stage_idx}: {str(e)}")
+                    # Create error response
+                    results[stage_idx] = InferenceResponse(
+                        model_id=requests[stage_idx].model_id,
+                        outputs=f"Error: {str(e)}",
+                        metadata={"error": str(e), "stage": stage_idx}
+                    )
+                    completed_stages.add(stage_idx)
         
         return results
+    
+    async def register_node(self, node_info: NodeInfo) -> bool:
+        """
+        Register a new node with the orchestrator.
+        
+        Args:
+            node_info: Information about the node
+            
+        Returns:
+            True if registration was successful
+        """
+        node_id = node_info.node_id
+        
+        if node_id in self.nodes:
+            # Update existing node
+            logger.info(f"Updating existing node: {node_id}")
+            self.nodes[node_id] = node_info
+        else:
+            # Add new node
+            logger.info(f"Registering new node: {node_id}")
+            self.nodes[node_id] = node_info
+            self.node_locks[node_id] = asyncio.Lock()
+        
+        return True
+    
+    async def unregister_node(self, node_id: str) -> bool:
+        """
+        Unregister a node from the orchestrator.
+        
+        Args:
+            node_id: ID of the node
+            
+        Returns:
+            True if unregistration was successful
+        """
+        if node_id in self.nodes:
+            logger.info(f"Unregistering node: {node_id}")
+            del self.nodes[node_id]
+            
+            if node_id in self.node_locks:
+                del self.node_locks[node_id]
+            
+            return True
+        else:
+            logger.warning(f"Attempted to unregister unknown node: {node_id}")
+            return False
+    
+    async def update_node_status(self, node_id: str, status: NodeStatus) -> bool:
+        """
+        Update the status of a node.
+        
+        Args:
+            node_id: ID of the node
+            status: New status
+            
+        Returns:
+            True if update was successful
+        """
+        if node_id in self.nodes:
+            logger.info(f"Updating status of node {node_id} to {status}")
+            self.nodes[node_id].status = status
+            self.nodes[node_id].last_heartbeat = time.time()
+            return True
+        else:
+            logger.warning(f"Attempted to update status of unknown node: {node_id}")
+            return False
+    
+    async def update_node_resources(self, node_id: str, resources: Dict[str, Any]) -> bool:
+        """
+        Update the resource usage of a node.
+        
+        Args:
+            node_id: ID of the node
+            resources: Resource usage information
+            
+        Returns:
+            True if update was successful
+        """
+        if node_id in self.nodes:
+            logger.debug(f"Updating resources of node {node_id}")
+            self.nodes[node_id].resources.update(resources)
+            self.nodes[node_id].last_heartbeat = time.time()
+            return True
+        else:
+            logger.warning(f"Attempted to update resources of unknown node: {node_id}")
+            return False
+    
+    async def update_node_models(self, node_id: str, models: List[str]) -> bool:
+        """
+        Update the available models on a node.
+        
+        Args:
+            node_id: ID of the node
+            models: List of available model IDs
+            
+        Returns:
+            True if update was successful
+        """
+        if node_id in self.nodes:
+            logger.info(f"Updating models of node {node_id}: {models}")
+            self.nodes[node_id].available_models = models
+            self.nodes[node_id].last_heartbeat = time.time()
+            return True
+        else:
+            logger.warning(f"Attempted to update models of unknown node: {node_id}")
+            return False
     
     async def get_task(self, task_id: str) -> Optional[DistributedTask]:
         """
@@ -642,52 +1211,67 @@ class DistributedModelOrchestrator:
         """
         return self.tasks.get(task_id)
     
-    async def list_tasks(
-        self, 
-        status_filter: Optional[str] = None,
-        node_id: Optional[str] = None
-    ) -> List[DistributedTask]:
+    async def list_tasks(self, status_filter: Optional[str] = None) -> List[DistributedTask]:
         """
-        List tasks.
+        List all tasks.
         
         Args:
             status_filter: Optional filter by task status
-            node_id: Optional filter by node ID
             
         Returns:
-            List of task objects
+            List of task info objects
         """
-        result = []
-        for task in self.tasks.values():
-            # Apply status filter
-            if status_filter and task.status != status_filter:
-                continue
-                
-            # Apply node filter
-            if node_id and task.node_id != node_id:
-                continue
-                
-            result.append(task)
+        if status_filter:
+            return [task for task in self.tasks.values() if task.status == status_filter]
+        else:
+            return list(self.tasks.values())
+    
+    async def cancel_task(self, task_id: str) -> bool:
+        """
+        Cancel a running task.
+        
+        Args:
+            task_id: ID of the task
             
-        return result
+        Returns:
+            True if cancellation was successful
+        """
+        if task_id not in self.tasks:
+            logger.warning(f"Attempted to cancel unknown task: {task_id}")
+            return False
+        
+        task = self.tasks[task_id]
+        
+        if task.status in ["completed", "error"]:
+            logger.warning(f"Attempted to cancel already finished task: {task_id}")
+            return False
+        
+        logger.info(f"Cancelling task: {task_id}")
+        
+        # Update task status
+        task.status = "cancelled"
+        task.end_time = time.time()
+        
+        # In a real implementation, you'd need to send a cancellation
+        # signal to the node running the task
+        
+        return True
 
 
-# Singleton instance
-_distributed_orchestrator = None
-
-def get_distributed_orchestrator() -> DistributedModelOrchestrator:
+# Factory function
+def get_distributed_model_orchestrator() -> DistributedModelOrchestrator:
     """
-    Factory function to get or create a distributed orchestrator instance.
+    Get or create a distributed model orchestrator instance.
     
     Returns:
         DistributedModelOrchestrator instance
     """
-    global _distributed_orchestrator
-    if _distributed_orchestrator is None:
-        model_manager = get_model_manager()
-        _distributed_orchestrator = DistributedModelOrchestrator(model_manager)
-        
-        # Start the orchestrator in the background
-        asyncio.create_task(_distributed_orchestrator.start())
-        
-    return _distributed_orchestrator
+    from ..services.model_manager import get_model_manager
+    
+    # Get model manager
+    model_manager = get_model_manager()
+    
+    # Create orchestrator
+    orchestrator = DistributedModelOrchestrator(model_manager)
+    
+    return orchestrator

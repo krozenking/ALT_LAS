@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { 
   Box, 
   Flex, 
@@ -60,7 +60,7 @@ interface FileManagerProps {
   onFileTagRemove?: (file: FileObject, tag: string) => void;
 }
 
-// Dosya boyutunu formatla
+// Dosya boyutunu formatla - Memoize edilebilir bir fonksiyon
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -68,7 +68,7 @@ const formatFileSize = (bytes: number): string => {
   return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 };
 
-// Dosya türüne göre ikon getir
+// Dosya türüne göre ikon getir - Memoize edilebilir bir fonksiyon
 const getFileTypeIcon = (type: FileType): string => {
   switch (type) {
     case 'image': return '🖼️';
@@ -81,8 +81,562 @@ const getFileTypeIcon = (type: FileType): string => {
   }
 };
 
+// Tarih formatla - Memoize edilebilir bir fonksiyon
+const formatDate = (date: Date): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'Az önce';
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes} dakika önce`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours} saat önce`;
+  } else {
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} gün önce`;
+  }
+};
+
+// Memoize edilmiş FileItem bileşeni (Grid görünümü için)
+const FileGridItem = memo(({ 
+  file, 
+  isSelected, 
+  colorMode, 
+  onSelect, 
+  onOpen 
+}: { 
+  file: FileObject, 
+  isSelected: boolean, 
+  colorMode: string, 
+  onSelect: (file: FileObject) => void, 
+  onOpen: (file: FileObject) => void 
+}) => {
+  // Dosya türü ikonunu memoize et
+  const fileIcon = useMemo(() => getFileTypeIcon(file.type), [file.type]);
+  
+  // Dosya boyutunu memoize et
+  const fileSize = useMemo(() => formatFileSize(file.size), [file.size]);
+  
+  // Olay işleyicilerini memoize et
+  const handleClick = useCallback(() => onSelect(file), [file, onSelect]);
+  const handleDoubleClick = useCallback(() => onOpen(file), [file, onOpen]);
+  
+  return (
+    <Box
+      key={file.id}
+      width="120px"
+      height="140px"
+      m={2}
+      p={3}
+      borderWidth="1px"
+      borderRadius="md"
+      borderColor={isSelected ? 'blue.500' : 'transparent'}
+      bg={colorMode === 'light' ? 'white' : 'gray.700'}
+      boxShadow="sm"
+      cursor="pointer"
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      _hover={{ boxShadow: 'md', borderColor: 'blue.300' }}
+      transition="all 0.2s"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      position="relative"
+      role="listitem"
+      aria-label={`Dosya: ${file.name}`}
+      {...animations.performanceUtils.forceGPU}
+    >
+      {file.favorite && (
+        <Box 
+          position="absolute" 
+          top="2" 
+          right="2" 
+          fontSize="sm"
+          aria-label="Favori dosya"
+        >
+          ⭐
+        </Box>
+      )}
+      <Box fontSize="3xl" mb={2}>
+        {fileIcon}
+      </Box>
+      <Text 
+        fontSize="sm" 
+        fontWeight="medium" 
+        textAlign="center"
+        noOfLines={2}
+      >
+        {file.name}
+      </Text>
+      <Text fontSize="xs" color="gray.500" mt={1}>
+        {fileSize}
+      </Text>
+    </Box>
+  );
+});
+
+// Memoize edilmiş FileItem bileşeni (Liste görünümü için)
+const FileListItem = memo(({ 
+  file, 
+  isSelected, 
+  colorMode, 
+  onSelect, 
+  onOpen,
+  onRename,
+  onToggleFavorite,
+  onDelete
+}: { 
+  file: FileObject, 
+  isSelected: boolean, 
+  colorMode: string, 
+  onSelect: (file: FileObject) => void, 
+  onOpen: (file: FileObject) => void,
+  onRename: (file: FileObject) => void,
+  onToggleFavorite: (file: FileObject) => void,
+  onDelete: (file: FileObject) => void
+}) => {
+  // Dosya türü ikonunu memoize et
+  const fileIcon = useMemo(() => getFileTypeIcon(file.type), [file.type]);
+  
+  // Dosya boyutunu memoize et
+  const fileSize = useMemo(() => formatFileSize(file.size), [file.size]);
+  
+  // Dosya tarihini memoize et
+  const fileDate = useMemo(() => formatDate(file.lastModified), [file.lastModified]);
+  
+  // Olay işleyicilerini memoize et
+  const handleClick = useCallback(() => onSelect(file), [file, onSelect]);
+  const handleDoubleClick = useCallback(() => onOpen(file), [file, onOpen]);
+  const handleRename = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRename(file);
+  }, [file, onRename]);
+  const handleToggleFavorite = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleFavorite(file);
+  }, [file, onToggleFavorite]);
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(file);
+  }, [file, onDelete]);
+  
+  return (
+    <Flex
+      key={file.id}
+      p={3}
+      borderBottomWidth="1px"
+      bg={isSelected 
+        ? (colorMode === 'light' ? 'blue.50' : 'blue.900') 
+        : 'transparent'}
+      cursor="pointer"
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      _hover={{
+        bg: colorMode === 'light' ? 'gray.100' : 'gray.700'
+      }}
+      alignItems="center"
+      role="row"
+      aria-label={`Dosya: ${file.name}`}
+    >
+      <Box fontSize="xl" mr={3}>
+        {fileIcon}
+      </Box>
+      <Box flex="1">
+        <Flex alignItems="center">
+          <Text fontWeight="medium">
+            {file.name}
+          </Text>
+          {file.favorite && (
+            <Box ml={2} fontSize="sm" aria-label="Favori dosya">
+              ⭐
+            </Box>
+          )}
+        </Flex>
+        <Flex fontSize="xs" color="gray.500" mt={1}>
+          <Text mr={3}>{fileSize}</Text>
+          <Text>{fileDate}</Text>
+        </Flex>
+      </Box>
+      <Menu>
+        <MenuButton 
+          as={IconButton}
+          aria-label="Dosya işlemleri"
+          icon={<Box>⋮</Box>}
+          variant="ghost"
+          size="sm"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <MenuList onClick={(e) => e.stopPropagation()}>
+          <MenuItem 
+            icon={<Box>📂</Box>} 
+            onClick={() => onOpen(file)}
+          >
+            Aç
+          </MenuItem>
+          <MenuItem 
+            icon={<Box>✏️</Box>} 
+            onClick={handleRename}
+          >
+            Yeniden Adlandır
+          </MenuItem>
+          <MenuItem 
+            icon={<Box>{file.favorite ? '⭐' : '☆'}</Box>} 
+            onClick={handleToggleFavorite}
+          >
+            {file.favorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+          </MenuItem>
+          <MenuItem 
+            icon={<Box>🗑️</Box>} 
+            onClick={handleDelete}
+            color="red.500"
+          >
+            Sil
+          </MenuItem>
+        </MenuList>
+      </Menu>
+    </Flex>
+  );
+});
+
+// Memoize edilmiş FileDetails bileşeni
+const FileDetails = memo(({
+  file,
+  isRenaming,
+  newFileName,
+  newTag,
+  renameInputRef,
+  onRenameChange,
+  onRenameComplete,
+  onToggleFavorite,
+  onTagChange,
+  onAddTag,
+  onRemoveTag,
+  onOpen,
+  onDelete
+}: {
+  file: FileObject,
+  isRenaming: boolean,
+  newFileName: string,
+  newTag: string,
+  renameInputRef: React.RefObject<HTMLInputElement>,
+  onRenameChange: (value: string) => void,
+  onRenameComplete: () => void,
+  onToggleFavorite: (file: FileObject) => void,
+  onTagChange: (value: string) => void,
+  onAddTag: () => void,
+  onRemoveTag: (tag: string) => void,
+  onOpen: (file: FileObject) => void,
+  onDelete: (file: FileObject) => void
+}) => {
+  // Dosya türü ikonunu memoize et
+  const fileIcon = useMemo(() => getFileTypeIcon(file.type), [file.type]);
+  
+  // Dosya boyutunu memoize et
+  const fileSize = useMemo(() => formatFileSize(file.size), [file.size]);
+  
+  // Dosya tarihini memoize et
+  const fileDate = useMemo(() => formatDate(file.lastModified), [file.lastModified]);
+  
+  // Dosya türü adını memoize et
+  const fileTypeName = useMemo(() => 
+    file.type.charAt(0).toUpperCase() + file.type.slice(1), 
+    [file.type]
+  );
+  
+  // Olay işleyicilerini memoize et
+  const handleRenameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onRenameChange(e.target.value);
+  }, [onRenameChange]);
+  
+  const handleRenameKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onRenameComplete();
+    }
+  }, [onRenameComplete]);
+  
+  const handleTagChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onTagChange(e.target.value);
+  }, [onTagChange]);
+  
+  const handleTagKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onAddTag();
+    }
+  }, [onAddTag]);
+  
+  const handleToggleFavorite = useCallback(() => onToggleFavorite(file), [file, onToggleFavorite]);
+  const handleOpen = useCallback(() => onOpen(file), [file, onOpen]);
+  const handleDelete = useCallback(() => onDelete(file), [file, onDelete]);
+  
+  return (
+    <Box 
+      width="300px" 
+      borderWidth="1px" 
+      borderRadius="md" 
+      p={4}
+      overflowY="auto"
+      role="region"
+      aria-label="File details"
+    >
+      <VStack align="stretch" spacing={4}>
+        <Flex justifyContent="center" mb={2}>
+          <Box fontSize="5xl">
+            {fileIcon}
+          </Box>
+        </Flex>
+        
+        {isRenaming ? (
+          <Box>
+            <InputGroup size="md">
+              <Input
+                ref={renameInputRef}
+                value={newFileName}
+                onChange={handleRenameChange}
+                onBlur={onRenameComplete}
+                onKeyPress={handleRenameKeyPress}
+                aria-label="Rename file"
+                autoFocus
+              />
+            </InputGroup>
+          </Box>
+        ) : (
+          <Text fontSize="lg" fontWeight="bold" textAlign="center">
+            {file.name}
+          </Text>
+        )}
+        
+        <Divider />
+        
+        <Box>
+          <Text fontWeight="medium" mb={1}>Dosya Bilgileri</Text>
+          <HStack fontSize="sm">
+            <Text fontWeight="medium" color="gray.500">Tür:</Text>
+            <Text>{fileTypeName}</Text>
+          </HStack>
+          <HStack fontSize="sm">
+            <Text fontWeight="medium" color="gray.500">Boyut:</Text>
+            <Text>{fileSize}</Text>
+          </HStack>
+          <HStack fontSize="sm">
+            <Text fontWeight="medium" color="gray.500">Değiştirilme:</Text>
+            <Text>{fileDate}</Text>
+          </HStack>
+          <HStack fontSize="sm">
+            <Text fontWeight="medium" color="gray.500">Konum:</Text>
+            <Text noOfLines={1}>{file.path}</Text>
+          </HStack>
+        </Box>
+        
+        <Divider />
+        
+        <Box>
+          <Flex justifyContent="space-between" alignItems="center" mb={2}>
+            <Text fontWeight="medium">Etiketler</Text>
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={handleToggleFavorite}
+            >
+              {file.favorite ? '⭐ Favorilerde' : '☆ Favorilere Ekle'}
+            </Button>
+          </Flex>
+          
+          <Flex flexWrap="wrap" mb={2}>
+            {file.tags.map(tag => (
+              <Badge
+                key={tag}
+                m={1}
+                p={1}
+                borderRadius="full"
+                colorScheme="blue"
+                display="flex"
+                alignItems="center"
+              >
+                <Text mr={1}>{tag}</Text>
+                <Box
+                  as="span"
+                  cursor="pointer"
+                  onClick={() => onRemoveTag(tag)}
+                  ml={1}
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  ✕
+                </Box>
+              </Badge>
+            ))}
+          </Flex>
+          
+          <Flex mt={2}>
+            <Input
+              size="sm"
+              aria-label="Add new tag"
+              placeholder="Yeni etiket..."
+              value={newTag}
+              onChange={handleTagChange}
+              onKeyPress={handleTagKeyPress}
+            />
+            <Button
+              size="sm"
+              ml={2}
+              onClick={onAddTag}
+              isDisabled={!newTag.trim()}
+            >
+              Ekle
+            </Button>
+          </Flex>
+        </Box>
+        
+        <Divider />
+        
+        <Flex justifyContent="space-between">
+          <Button
+            colorScheme="blue"
+            onClick={handleOpen}
+          >
+            Aç
+          </Button>
+          <Button
+            colorScheme="red"
+            variant="outline"
+            onClick={handleDelete}
+          >
+            Sil
+          </Button>
+        </Flex>
+      </VStack>
+    </Box>
+  );
+});
+
+// Memoize edilmiş FileFilters bileşeni
+const FileFilters = memo(({
+  activeFilter,
+  onFilterChange,
+  onSortChange,
+  sortBy,
+  sortDirection
+}: {
+  activeFilter: FileType | 'all' | 'favorites',
+  onFilterChange: (filter: FileType | 'all' | 'favorites') => void,
+  onSortChange: (sortBy: 'name' | 'date' | 'size' | 'type') => void,
+  sortBy: 'name' | 'date' | 'size' | 'type',
+  sortDirection: 'asc' | 'desc'
+}) => {
+  // Olay işleyicilerini memoize et
+  const handleFilterAll = useCallback(() => onFilterChange('all'), [onFilterChange]);
+  const handleFilterFavorites = useCallback(() => onFilterChange('favorites'), [onFilterChange]);
+  const handleFilterImage = useCallback(() => onFilterChange('image'), [onFilterChange]);
+  const handleFilterDocument = useCallback(() => onFilterChange('document'), [onFilterChange]);
+  const handleFilterCode = useCallback(() => onFilterChange('code'), [onFilterChange]);
+  const handleFilterVideo = useCallback(() => onFilterChange('video'), [onFilterChange]);
+  const handleFilterAudio = useCallback(() => onFilterChange('audio'), [onFilterChange]);
+  
+  const handleSortByName = useCallback(() => onSortChange('name'), [onSortChange]);
+  const handleSortByDate = useCallback(() => onSortChange('date'), [onSortChange]);
+  const handleSortBySize = useCallback(() => onSortChange('size'), [onSortChange]);
+  const handleSortByType = useCallback(() => onSortChange('type'), [onSortChange]);
+  
+  return (
+    <Flex justifyContent="space-between" alignItems="center">
+      <HStack spacing={2} overflowX="auto" py={2} className="file-filters">
+        <Button
+          size="sm"
+          variant={activeFilter === 'all' ? 'solid' : 'outline'}
+          onClick={handleFilterAll}
+        >
+          Tümü
+        </Button>
+        <Button
+          size="sm"
+          variant={activeFilter === 'favorites' ? 'solid' : 'outline'}
+          onClick={handleFilterFavorites}
+          leftIcon={<Box>⭐</Box>}
+        >
+          Favoriler
+        </Button>
+        <Button
+          size="sm"
+          variant={activeFilter === 'image' ? 'solid' : 'outline'}
+          onClick={handleFilterImage}
+          leftIcon={<Box>🖼️</Box>}
+        >
+          Resimler
+        </Button>
+        <Button
+          size="sm"
+          variant={activeFilter === 'document' ? 'solid' : 'outline'}
+          onClick={handleFilterDocument}
+          leftIcon={<Box>📄</Box>}
+        >
+          Belgeler
+        </Button>
+        <Button
+          size="sm"
+          variant={activeFilter === 'code' ? 'solid' : 'outline'}
+          onClick={handleFilterCode}
+          leftIcon={<Box>📝</Box>}
+        >
+          Kod
+        </Button>
+        <Button
+          size="sm"
+          variant={activeFilter === 'video' ? 'solid' : 'outline'}
+          onClick={handleFilterVideo}
+          leftIcon={<Box>🎬</Box>}
+        >
+          Video
+        </Button>
+        <Button
+          size="sm"
+          variant={activeFilter === 'audio' ? 'solid' : 'outline'}
+          onClick={handleFilterAudio}
+          leftIcon={<Box>🎵</Box>}
+        >
+          Ses
+        </Button>
+      </HStack>
+      
+      <Menu>
+        <MenuButton as={Button} size="sm" rightIcon={<Box>⏷</Box>}>
+          Sırala
+        </MenuButton>
+        <MenuList>
+          <MenuItem 
+            onClick={handleSortByName}
+            icon={<Box>{sortBy === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            İsme Göre
+          </MenuItem>
+          <MenuItem 
+            onClick={handleSortByDate}
+            icon={<Box>{sortBy === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            Tarihe Göre
+          </MenuItem>
+          <MenuItem 
+            onClick={handleSortBySize}
+            icon={<Box>{sortBy === 'size' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            Boyuta Göre
+          </MenuItem>
+          <MenuItem 
+            onClick={handleSortByType}
+            icon={<Box>{sortBy === 'type' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
+          >
+            Türe Göre
+          </MenuItem>
+        </MenuList>
+      </Menu>
+    </Flex>
+  );
+});
+
 // Dosya yöneticisi bileşeni
-export const FileManager: React.FC<FileManagerProps> = ({
+export const FileManager: React.FC<FileManagerProps> = memo(({
   initialFiles = [],
   onFileOpen,
   onFileDelete,
@@ -175,55 +729,57 @@ export const FileManager: React.FC<FileManagerProps> = ({
     }
   }, []);
   
-  // Dosyaları filtrele
-  const filteredFiles = files.filter(file => {
-    // Arama sorgusu filtresi
-    const matchesSearch = file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         file.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    // Dosya türü filtresi
-    const matchesType = activeFilter === 'all' || 
-                       (activeFilter === 'favorites' ? file.favorite : file.type === activeFilter);
-    
-    return matchesSearch && matchesType;
-  });
+  // Dosyaları filtrele - useMemo ile optimize edildi
+  const filteredFiles = useMemo(() => {
+    return files.filter(file => {
+      // Arama sorgusu filtresi
+      const matchesSearch = file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          file.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      // Dosya türü filtresi
+      const matchesType = activeFilter === 'all' || 
+                        (activeFilter === 'favorites' ? file.favorite : file.type === activeFilter);
+      
+      return matchesSearch && matchesType;
+    });
+  }, [files, searchQuery, activeFilter]);
   
-  // Dosyaları sırala
-  const sortedFiles = [...filteredFiles].sort((a, b) => {
-    let comparison = 0;
-    
-    switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'date':
-        comparison = a.lastModified.getTime() - b.lastModified.getTime();
-        break;
-      case 'size':
-        comparison = a.size - b.size;
-        break;
-      case 'type':
-        comparison = a.type.localeCompare(b.type);
-        break;
-    }
-    
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  // Dosyaları sırala - useMemo ile optimize edildi
+  const sortedFiles = useMemo(() => {
+    return [...filteredFiles].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'date':
+          comparison = a.lastModified.getTime() - b.lastModified.getTime();
+          break;
+        case 'size':
+          comparison = a.size - b.size;
+          break;
+        case 'type':
+          comparison = a.type.localeCompare(b.type);
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredFiles, sortBy, sortDirection]);
   
-  // Dosya seç
-  const handleFileSelect = (file: FileObject) => {
+  // Olay işleyicileri - useCallback ile optimize edildi
+  const handleFileSelect = useCallback((file: FileObject) => {
     setSelectedFile(file);
-  };
+  }, []);
   
-  // Dosya aç
-  const handleFileOpen = (file: FileObject) => {
+  const handleFileOpen = useCallback((file: FileObject) => {
     if (onFileOpen) {
       onFileOpen(file);
     }
-  };
+  }, [onFileOpen]);
   
-  // Dosya sil
-  const handleFileDelete = (file: FileObject) => {
+  const handleFileDelete = useCallback((file: FileObject) => {
     setFiles(prev => prev.filter(f => f.id !== file.id));
     if (selectedFile?.id === file.id) {
       setSelectedFile(null);
@@ -231,10 +787,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
     if (onFileDelete) {
       onFileDelete(file);
     }
-  };
+  }, [selectedFile, onFileDelete]);
   
-  // Dosya yeniden adlandır
-  const handleRenameStart = (file: FileObject) => {
+  const handleRenameStart = useCallback((file: FileObject) => {
     setSelectedFile(file);
     setNewFileName(file.name);
     setIsRenaming(true);
@@ -243,9 +798,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
         renameInputRef.current.focus();
       }
     }, 100);
-  };
+  }, []);
   
-  const handleRenameComplete = () => {
+  const handleRenameComplete = useCallback(() => {
     if (selectedFile && newFileName.trim()) {
       const updatedFile = { ...selectedFile, name: newFileName.trim() };
       setFiles(prev => prev.map(f => f.id === selectedFile.id ? updatedFile : f));
@@ -255,10 +810,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
       }
     }
     setIsRenaming(false);
-  };
+  }, [selectedFile, newFileName, onFileRename]);
   
-  // Favori durumunu değiştir
-  const handleToggleFavorite = (file: FileObject) => {
+  const handleToggleFavorite = useCallback((file: FileObject) => {
     const updatedFile = { ...file, favorite: !file.favorite };
     setFiles(prev => prev.map(f => f.id === file.id ? updatedFile : f));
     if (selectedFile?.id === file.id) {
@@ -267,10 +821,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
     if (onFileFavorite) {
       onFileFavorite(file, !file.favorite);
     }
-  };
+  }, [selectedFile, onFileFavorite]);
   
-  // Etiket ekle
-  const handleAddTag = () => {
+  const handleAddTag = useCallback(() => {
     if (selectedFile && newTag.trim()) {
       if (!selectedFile.tags.includes(newTag.trim())) {
         const updatedFile = { 
@@ -285,10 +838,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
       }
       setNewTag('');
     }
-  };
+  }, [selectedFile, newTag, onFileTagAdd]);
   
-  // Etiket kaldır
-  const handleRemoveTag = (tag: string) => {
+  const handleRemoveTag = useCallback((tag: string) => {
     if (selectedFile) {
       const updatedFile = { 
         ...selectedFile, 
@@ -300,36 +852,46 @@ export const FileManager: React.FC<FileManagerProps> = ({
         onFileTagRemove(selectedFile, tag);
       }
     }
-  };
+  }, [selectedFile, onFileTagRemove]);
   
-  // Sıralama değiştir
-  const handleSortChange = (newSortBy: 'name' | 'date' | 'size' | 'type') => {
+  const handleSortChange = useCallback((newSortBy: 'name' | 'date' | 'size' | 'type') => {
     if (sortBy === newSortBy) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(newSortBy);
       setSortDirection('asc');
     }
-  };
+  }, [sortBy]);
   
-  // Tarih formatla
-  const formatDate = (date: Date): string => {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) {
-      return 'Az önce';
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes} dakika önce`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours} saat önce`;
-    } else {
-      const days = Math.floor(diffInSeconds / 86400);
-      return `${days} gün önce`;
-    }
-  };
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+  
+  const handleFilterChange = useCallback((filter: FileType | 'all' | 'favorites') => {
+    setActiveFilter(filter);
+  }, []);
+  
+  const handleViewModeChange = useCallback((mode: 'grid' | 'list') => {
+    setViewMode(mode);
+  }, []);
+  
+  const handleRenameChange = useCallback((value: string) => {
+    setNewFileName(value);
+  }, []);
+  
+  const handleTagChange = useCallback((value: string) => {
+    setNewTag(value);
+  }, []);
+  
+  // Görünüm modu değiştirme işleyicileri
+  const handleGridView = useCallback(() => handleViewModeChange('grid'), [handleViewModeChange]);
+  const handleListView = useCallback(() => handleViewModeChange('list'), [handleViewModeChange]);
+  
+  // Bileşen displayName'leri
+  FileGridItem.displayName = 'FileGridItem';
+  FileListItem.displayName = 'FileListItem';
+  FileDetails.displayName = 'FileDetails';
+  FileFilters.displayName = 'FileFilters';
   
   return (
     <>
@@ -368,7 +930,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                     icon={<Box>📋</Box>}
                     size="sm"
                     variant={viewMode === 'list' ? 'solid' : 'outline'}
-                    onClick={() => setViewMode('list')}
+                    onClick={handleListView}
                   />
                 </Tooltip>
                 <Tooltip label="Izgara Görünümü" aria-label="Izgara Görünümü">
@@ -377,7 +939,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                     icon={<Box>📊</Box>}
                     size="sm"
                     variant={viewMode === 'grid' ? 'solid' : 'outline'}
-                    onClick={() => setViewMode('grid')}
+                    onClick={handleGridView}
                   />
                 </Tooltip>
               </HStack>
@@ -395,102 +957,18 @@ export const FileManager: React.FC<FileManagerProps> = ({
                   <Input
                     placeholder="Dosya ara..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                     aria-label="Dosya ara"
                   />
                 </InputGroup>
                 
-                <Flex justifyContent="space-between" alignItems="center">
-                  <HStack spacing={2} overflowX="auto" py={2} className="file-filters">
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'all' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('all')}
-                    >
-                      Tümü
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'favorites' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('favorites')}
-                      leftIcon={<Box>⭐</Box>}
-                    >
-                      Favoriler
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'image' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('image')}
-                      leftIcon={<Box>🖼️</Box>}
-                    >
-                      Resimler
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'document' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('document')}
-                      leftIcon={<Box>📄</Box>}
-                    >
-                      Belgeler
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'code' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('code')}
-                      leftIcon={<Box>📝</Box>}
-                    >
-                      Kod
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'video' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('video')}
-                      leftIcon={<Box>🎬</Box>}
-                    >
-                      Video
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={activeFilter === 'audio' ? 'solid' : 'outline'}
-                      onClick={() => setActiveFilter('audio')}
-                      leftIcon={<Box>🎵</Box>}
-                    >
-                      Ses
-                    </Button>
-                  </HStack>
-                  
-                  <Menu>
-                    <MenuButton as={Button} size="sm" rightIcon={<Box>⏷</Box>}>
-                      Sırala
-                    </MenuButton>
-                    <MenuList>
-                      <MenuItem 
-                        onClick={() => handleSortChange('name')}
-                        icon={<Box>{sortBy === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                      >
-                        İsme Göre
-                      </MenuItem>
-                      <MenuItem 
-                        onClick={() => handleSortChange('date')}
-                        icon={<Box>{sortBy === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                      >
-                        Tarihe Göre
-                      </MenuItem>
-                      <MenuItem 
-                        onClick={() => handleSortChange('size')}
-                        icon={<Box>{sortBy === 'size' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                      >
-                        Boyuta Göre
-                      </MenuItem>
-                      <MenuItem 
-                        onClick={() => handleSortChange('type')}
-                        icon={<Box>{sortBy === 'type' ? (sortDirection === 'asc' ? '↑' : '↓') : ' '}</Box>}
-                      >
-                        Türe Göre
-                      </MenuItem>
-                    </MenuList>
-                  </Menu>
-                </Flex>
+                <FileFilters
+                  activeFilter={activeFilter}
+                  onFilterChange={handleFilterChange}
+                  onSortChange={handleSortChange}
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                />
               </Box>
               
               {/* Dosya Listesi ve Detaylar */}
@@ -509,136 +987,30 @@ export const FileManager: React.FC<FileManagerProps> = ({
                     viewMode === 'grid' ? (
                       <Flex flexWrap="wrap" p={2}>
                         {sortedFiles.map(file => (
-                          <Box
+                          <FileGridItem
                             key={file.id}
-                            width="120px"
-                            height="140px"
-                            m={2}
-                            p={3}
-                            borderWidth="1px"
-                            borderRadius="md"
-                            borderColor={selectedFile?.id === file.id ? 'blue.500' : 'transparent'}
-                            bg={colorMode === 'light' ? 'white' : 'gray.700'}
-                            boxShadow="sm"
-                            cursor="pointer"
-                            onClick={() => handleFileSelect(file)}
-                            onDoubleClick={() => handleFileOpen(file)}
-                            _hover={{ boxShadow: 'md', borderColor: 'blue.300' }}
-                            transition="all 0.2s"
-                            display="flex"
-                            flexDirection="column"
-                            alignItems="center"
-                            justifyContent="center"
-                            position="relative"
-                            role="listitem"
-                            aria-label={`Dosya: ${file.name}`}
-                            {...animations.performanceUtils.forceGPU}
-                          >
-                            {file.favorite && (
-                              <Box 
-                                position="absolute" 
-                                top="2" 
-                                right="2" 
-                                fontSize="sm"
-                                aria-label="Favori dosya"
-                              >
-                                ⭐
-                              </Box>
-                            )}
-                            <Box fontSize="3xl" mb={2}>
-                              {getFileTypeIcon(file.type)}
-                            </Box>
-                            <Text 
-                              fontSize="sm" 
-                              fontWeight="medium" 
-                              textAlign="center"
-                              noOfLines={2}
-                            >
-                              {file.name}
-                            </Text>
-                            <Text fontSize="xs" color="gray.500" mt={1}>
-                              {formatFileSize(file.size)}
-                            </Text>
-                          </Box>
+                            file={file}
+                            isSelected={selectedFile?.id === file.id}
+                            colorMode={colorMode}
+                            onSelect={handleFileSelect}
+                            onOpen={handleFileOpen}
+                          />
                         ))}
                       </Flex>
                     ) : (
                       <Box>
                         {sortedFiles.map(file => (
-                          <Flex
+                          <FileListItem
                             key={file.id}
-                            p={3}
-                            borderBottomWidth="1px"
-                            bg={selectedFile?.id === file.id 
-                              ? (colorMode === 'light' ? 'blue.50' : 'blue.900') 
-                              : 'transparent'}
-                            cursor="pointer"
-                            onClick={() => handleFileSelect(file)}
-                            onDoubleClick={() => handleFileOpen(file)}
-                            _hover={{
-                              bg: colorMode === 'light' ? 'gray.100' : 'gray.700'
-                            }}
-                            alignItems="center"
-                            role="row"
-                            aria-label={`Dosya: ${file.name}`}
-                          >
-                            <Box fontSize="xl" mr={3}>
-                              {getFileTypeIcon(file.type)}
-                            </Box>
-                            <Box flex="1">
-                              <Flex alignItems="center">
-                                <Text fontWeight="medium">
-                                  {file.name}
-                                </Text>
-                                {file.favorite && (
-                                  <Box ml={2} fontSize="sm" aria-label="Favori dosya">
-                                    ⭐
-                                  </Box>
-                                )}
-                              </Flex>
-                              <Flex fontSize="xs" color="gray.500" mt={1}>
-                                <Text mr={3}>{formatFileSize(file.size)}</Text>
-                                <Text>{formatDate(file.lastModified)}</Text>
-                              </Flex>
-                            </Box>
-                            <Menu>
-                              <MenuButton 
-                                as={IconButton}
-                                aria-label="Dosya işlemleri"
-                                icon={<Box>⋮</Box>}
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <MenuList onClick={(e) => e.stopPropagation()}>
-                                <MenuItem 
-                                  icon={<Box>📂</Box>} 
-                                  onClick={() => handleFileOpen(file)}
-                                >
-                                  Aç
-                                </MenuItem>
-                                <MenuItem 
-                                  icon={<Box>✏️</Box>} 
-                                  onClick={() => handleRenameStart(file)}
-                                >
-                                  Yeniden Adlandır
-                                </MenuItem>
-                                <MenuItem 
-                                  icon={<Box>{file.favorite ? '⭐' : '☆'}</Box>} 
-                                  onClick={() => handleToggleFavorite(file)}
-                                >
-                                  {file.favorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-                                </MenuItem>
-                                <MenuItem 
-                                  icon={<Box>🗑️</Box>} 
-                                  onClick={() => handleFileDelete(file)}
-                                  color="red.500"
-                                >
-                                  Sil
-                                </MenuItem>
-                              </MenuList>
-                            </Menu>
-                          </Flex>
+                            file={file}
+                            isSelected={selectedFile?.id === file.id}
+                            colorMode={colorMode}
+                            onSelect={handleFileSelect}
+                            onOpen={handleFileOpen}
+                            onRename={handleRenameStart}
+                            onToggleFavorite={handleToggleFavorite}
+                            onDelete={handleFileDelete}
+                          />
                         ))}
                       </Box>
                     )
@@ -660,150 +1032,21 @@ export const FileManager: React.FC<FileManagerProps> = ({
                 
                 {/* Dosya Detayları */}
                 {selectedFile && (
-                  <Box 
-                    width="300px" 
-                    borderWidth="1px" 
-                    borderRadius="md" 
-                    p={4}
-                    overflowY="auto"
-                    role="region"
-                    aria-label="File details"
-                  >
-                    <VStack align="stretch" spacing={4}>
-                      <Flex justifyContent="center" mb={2}>
-                        <Box fontSize="5xl">
-                          {getFileTypeIcon(selectedFile.type)}
-                        </Box>
-                      </Flex>
-                      
-                      {isRenaming ? (
-                        <Box>
-                          <InputGroup size="md">
-                            <Input
-                              ref={renameInputRef}
-                              value={newFileName}
-                              onChange={(e) => setNewFileName(e.target.value)}
-                              onBlur={handleRenameComplete}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleRenameComplete();
-                                }
-                              }}
-                              aria-label="Rename file"
-                              autoFocus
-                            />
-                          </InputGroup>
-                        </Box>
-                      ) : (
-                        <Text fontSize="lg" fontWeight="bold" textAlign="center">
-                          {selectedFile.name}
-                        </Text>
-                      )}
-                      
-                      <Divider />
-                      
-                      <Box>
-                        <Text fontWeight="medium" mb={1}>Dosya Bilgileri</Text>
-                        <HStack fontSize="sm">
-                          <Text fontWeight="medium" color="gray.500">Tür:</Text>
-                          <Text>{selectedFile.type.charAt(0).toUpperCase() + selectedFile.type.slice(1)}</Text>
-                        </HStack>
-                        <HStack fontSize="sm">
-                          <Text fontWeight="medium" color="gray.500">Boyut:</Text>
-                          <Text>{formatFileSize(selectedFile.size)}</Text>
-                        </HStack>
-                        <HStack fontSize="sm">
-                          <Text fontWeight="medium" color="gray.500">Değiştirilme:</Text>
-                          <Text>{formatDate(selectedFile.lastModified)}</Text>
-                        </HStack>
-                        <HStack fontSize="sm">
-                          <Text fontWeight="medium" color="gray.500">Konum:</Text>
-                          <Text noOfLines={1}>{selectedFile.path}</Text>
-                        </HStack>
-                      </Box>
-                      
-                      <Divider />
-                      
-                      <Box>
-                        <Flex justifyContent="space-between" alignItems="center" mb={2}>
-                          <Text fontWeight="medium">Etiketler</Text>
-                          <Button
-                            size="xs"
-                            variant="outline"
-                            onClick={() => handleToggleFavorite(selectedFile)}
-                          >
-                            {selectedFile.favorite ? '⭐ Favorilerde' : '☆ Favorilere Ekle'}
-                          </Button>
-                        </Flex>
-                        
-                        <Flex flexWrap="wrap" mb={2}>
-                          {selectedFile.tags.map(tag => (
-                            <Badge
-                              key={tag}
-                              m={1}
-                              p={1}
-                              borderRadius="full"
-                              colorScheme="blue"
-                              display="flex"
-                              alignItems="center"
-                            >
-                              <Text mr={1}>{tag}</Text>
-                              <Box
-                                as="span"
-                                cursor="pointer"
-                                onClick={() => handleRemoveTag(tag)}
-                                ml={1}
-                                aria-label={`Remove tag ${tag}`}
-                              >
-                                ✕
-                              </Box>
-                            </Badge>
-                          ))}
-                        </Flex>
-                        
-                        <Flex mt={2}>
-                          <Input
-                            size="sm"
-                            aria-label="Add new tag"
-                            placeholder="Yeni etiket..."
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                handleAddTag();
-                              }
-                            }}
-                          />
-                          <Button
-                            size="sm"
-                            ml={2}
-                            onClick={handleAddTag}
-                            isDisabled={!newTag.trim()}
-                          >
-                            Ekle
-                          </Button>
-                        </Flex>
-                      </Box>
-                      
-                      <Divider />
-                      
-                      <Flex justifyContent="space-between">
-                        <Button
-                          colorScheme="blue"
-                          onClick={() => handleFileOpen(selectedFile)}
-                        >
-                          Aç
-                        </Button>
-                        <Button
-                          colorScheme="red"
-                          variant="outline"
-                          onClick={() => handleFileDelete(selectedFile)}
-                        >
-                          Sil
-                        </Button>
-                      </Flex>
-                    </VStack>
-                  </Box>
+                  <FileDetails
+                    file={selectedFile}
+                    isRenaming={isRenaming}
+                    newFileName={newFileName}
+                    newTag={newTag}
+                    renameInputRef={renameInputRef}
+                    onRenameChange={handleRenameChange}
+                    onRenameComplete={handleRenameComplete}
+                    onToggleFavorite={handleToggleFavorite}
+                    onTagChange={handleTagChange}
+                    onAddTag={handleAddTag}
+                    onRemoveTag={handleRemoveTag}
+                    onOpen={handleFileOpen}
+                    onDelete={handleFileDelete}
+                  />
                 )}
               </Flex>
             </Flex>
@@ -812,6 +1055,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
       </Drawer>
     </>
   );
-};
+});
+
+// Ensure displayName is set for React DevTools
+FileManager.displayName = 'FileManager';
 
 export default FileManager;

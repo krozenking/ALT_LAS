@@ -1,75 +1,75 @@
-import express, { Express } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
 import path from 'path';
-
-// Middleware ve utils
-import logger from './utils/logger';
-import { errorHandler, notFoundHandler, asyncHandler } from './middleware/errorMiddleware';
-import { requestLogger, responseTime, securityHeaders } from './middleware/loggingMiddleware';
-import { rateLimiter } from './middleware/rateLimiter';
-import { setupSwagger } from './utils/swagger';
-
-// Routes
+import { authenticateJWT } from './middleware/authMiddleware';
+import { routeAuthorization } from './middleware/routeAuthMiddleware';
+import errorMiddleware from './middleware/errorMiddleware';
+import loggingMiddleware from './middleware/loggingMiddleware';
+import rateLimiter from './middleware/rateLimiter';
 import authRoutes from './routes/authRoutes';
-import serviceRoutes from './routes/serviceRoutes';
 import segmentationRoutes from './routes/segmentationRoutes';
 import runnerRoutes from './routes/runnerRoutes';
 import archiveRoutes from './routes/archiveRoutes';
+import serviceRoutes from './routes/serviceRoutes';
+import logger from './utils/logger';
 
-// Initialize express app
-const app: Express = express();
-const port: number = parseInt(process.env.PORT || '3000', 10);
+// Swagger/OpenAPI yapılandırması
+const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
 
-// Middleware
-app.use(helmet()); // Güvenlik başlıkları
-app.use(securityHeaders); // Ek güvenlik başlıkları
-app.use(cors()); // CORS etkinleştir
-app.use(express.json()); // JSON gövdelerini ayrıştır
-app.use(express.urlencoded({ extended: true })); // URL-encoded gövdelerini ayrıştır
-app.use(requestLogger); // HTTP istek loglama
-app.use(responseTime); // Yanıt süresi ölçümü
+// Express uygulaması
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Rate limiter - tüm istekler için
-app.use(rateLimiter({
-  windowMs: 60 * 1000, // 1 dakika
-  maxRequests: 100 // dakikada 100 istek
-}));
+// Middleware yapılandırması
+app.use(cors());
+app.use(helmet());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(loggingMiddleware);
+app.use(rateLimiter);
 
-// Swagger dokümantasyonu
-const swaggerService = setupSwagger(app, path.join(__dirname, '../swagger.yaml'));
+// API dokümantasyonu
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Routes
+// Sağlık kontrolü endpoint'i
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'UP', timestamp: new Date().toISOString() });
+});
+
+// API rotaları
 app.use('/api/auth', authRoutes);
+
+// Kimlik doğrulama ve yetkilendirme middleware'leri
+// Tüm korumalı rotalar için JWT doğrulama
+app.use('/api/segmentation', authenticateJWT);
+app.use('/api/runner', authenticateJWT);
+app.use('/api/archive', authenticateJWT);
+app.use('/api/services', authenticateJWT);
+
+// Route bazlı yetkilendirme
+app.use(routeAuthorization);
+
+// Servis rotaları
+app.use('/api/segmentation', segmentationRoutes);
+app.use('/api/runner', runnerRoutes);
+app.use('/api/archive', archiveRoutes);
 app.use('/api/services', serviceRoutes);
-app.use('/api/v1/segmentation', segmentationRoutes);
-app.use('/api/v1/runner', runnerRoutes);
-app.use('/api/v1/archive', archiveRoutes);
 
-// Ana rotalar
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'ALT_LAS API Gateway\'e Hoş Geldiniz',
-    documentation: '/api-docs',
-    version: req.apiVersion || 'v1'
-  });
+// 404 handler
+app.use((req: Request, res: Response) => {
+  res.status(404).json({ message: 'Endpoint bulunamadı' });
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'UP' });
+// Hata işleme middleware'i
+app.use(errorMiddleware);
+
+// Sunucuyu başlat
+app.listen(PORT, () => {
+  logger.info(`API Gateway ${PORT} portunda çalışıyor`);
+  logger.info(`API Dokümantasyonu: http://localhost:${PORT}/api-docs`);
 });
 
-// Hata işleme middleware'leri
-app.use(notFoundHandler);
-app.use(errorHandler);
-
-// Start server
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
-    logger.info(`API Gateway ${port} portunda çalışıyor`);
-    logger.info(`Swagger dokümantasyonu http://localhost:${port}/api-docs adresinde kullanılabilir`);
-  });
-}
-
-export default app; // Test için
+export default app;

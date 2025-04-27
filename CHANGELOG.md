@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial setup for changelog.
-
+- Created `workflow-engine` microservice directory and basic structure.
+- Defined core data models for workflows, nodes, edges, and runs (`workflow-engine/src/models/workflow.py`).
+- Implemented base `Piece` class for workflow nodes (`workflow-engine/src/pieces/base.py`).
+- Developed initial `WorkflowExecutor` for running workflows (`workflow-engine/src/engine/executor.py`).
+- Created `PieceRegistry` for managing available workflow pieces (`workflow-engine/src/engine/registry.py`).
+- Added basic `ManualTrigger` piece (`workflow-engine/src/pieces/triggers.py`).
+- Added basic `CodeExecutor` action piece (`workflow-engine/src/pieces/actions.py`).
 ## [1.0.0] - YYYY-MM-DD
 
 ### Added

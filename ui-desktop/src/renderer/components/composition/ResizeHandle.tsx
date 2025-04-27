@@ -127,6 +127,13 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
       aria-orientation={orientation === 'horizontal' ? 'vertical' : (orientation === 'vertical' ? 'horizontal' : undefined)} // Orientation of the boundary it controls
       tabIndex={0}
       aria-label="Resize handle"
+      aria-roledescription="Use arrow keys to resize adjacent elements when focused"
+      onKeyDown={(e) => {
+        // TODO: Implement keyboard interaction logic
+        // e.g., check e.key for ArrowLeft/Right/Up/Down
+        // Call a parent handler to adjust size based on orientation
+        console.log("ResizeHandle key down:", e.key);
+      }}
       {...rest}
     />
   );

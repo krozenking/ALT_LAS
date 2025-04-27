@@ -702,9 +702,7 @@ const FileFilters = memo(({
       </Menu>
     </Flex>
   );
-});
-
-// Dosya yöneticisi bileşeni
+});  // Dosya yöneticisi bileşeni
 export const FileManager: React.FC<FileManagerProps> = memo(({
   initialFiles = [],
   onFileOpen,
@@ -730,6 +728,8 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
   const drawerContentRef = useRef<HTMLDivElement>(null); // Ref for drawer content
   const fileListContainerRef = useRef<HTMLDivElement>(null); // Ref for file list container
   const openButtonRef = useRef<HTMLButtonElement>(null); // Ref for the button that opens the drawer
+  const listRef = useRef<FixedSizeList>(null); // Ref for virtual list
+  const gridRef = useRef<FixedSizeGrid>(null); // Ref for virtual grid
 
   // Get dimensions of the file list container
   const fileListDimensions = useDimensions(fileListContainerRef, true);
@@ -738,10 +738,10 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
   useFocusOnShow(drawerContentRef, { shouldFocus: isOpen });
   useFocusOnHide(drawerContentRef, { focusRef: openButtonRef, shouldFocus: isOpen });
   
-  // Demo dosyaları
+  // Demo dosyaları - Increased to 1000 items to better demonstrate virtualization benefits
   useEffect(() => {
     if (files.length === 0) {
-      const demoFiles: FileObject[] = Array.from({ length: 200 }, (_, i) => ({
+      const demoFiles: FileObject[] = Array.from({ length: 1000 }, (_, i) => ({
         id: `${i + 1}`,
         name: `dosya_${i + 1}_${Math.random().toString(36).substring(7)}.txt`,
         type: i % 5 === 0 ? 'image' : i % 5 === 1 ? 'document' : i % 5 === 2 ? 'code' : i % 5 === 3 ? 'video' : 'audio',

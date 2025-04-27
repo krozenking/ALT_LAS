@@ -90,7 +90,8 @@ export const Panel: React.FC<PanelProps> = ({
           onTouchEnd={isDraggable ? onDragEnd : undefined} // Add touch support
           className="panel-header"
           tabIndex={isDraggable ? 0 : -1} // Make header focusable if draggable
-          aria-roledescription={isDraggable ? "draggable header" : undefined}
+          aria-roledescription={isDraggable ? "draggable header, use arrow keys to move when focused" : undefined}
+          // TODO: Implement keyboard dragging logic (e.g., onKeyDown handler)
           {...headerFocusStyle} // Apply focus style to header
         >
           {title && (

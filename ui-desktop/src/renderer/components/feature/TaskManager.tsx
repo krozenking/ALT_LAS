@@ -1,5 +1,6 @@
-import React, { useEffect, useId, useMemo, useCallback, memo } from 'react';
-import { Box, Flex, useColorMode, Text, VisuallyHidden } from '@chakra-ui/react';
+import React, { useEffect, useId, useMemo, useCallback, memo, useRef } from 'react';
+import { Box, Flex, useColorMode, Text, VisuallyHidden, useDimensions } from '@chakra-ui/react'; // Added useDimensions
+import { FixedSizeList } from 'react-window'; // Added FixedSizeList
 import Panel from '@/components/composition/Panel';
 import SplitView from '@/components/composition/SplitView';
 import PanelContainer from '@/components/composition/PanelContainer';
@@ -183,11 +184,61 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
   const { tasks, isLoading, error, updateTask } = useTasks();
   const listId = useId();
   const listLabelId = `${listId}-label`;
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<FixedSizeList>(null);
+  
+  // Get dimensions of the task list container
+  const listDimensions = useDimensions(listContainerRef, true);
+  
+  // Constants for virtual list
+  const taskItemHeight = 100; // Approximate height of TaskItem including margin
   
   // Handle task status update with useCallback to prevent unnecessary re-renders
   const handleStatusUpdate = useCallback((id: string, status: string) => {
     updateTask({ id, updates: { status } });
   }, [updateTask]);
+  
+  // Prepare data for virtual list items
+  const itemData = useMemo(() => ({
+    tasks,
+    variant,
+    colorMode,
+    onStatusUpdate: handleStatusUpdate
+  }), [tasks, variant, colorMode, handleStatusUpdate]);
+  
+  // Generate demo tasks for testing virtualization performance
+  useEffect(() => {
+    if (tasks.length === 0 && variant === 'standalone') {
+      // Only generate demo tasks in standalone mode for testing
+      const demoTasks = Array.from({ length: 500 }, (_, i) => ({
+        id: `task-${i + 1}`,
+        name: `Demo Task ${i + 1}`,
+        status: i % 5 === 0 ? 'running' : i % 5 === 1 ? 'analyzing' : i % 5 === 2 ? 'completed' : i % 5 === 3 ? 'error' : 'idle',
+        progress: i % 5 === 0 ? Math.floor(Math.random() * 100) : i % 5 === 1 ? Math.floor(Math.random() * 100) : i % 5 === 2 ? 100 : 0,
+        type: i % 4 === 0 ? 'screen_capture' : i % 4 === 1 ? 'image_analysis' : i % 4 === 2 ? 'automation' : 'other'
+      }));
+      
+      // This would normally update the tasks in a real implementation
+      console.log('Generated demo tasks for virtualization testing:', demoTasks.length);
+    }
+  }, [tasks.length, variant]);
+  
+  // Render function for FixedSizeList items
+  const Row = useCallback(({ index, style }: { index: number, style: React.CSSProperties }) => {
+    const task = itemData.tasks[index];
+    if (!task) return null;
+    return (
+      <div style={style}>
+        <TaskItem
+          key={task.id}
+          task={task}
+          variant={itemData.variant}
+          colorMode={itemData.colorMode}
+          onStatusUpdate={itemData.onStatusUpdate}
+        />
+      </div>
+    );
+  }, [itemData]);
   
   // Render loading state
   if (isLoading) {
@@ -212,18 +263,27 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
   }
   
   return (
-    <Box p={variant === 'standalone' ? 4 : 2} role="list" id={listId} aria-labelledby={listLabelId}>
+    <Box 
+      p={variant === 'standalone' ? 4 : 2} 
+      role="list" 
+      id={listId} 
+      aria-labelledby={listLabelId}
+      ref={listContainerRef}
+      height={variant === 'standalone' ? "600px" : "100%"}
+    >
       <VisuallyHidden id={listLabelId}>Görev Listesi</VisuallyHidden>
-      {tasks.length > 0 ? (
-        tasks.map((task) => (
-          <TaskItem
-            key={task.id}
-            task={task}
-            variant={variant}
-            colorMode={colorMode}
-            onStatusUpdate={handleStatusUpdate}
-          />
-        ))
+      {tasks.length > 0 && listDimensions ? (
+        <FixedSizeList
+          ref={listRef}
+          height={listDimensions.borderBox.height}
+          itemCount={tasks.length}
+          itemSize={taskItemHeight}
+          width="100%"
+          itemData={itemData}
+          overscanCount={5} // Render 5 items above and below the visible area for smoother scrolling
+        >
+          {Row}
+        </FixedSizeList>
       ) : (
         <Card variant="glass" p={4} textAlign="center">
           <Text>Aktif görev bulunmamaktadır.</Text>

@@ -1,403 +1,145 @@
-"""
-Enhanced Error Handling and Logging System
-
-This module provides a comprehensive error handling and logging system for the Segmentation Service.
-It includes custom error classes, error codes, and a configurable logging system.
-"""
-
-import sys
-import time
-import json
-import logging
-import logging.handlers
-import traceback
 import os
-from enum import Enum, auto
-from functools import wraps
-from typing import Dict, Any, Optional, Callable, List, Union, Type
-from pathlib import Path
-from fastapi import Request, Response, FastAPI
+import sys
+import json
+import time
+import logging
+import traceback
+import logging.handlers
+from typing import Dict, List, Any, Optional, Union, Type
+from enum import Enum
 from pydantic import BaseModel, Field
+from fastapi import Depends, Request, Response
+from fastapi.responses import JSONResponse
 
-# Default configuration
+# Default logging configuration
 DEFAULT_LOG_LEVEL = "INFO"
-DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] - %(message)s"
+DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] [%(trace_id)s] - %(message)s"
 DEFAULT_LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-DEFAULT_LOG_DIR = "./logs"
+DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_FILENAME = "segmentation_service.log"
 DEFAULT_LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 DEFAULT_LOG_BACKUP_COUNT = 5
-DEFAULT_METRICS_INTERVAL = 60  # seconds
+DEFAULT_METRICS_INTERVAL = 60  # 1 minute
 
-# Create logs directory if it doesn't exist
-log_dir = Path(os.environ.get("LOG_DIR", DEFAULT_LOG_DIR))
-log_dir.mkdir(exist_ok=True)
+class ErrorCode(Enum):
+    """Error codes for segmentation service"""
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    DATA_ERROR = "DATA_ERROR"
+    FILE_NOT_FOUND = "FILE_NOT_FOUND"
+    FILE_ACCESS_ERROR = "FILE_ACCESS_ERROR"
+    INTEGRATION_ERROR = "INTEGRATION_ERROR"
+    UNEXPECTED_ERROR = "UNEXPECTED_ERROR"
+    CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
+    DEPENDENCY_ERROR = "DEPENDENCY_ERROR"
+    TIMEOUT_ERROR = "TIMEOUT_ERROR"
+    CONNECTION_ERROR = "CONNECTION_ERROR"
+    UNKNOWN_ERROR = "UNKNOWN_ERROR"
+    INVALID_PARAMETER = "INVALID_PARAMETER"
+    PROCESSING_ERROR = "PROCESSING_ERROR"
+    SEGMENTATION_ERROR = "SEGMENTATION_ERROR"
+    PRIORITIZATION_ERROR = "PRIORITIZATION_ERROR"
+    PARSING_ERROR = "PARSING_ERROR"
+    VISUALIZATION_ERROR = "VISUALIZATION_ERROR"
 
-# Error codes enum
-class ErrorCode(str, Enum):
-    """Error codes for the Segmentation Service"""
-    # General errors (1000-1999)
-    UNKNOWN_ERROR = "SE-1000"
-    INTERNAL_SERVER_ERROR = "SE-1001"
-    SERVICE_UNAVAILABLE = "SE-1002"
-    TIMEOUT_ERROR = "SE-1003"
-    CONFIGURATION_ERROR = "SE-1004"
-    
-    # Validation errors (2000-2999)
-    VALIDATION_ERROR = "SE-2000"
-    INVALID_REQUEST = "SE-2001"
-    INVALID_PARAMETER = "SE-2002"
-    MISSING_PARAMETER = "SE-2003"
-    INVALID_FORMAT = "SE-2004"
-    
-    # Processing errors (3000-3999)
-    PROCESSING_ERROR = "SE-3000"
-    SEGMENTATION_ERROR = "SE-3001"
-    PRIORITIZATION_ERROR = "SE-3002"
-    PARSING_ERROR = "SE-3003"
-    VISUALIZATION_ERROR = "SE-3004"
-    
-    # Data errors (4000-4999)
-    DATA_ERROR = "SE-4000"
-    FILE_NOT_FOUND = "SE-4001"
-    FILE_ACCESS_ERROR = "SE-4002"
-    DATA_CORRUPTION = "SE-4003"
-    SERIALIZATION_ERROR = "SE-4004"
-    
-    # Integration errors (5000-5999)
-    INTEGRATION_ERROR = "SE-5000"
-    COMMUNICATION_ERROR = "SE-5001"
-    DEPENDENCY_ERROR = "SE-5002"
-    API_ERROR = "SE-5003"
-    AUTHENTICATION_ERROR = "SE-5004"
-
-# Error severity levels
-class ErrorSeverity(str, Enum):
+class ErrorSeverity(Enum):
     """Error severity levels"""
-    CRITICAL = "critical"
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-    INFO = "info"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
-# Custom error response model
 class ErrorResponse(BaseModel):
     """Error response model"""
     code: str = Field(..., description="Error code")
     message: str = Field(..., description="Error message")
     details: Optional[Dict[str, Any]] = Field(None, description="Error details")
-    severity: ErrorSeverity = Field(ErrorSeverity.MEDIUM, description="Error severity")
-    request_id: Optional[str] = Field(None, description="Request ID")
+    severity: str = Field(ErrorSeverity.MEDIUM.value, description="Error severity")
     timestamp: str = Field(..., description="Error timestamp")
-    trace_id: Optional[str] = Field(None, description="Trace ID for distributed tracing")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "code": "SE-1001",
-                "message": "Internal server error",
-                "details": {"reason": "Unexpected exception"},
-                "severity": "high",
-                "request_id": "123e4567-e89b-12d3-a456-426614174000",
-                "timestamp": "2023-01-01T12:00:00Z",
-                "trace_id": "abcdef123456"
-            }
-        }
+    request_id: Optional[str] = Field(None, description="Request ID")
+    trace_id: Optional[str] = Field(None, description="Trace ID")
 
-# Base exception class
+# Custom exception classes
 class SegmentationError(Exception):
-    """Base exception class for Segmentation Service"""
-    
-    def __init__(
-        self,
-        message: str,
-        code: ErrorCode = ErrorCode.UNKNOWN_ERROR,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize SegmentationError
-        
-        Args:
-            message: Error message
-            code: Error code
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
+    """Base exception for segmentation service"""
+    def __init__(self, message: str, code: str = ErrorCode.SEGMENTATION_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
+        super().__init__(message)
         self.message = message
         self.code = code
         self.details = details or {}
         self.severity = severity
         self.cause = cause
-        self.timestamp = time.time()
-        
-        # Add cause information to details if available
         if cause:
             self.details["cause"] = str(cause)
             self.details["cause_type"] = type(cause).__name__
-        
-        super().__init__(message)
-    
+
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert exception to dictionary
-        
-        Returns:
-            Exception as dictionary
-        """
         return {
-            "code": self.code,
             "message": self.message,
+            "code": self.code,
             "details": self.details,
-            "severity": self.severity,
-            "timestamp": self.timestamp
+            "severity": self.severity
         }
-    
+
     def to_response(self, request_id: Optional[str] = None, trace_id: Optional[str] = None) -> ErrorResponse:
-        """
-        Convert exception to error response
-        
-        Args:
-            request_id: Request ID
-            trace_id: Trace ID
-            
-        Returns:
-            Error response
-        """
         return ErrorResponse(
-            code=self.code,
             message=self.message,
+            code=self.code,
             details=self.details,
             severity=self.severity,
+            timestamp=time.strftime(DEFAULT_LOG_DATE_FORMAT),
             request_id=request_id,
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.timestamp)),
             trace_id=trace_id
         )
 
-# Validation error
 class ValidationError(SegmentationError):
     """Validation error"""
-    
-    def __init__(
-        self,
-        message: str,
-        code: ErrorCode = ErrorCode.VALIDATION_ERROR,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize ValidationError
-        
-        Args:
-            message: Error message
-            code: Error code
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
+    def __init__(self, message: str, code: str = ErrorCode.VALIDATION_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
         super().__init__(message, code, details, severity, cause)
 
-# Processing error
-class ProcessingError(SegmentationError):
-    """Processing error"""
-    
-    def __init__(
-        self,
-        message: str,
-        code: ErrorCode = ErrorCode.PROCESSING_ERROR,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize ProcessingError
-        
-        Args:
-            message: Error message
-            code: Error code
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, code, details, severity, cause)
-
-# Data error
 class DataError(SegmentationError):
     """Data error"""
-    
-    def __init__(
-        self,
-        message: str,
-        code: ErrorCode = ErrorCode.DATA_ERROR,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize DataError
-        
-        Args:
-            message: Error message
-            code: Error code
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
+    def __init__(self, message: str, code: str = ErrorCode.DATA_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
         super().__init__(message, code, details, severity, cause)
 
-# Integration error
+class FileAccessError(SegmentationError):
+    """File access error"""
+    def __init__(self, message: str, code: str = ErrorCode.FILE_ACCESS_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.HIGH.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
+
 class IntegrationError(SegmentationError):
     """Integration error"""
-    
-    def __init__(
-        self,
-        message: str,
-        code: ErrorCode = ErrorCode.INTEGRATION_ERROR,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize IntegrationError
-        
-        Args:
-            message: Error message
-            code: Error code
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
+    def __init__(self, message: str, code: str = ErrorCode.INTEGRATION_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.HIGH.value, cause: Optional[Exception] = None):
         super().__init__(message, code, details, severity, cause)
 
-# Specific error subclasses
+class ProcessingError(SegmentationError):
+    """Processing error"""
+    def __init__(self, message: str, code: str = ErrorCode.PROCESSING_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
+
 class SegmentationProcessingError(ProcessingError):
     """Segmentation processing error"""
-    
-    def __init__(
-        self,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.HIGH,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize SegmentationProcessingError
-        
-        Args:
-            message: Error message
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, ErrorCode.SEGMENTATION_ERROR, details, severity, cause)
+    def __init__(self, message: str, code: str = ErrorCode.SEGMENTATION_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.HIGH.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
 
 class PrioritizationError(ProcessingError):
     """Prioritization error"""
-    
-    def __init__(
-        self,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize PrioritizationError
-        
-        Args:
-            message: Error message
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, ErrorCode.PRIORITIZATION_ERROR, details, severity, cause)
+    def __init__(self, message: str, code: str = ErrorCode.PRIORITIZATION_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
 
 class ParsingError(ProcessingError):
     """Parsing error"""
-    
-    def __init__(
-        self,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize ParsingError
-        
-        Args:
-            message: Error message
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, ErrorCode.PARSING_ERROR, details, severity, cause)
+    def __init__(self, message: str, code: str = ErrorCode.PARSING_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
 
 class VisualizationError(ProcessingError):
     """Visualization error"""
-    
-    def __init__(
-        self,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.LOW,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize VisualizationError
-        
-        Args:
-            message: Error message
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, ErrorCode.VISUALIZATION_ERROR, details, severity, cause)
+    def __init__(self, message: str, code: str = ErrorCode.VISUALIZATION_ERROR.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.LOW.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
 
-class FileNotFoundError(DataError):
-    """File not found error"""
-    
-    def __init__(
-        self,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize FileNotFoundError
-        
-        Args:
-            message: Error message
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, ErrorCode.FILE_NOT_FOUND, details, severity, cause)
-
-class FileAccessError(DataError):
-    """File access error"""
-    
-    def __init__(
-        self,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        cause: Optional[Exception] = None
-    ):
-        """
-        Initialize FileAccessError
-        
-        Args:
-            message: Error message
-            details: Error details
-            severity: Error severity
-            cause: Cause exception
-        """
-        super().__init__(message, ErrorCode.FILE_ACCESS_ERROR, details, severity, cause)
+class CustomFileNotFoundError(FileAccessError):
+    """Custom file not found error"""
+    def __init__(self, message: str, code: str = ErrorCode.FILE_NOT_FOUND.value, details: Optional[Dict[str, Any]] = None, severity: str = ErrorSeverity.MEDIUM.value, cause: Optional[Exception] = None):
+        super().__init__(message, code, details, severity, cause)
 
 # Error mapping
 ERROR_MAPPING = {
@@ -405,7 +147,7 @@ ERROR_MAPPING = {
     TypeError: (ValidationError, "Type error"),
     KeyError: (DataError, "Key error"),
     IndexError: (DataError, "Index error"),
-    FileNotFoundError: (FileNotFoundError, "File not found"),
+    FileNotFoundError: (CustomFileNotFoundError, "File not found"),
     PermissionError: (FileAccessError, "Permission denied"),
     TimeoutError: (IntegrationError, "Timeout error"),
     ConnectionError: (IntegrationError, "Connection error"),
@@ -482,7 +224,7 @@ class LoggingConfig:
         }
     
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> 'LoggingConfig':
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "LoggingConfig":
         """
         Create configuration from dictionary
         
@@ -495,7 +237,7 @@ class LoggingConfig:
         return cls(**config_dict)
     
     @classmethod
-    def from_env(cls) -> 'LoggingConfig':
+    def from_env(cls) -> "LoggingConfig":
         """
         Create configuration from environment variables
         
@@ -574,7 +316,7 @@ class TraceIdFilter(logging.Filter):
 class JsonFormatter(logging.Formatter):
     """JSON formatter for log records"""
     
-    def __init__(self, fmt=None, datefmt=None, style='%'):
+    def __init__(self, fmt=None, datefmt=None, style="%"):
         """
         Initialize JsonFormatter
         
@@ -695,7 +437,7 @@ class LoggingManager:
         
         # Add file handler
         if self.config.log_to_file:
-            # Create log directory if it doesn't exist
+            # Create log directory if it doesn"t exist
             os.makedirs(self.config.log_dir, exist_ok=True)
             
             # Create rotating file handler
@@ -895,58 +637,9 @@ class MetricsCollector:
         self.metrics["errors"]["by_code"][error_code] += 1
     
     def get_metrics(self) -> Dict[str, Any]:
-        """
-        Get current metrics
-        
-        Returns:
-            Current metrics
-        """
-        # Calculate derived metrics
-        uptime = time.time() - self.metrics["start_time"]
-        
-        # Calculate average response time
-        avg_response_time = 0
-        if self.metrics["response_times"]["count"] > 0:
-            avg_response_time = self.metrics["response_times"]["total"] / self.metrics["response_times"]["count"]
-        
-        # Calculate path-specific average response times
-        for path_key, path_metrics in self.metrics["response_times"]["by_path"].items():
-            if path_metrics["count"] > 0:
-                path_metrics["avg"] = path_metrics["total"] / path_metrics["count"]
-            else:
-                path_metrics["avg"] = 0
-        
-        # Calculate request rate
-        request_rate = self.metrics["requests"]["total"] / uptime if uptime > 0 else 0
-        
-        # Calculate error rate
-        error_rate = 0
-        if self.metrics["requests"]["total"] > 0:
-            error_rate = self.metrics["requests"]["error"] / self.metrics["requests"]["total"]
-        
-        return {
-            "requests": self.metrics["requests"],
-            "errors": self.metrics["errors"],
-            "response_times": {
-                "avg": avg_response_time,
-                "min": self.metrics["response_times"]["min"] if self.metrics["response_times"]["min"] != float("inf") else 0,
-                "max": self.metrics["response_times"]["max"],
-                "by_path": self.metrics["response_times"]["by_path"]
-            },
-            "uptime": uptime,
-            "request_rate": request_rate,
-            "error_rate": error_rate,
-            "timestamp": time.time()
-        }
-    
-    def log_metrics(self):
-        """Log current metrics"""
-        metrics = self.get_metrics()
-        self.logger.info(
-            "Service metrics",
-            extra={"metrics": metrics}
-        )
-    
+        """Get the collected metrics."""
+        return self.metrics
+
     def reset_metrics(self):
         """Reset metrics"""
         self.metrics = {
@@ -969,232 +662,318 @@ class MetricsCollector:
             },
             "start_time": time.time()
         }
-        self.logger.info("Metrics reset")
 
-# Error handler
+def get_metrics_collector() -> MetricsCollector:
+    """Dependency to get MetricsCollector instance"""
+    return MetricsCollector()
+
 class ErrorHandler:
     """Error handler for the Segmentation Service"""
     
-    @staticmethod
-    def handle_exception(request: Request, exc: Exception) -> Response:
+    def __init__(self, logger: logging.Logger, metrics_collector: MetricsCollector):
         """
-        Handle exception
+        Initialize ErrorHandler
         
         Args:
-            request: FastAPI request
-            exc: Exception
+            logger: Logger instance
+            metrics_collector: MetricsCollector instance
+        """
+        self.logger = logger
+        self.metrics_collector = metrics_collector
+    
+    async def handle_exception(self, request: Request, exc: Exception) -> Response:
+        """
+        Handle exceptions
+        
+        Args:
+            request: Request object
+            exc: Exception object
             
         Returns:
-            FastAPI response
+            Response object
         """
-        # Get logger
-        logger = logging.getLogger("segmentation_service.error_handler")
+        request_id = getattr(request.state, "request_id", "no-request-id")
+        trace_id = getattr(request.state, "trace_id", "no-trace-id")
         
-        # Get request ID
-        request_id = getattr(request.state, "request_id", "unknown")
-        
-        # Get trace ID
-        trace_id = request.headers.get("X-Trace-ID", "unknown")
-        
-        # Get metrics collector
-        metrics_collector = MetricsCollector()
-        
-        # Handle SegmentationError
         if isinstance(exc, SegmentationError):
-            # Log error
-            logger.error(
-                f"SegmentationError: {exc.message}",
-                extra={
-                    "request_id": request_id,
-                    "trace_id": trace_id,
-                    "error_code": exc.code,
-                    "error_details": exc.details,
-                    "error_severity": exc.severity
-                },
-                exc_info=True
-            )
-            
-            # Record error metrics
-            metrics_collector.record_error(exc.code)
-            
-            # Create error response
-            error_response = exc.to_response(request_id, trace_id)
-            
-            # Determine status code based on error code
-            status_code = 500
-            if exc.code.startswith("SE-2"):
-                status_code = 400
-            elif exc.code.startswith("SE-4"):
+            error_response = exc.to_response(request_id=request_id, trace_id=trace_id)
+            status_code = 400  # Default for SegmentationError subclasses
+            if isinstance(exc, ValidationError):
+                status_code = 422
+            elif isinstance(exc, CustomFileNotFoundError):
                 status_code = 404
-            elif exc.code.startswith("SE-5"):
-                status_code = 503
+            elif isinstance(exc, FileAccessError):
+                status_code = 403
+            elif isinstance(exc, IntegrationError):
+                status_code = 502
+            elif isinstance(exc, ProcessingError):
+                status_code = 500
             
-            # Return response
-            from fastapi.responses import JSONResponse
+            self.logger.error(
+                f"Segmentation error occurred: {exc.message}",
+                exc_info=exc,
+                extra={
+                    "error_code": error_response.code,
+                    "error_details": error_response.details,
+                    "error_severity": error_response.severity,
+                    "request_id": request_id,
+                    "trace_id": trace_id
+                }
+            )
+            self.metrics_collector.record_error(error_response.code)
             return JSONResponse(
                 status_code=status_code,
                 content=error_response.dict()
             )
-        
-        # Map standard exceptions to SegmentationError
-        for exc_type, (error_class, error_message) in ERROR_MAPPING.items():
-            if isinstance(exc, exc_type):
-                # Create SegmentationError
-                segmentation_error = error_class(
-                    message=f"{error_message}: {str(exc)}",
-                    details={"exception_type": type(exc).__name__},
-                    cause=exc
-                )
+        else:
+            # Map built-in exceptions
+            mapped_exception_cls, default_message = ERROR_MAPPING.get(type(exc), (SegmentationError, "Unexpected error"))
+            
+            # Create custom error instance
+            error = mapped_exception_cls(
+                message=str(exc) or default_message,
+                code=ErrorCode.UNEXPECTED_ERROR.value, # Default code
+                cause=exc
+            )
+            
+            # Assign specific code based on mapping if possible
+            if type(exc) == ValueError or type(exc) == TypeError:
+                error.code = ErrorCode.VALIDATION_ERROR.value
+                error.severity = ErrorSeverity.MEDIUM.value
+                status_code = 422
+            elif type(exc) == KeyError or type(exc) == IndexError:
+                error.code = ErrorCode.DATA_ERROR.value
+                error.severity = ErrorSeverity.MEDIUM.value
+                status_code = 400
+            elif type(exc) == FileNotFoundError:
+                 error = CustomFileNotFoundError(message=str(exc) or default_message, code=ErrorCode.FILE_NOT_FOUND.value, cause=exc)
+                 status_code = 404
+            elif type(exc) == PermissionError:
+                 error = FileAccessError(message=str(exc) or default_message, code=ErrorCode.FILE_ACCESS_ERROR.value, cause=exc)
+                 status_code = 403
+            elif type(exc) == TimeoutError:
+                 error = IntegrationError(message=str(exc) or default_message, code=ErrorCode.TIMEOUT_ERROR.value, cause=exc)
+                 status_code = 504
+            elif type(exc) == ConnectionError:
+                 error = IntegrationError(message=str(exc) or default_message, code=ErrorCode.CONNECTION_ERROR.value, cause=exc)
+                 status_code = 502
+            else:
+                error.code = ErrorCode.UNEXPECTED_ERROR.value
+                error.severity = ErrorSeverity.CRITICAL.value
+                status_code = 500
                 
-                # Handle SegmentationError
-                return ErrorHandler.handle_exception(request, segmentation_error)
-        
-        # Handle unknown exceptions
-        logger.error(
-            f"Unhandled exception: {str(exc)}",
-            extra={
-                "request_id": request_id,
-                "trace_id": trace_id,
-                "exception_type": type(exc).__name__
-            },
-            exc_info=True
-        )
-        
-        # Record error metrics
-        metrics_collector.record_error(ErrorCode.UNKNOWN_ERROR)
-        
-        # Create error response
-        error_response = ErrorResponse(
-            code=ErrorCode.UNKNOWN_ERROR,
-            message=f"Unhandled exception: {str(exc)}",
-            details={"exception_type": type(exc).__name__},
-            severity=ErrorSeverity.HIGH,
-            request_id=request_id,
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            trace_id=trace_id
-        )
-        
-        # Return response
-        from fastapi.responses import JSONResponse
-        return JSONResponse(
-            status_code=500,
-            content=error_response.dict()
-        )
+            error_response = error.to_response(request_id=request_id, trace_id=trace_id)
+            
+            self.logger.critical(
+                f"Unhandled exception occurred: {str(exc)}",
+                exc_info=exc,
+                extra={
+                    "error_code": error_response.code,
+                    "error_details": error_response.details,
+                    "error_severity": error_response.severity,
+                    "request_id": request_id,
+                    "trace_id": trace_id
+                }
+            )
+            self.metrics_collector.record_error(error_response.code)
+            return JSONResponse(
+                status_code=status_code,
+                content=error_response.dict()
+            )
 
-# Request logger
-class RequestLogger:
-    """Request logger for the Segmentation Service"""
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    """Dependency to get logger instance"""
+    return LoggingManager().get_logger(name)
+
+def get_error_handler(logger: logging.Logger = Depends(get_logger), metrics_collector: MetricsCollector = Depends(get_metrics_collector)) -> ErrorHandler:
+    """Dependency to get ErrorHandler instance"""
+    return ErrorHandler(logger, metrics_collector)
+
+# Add other necessary classes and functions like RequestLogger, HealthCheck, log_function_call, log_async_function_call, configure_app_logging
+# These are omitted for brevity but should be included from the original file or implemented as needed.
+
+
+
+
+
+import uuid
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+class RequestLogger(BaseHTTPMiddleware):
+    """Middleware to log requests and add request/trace IDs"""
     
-    @staticmethod
-    async def log_request(request: Request, call_next):
+    def __init__(self, app, logger: logging.Logger, metrics_collector: MetricsCollector):
         """
-        Log request
+        Initialize RequestLogger
         
         Args:
-            request: FastAPI request
-            call_next: Next middleware function
+            app: FastAPI application instance
+            logger: Logger instance
+            metrics_collector: MetricsCollector instance
+        """
+        super().__init__(app)
+        self.logger = logger
+        self.metrics_collector = metrics_collector
+    
+    async def dispatch(self, request: Request, call_next):
+        """
+        Dispatch request
+        
+        Args:
+            request: Request object
+            call_next: Next middleware or endpoint
             
         Returns:
-            FastAPI response
+            Response object
         """
-        # Get logger
-        logger = logging.getLogger("segmentation_service.request_logger")
+        start_time = time.time()
         
-        # Get metrics collector
-        metrics_collector = MetricsCollector()
+        # Generate request and trace IDs
+        request_id = str(uuid.uuid4())
+        trace_id = request.headers.get("X-Trace-ID", str(uuid.uuid4()))
         
-        # Generate request ID if not provided
-        request_id = request.headers.get("X-Request-ID", str(time.time_ns()))
-        
-        # Add request ID to request state
+        # Set IDs in request state and logging context
         request.state.request_id = request_id
+        request.state.trace_id = trace_id
+        LoggingManager().set_request_id(request_id)
+        LoggingManager().set_trace_id(trace_id)
         
-        # Get trace ID
-        trace_id = request.headers.get("X-Trace-ID", "unknown")
-        
-        # Set request ID and trace ID for logging
-        logging_manager = LoggingManager()
-        logging_manager.set_request_id(request_id)
-        logging_manager.set_trace_id(trace_id)
-        
-        # Get request details
-        method = request.method
-        path = request.url.path
-        query_params = dict(request.query_params)
-        client_host = request.client.host if request.client else "unknown"
-        user_agent = request.headers.get("User-Agent", "unknown")
-        
-        # Log request
-        logger.info(
-            f"Request: {method} {path}",
+        self.logger.info(
+            f"Request started: {request.method} {request.url.path}",
             extra={
+                "method": request.method,
+                "path": request.url.path,
+                "query_params": str(request.query_params),
+                "headers": dict(request.headers),
                 "request_id": request_id,
-                "trace_id": trace_id,
-                "method": method,
-                "path": path,
-                "query_params": query_params,
-                "client_host": client_host,
-                "user_agent": user_agent
+                "trace_id": trace_id
             }
         )
         
-        # Measure request processing time
-        start_time = time.time()
-        
         try:
-            # Process request
             response = await call_next(request)
-            
-            # Calculate processing time
             process_time = time.time() - start_time
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Trace-ID"] = trace_id
             
-            # Log response
-            logger.info(
-                f"Response: {response.status_code} - {process_time:.4f}s",
+            self.logger.info(
+                f"Request finished: {request.method} {request.url.path} - Status: {response.status_code}",
                 extra={
-                    "request_id": request_id,
-                    "trace_id": trace_id,
-                    "method": method,
-                    "path": path,
+                    "method": request.method,
+                    "path": request.url.path,
                     "status_code": response.status_code,
-                    "process_time": process_time
+                    "response_time_ms": int(process_time * 1000),
+                    "request_id": request_id,
+                    "trace_id": trace_id
                 }
             )
             
-            # Record request metrics
-            metrics_collector.record_request(path, method, response.status_code, process_time)
-            
-            # Add custom headers to response
-            response.headers["X-Request-ID"] = request_id
-            response.headers["X-Process-Time"] = str(process_time)
+            # Record metrics
+            self.metrics_collector.record_request(
+                path=request.url.path,
+                method=request.method,
+                status_code=response.status_code,
+                response_time=process_time
+            )
             
             return response
         except Exception as exc:
-            # Calculate processing time
             process_time = time.time() - start_time
+            error_handler = ErrorHandler(self.logger, self.metrics_collector)
+            response = await error_handler.handle_exception(request, exc)
             
-            # Log exception
-            logger.error(
-                f"Exception during request processing: {str(exc)}",
-                extra={
-                    "request_id": request_id,
-                    "trace_id": trace_id,
-                    "method": method,
-                    "path": path,
-                    "process_time": process_time,
-                    "exception": str(exc),
-                    "exception_type": type(exc).__name__
-                },
-                exc_info=True
+            # Record metrics for handled exception
+            self.metrics_collector.record_request(
+                path=request.url.path,
+                method=request.method,
+                status_code=response.status_code,
+                response_time=process_time
             )
             
-            # Record request metrics (as error)
-            metrics_collector.record_request(path, method, 500, process_time)
-            
-            # Re-raise exception for error handler
-            raise
+            return response
 
-# Function logging decorator
+
+
+class HealthCheck:
+    """Health check endpoint handler"""
+    
+    def __init__(self, logger: logging.Logger, metrics_collector: MetricsCollector):
+        """
+        Initialize HealthCheck
+        
+        Args:
+            logger: Logger instance
+            metrics_collector: MetricsCollector instance
+        """
+        self.logger = logger
+        self.metrics_collector = metrics_collector
+    
+    async def check_health(self, request: Request) -> Dict[str, Any]:
+        """
+        Check service health
+        
+        Args:
+            request: Request object
+            
+        Returns:
+            Health check response
+        """
+        # Get request IDs
+        request_id = getattr(request.state, "request_id", "no-request-id")
+        trace_id = getattr(request.state, "trace_id", "no-trace-id")
+        
+        # Get metrics
+        metrics = self.metrics_collector.get_metrics()
+        
+        # Calculate uptime
+        uptime_seconds = time.time() - metrics["start_time"]
+        days, remainder = divmod(uptime_seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        uptime = f"{int(days)}d {int(hours)}h {int(minutes)}m {int(seconds)}s"
+        
+        # Calculate average response time
+        avg_response_time = 0
+        if metrics["response_times"]["count"] > 0:
+            avg_response_time = metrics["response_times"]["total"] / metrics["response_times"]["count"]
+        
+        # Build health check response
+        health_data = {
+            "status": "healthy",
+            "version": "1.0.0",
+            "uptime": uptime,
+            "timestamp": time.strftime(DEFAULT_LOG_DATE_FORMAT),
+            "request_id": request_id,
+            "trace_id": trace_id,
+            "metrics": {
+                "requests": {
+                    "total": metrics["requests"]["total"],
+                    "success": metrics["requests"]["success"],
+                    "error": metrics["requests"]["error"]
+                },
+                "errors": {
+                    "total": metrics["errors"]["total"]
+                },
+                "response_times": {
+                    "avg_ms": int(avg_response_time * 1000),
+                    "min_ms": int(metrics["response_times"]["min"] * 1000) if metrics["response_times"]["min"] != float("inf") else 0,
+                    "max_ms": int(metrics["response_times"]["max"] * 1000)
+                }
+            }
+        }
+        
+        self.logger.info(
+            "Health check performed",
+            extra={
+                "health_data": health_data,
+                "request_id": request_id,
+                "trace_id": trace_id
+            }
+        )
+        
+        return health_data
+
 def log_function_call(func):
     """
     Decorator to log function calls
@@ -1205,70 +984,56 @@ def log_function_call(func):
     Returns:
         Decorated function
     """
-    @wraps(func)
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Get logger
-        logger = logging.getLogger("segmentation_service.function_logger")
-        
-        # Get function details
+        logger = LoggingManager().get_logger()
         func_name = func.__name__
         module_name = func.__module__
         
-        # Log function call
         logger.debug(
-            f"Calling {module_name}.{func_name}",
+            f"Function call: {module_name}.{func_name}",
             extra={
                 "function": func_name,
                 "module": module_name,
-                "args_count": len(args),
-                "kwargs_count": len(kwargs)
+                "args": str(args),
+                "kwargs": str(kwargs)
             }
         )
         
-        # Measure function execution time
         start_time = time.time()
-        
         try:
-            # Call function
             result = func(*args, **kwargs)
+            process_time = time.time() - start_time
             
-            # Calculate execution time
-            exec_time = time.time() - start_time
-            
-            # Log function result
             logger.debug(
-                f"Function {module_name}.{func_name} completed in {exec_time:.4f}s",
+                f"Function return: {module_name}.{func_name} - {process_time:.3f}s",
                 extra={
                     "function": func_name,
                     "module": module_name,
-                    "exec_time": exec_time
+                    "process_time": process_time
                 }
             )
             
             return result
         except Exception as exc:
-            # Calculate execution time
-            exec_time = time.time() - start_time
+            process_time = time.time() - start_time
             
-            # Log exception
             logger.error(
-                f"Exception in {module_name}.{func_name}: {str(exc)}",
+                f"Function error: {module_name}.{func_name} - {type(exc).__name__}: {str(exc)} - {process_time:.3f}s",
+                exc_info=exc,
                 extra={
                     "function": func_name,
                     "module": module_name,
-                    "exec_time": exec_time,
-                    "exception": str(exc),
-                    "exception_type": type(exc).__name__
-                },
-                exc_info=True
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "process_time": process_time
+                }
             )
             
-            # Re-raise exception
             raise
     
     return wrapper
 
-# Async function logging decorator
 def log_async_function_call(func):
     """
     Decorator to log async function calls
@@ -1279,251 +1044,86 @@ def log_async_function_call(func):
     Returns:
         Decorated async function
     """
-    @wraps(func)
+    @functools.wraps(func)
     async def wrapper(*args, **kwargs):
-        # Get logger
-        logger = logging.getLogger("segmentation_service.function_logger")
-        
-        # Get function details
+        logger = LoggingManager().get_logger()
         func_name = func.__name__
         module_name = func.__module__
         
-        # Log function call
         logger.debug(
-            f"Calling async {module_name}.{func_name}",
+            f"Async function call: {module_name}.{func_name}",
             extra={
                 "function": func_name,
                 "module": module_name,
-                "args_count": len(args),
-                "kwargs_count": len(kwargs),
-                "async": True
+                "args": str(args),
+                "kwargs": str(kwargs)
             }
         )
         
-        # Measure function execution time
         start_time = time.time()
-        
         try:
-            # Call function
             result = await func(*args, **kwargs)
+            process_time = time.time() - start_time
             
-            # Calculate execution time
-            exec_time = time.time() - start_time
-            
-            # Log function result
             logger.debug(
-                f"Async function {module_name}.{func_name} completed in {exec_time:.4f}s",
+                f"Async function return: {module_name}.{func_name} - {process_time:.3f}s",
                 extra={
                     "function": func_name,
                     "module": module_name,
-                    "exec_time": exec_time,
-                    "async": True
+                    "process_time": process_time
                 }
             )
             
             return result
         except Exception as exc:
-            # Calculate execution time
-            exec_time = time.time() - start_time
+            process_time = time.time() - start_time
             
-            # Log exception
             logger.error(
-                f"Exception in async {module_name}.{func_name}: {str(exc)}",
+                f"Async function error: {module_name}.{func_name} - {type(exc).__name__}: {str(exc)} - {process_time:.3f}s",
+                exc_info=exc,
                 extra={
                     "function": func_name,
                     "module": module_name,
-                    "exec_time": exec_time,
-                    "exception": str(exc),
-                    "exception_type": type(exc).__name__,
-                    "async": True
-                },
-                exc_info=True
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "process_time": process_time
+                }
             )
             
-            # Re-raise exception
             raise
     
     return wrapper
 
-# Health check
-class HealthCheck:
-    """Health check for the Segmentation Service"""
-    
-    @staticmethod
-    def check_health() -> Dict[str, Any]:
-        """
-        Check service health
-        
-        Returns:
-            Health check result
-        """
-        # Get metrics
-        metrics_collector = MetricsCollector()
-        metrics = metrics_collector.get_metrics()
-        
-        # Check health
-        status = "UP"
-        details = {
-            "uptime": metrics["uptime"],
-            "request_rate": metrics["request_rate"],
-            "error_rate": metrics["error_rate"],
-            "avg_response_time": metrics["response_times"]["avg"]
-        }
-        
-        # Check error rate
-        if metrics["error_rate"] > 0.1:  # More than 10% errors
-            status = "DEGRADED"
-            details["degraded_reason"] = "High error rate"
-        
-        # Check response time
-        if metrics["response_times"]["avg"] > 1.0:  # More than 1 second average response time
-            status = "DEGRADED"
-            details["degraded_reason"] = "High response time"
-        
-        return {
-            "status": status,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "details": details
-        }
-    
-    @staticmethod
-    def check_readiness() -> Dict[str, Any]:
-        """
-        Check service readiness
-        
-        Returns:
-            Readiness check result
-        """
-        # Check dependencies
-        dependencies = {
-            "database": "UP",
-            "api_gateway": "UP",
-            "runner_service": "UP"
-        }
-        
-        # Check overall status
-        status = "READY"
-        if "DOWN" in dependencies.values():
-            status = "NOT_READY"
-        
-        return {
-            "status": status,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "dependencies": dependencies
-        }
-    
-    @staticmethod
-    def check_liveness() -> Dict[str, Any]:
-        """
-        Check service liveness
-        
-        Returns:
-            Liveness check result
-        """
-        return {
-            "status": "ALIVE",
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
-
-# Configure application
-def configure_app_logging(app: FastAPI):
+def configure_app_logging(app, config: Optional[LoggingConfig] = None):
     """
-    Configure application logging
+    Configure FastAPI application logging
     
     Args:
-        app: FastAPI application
+        app: FastAPI application instance
+        config: Logging configuration
     """
     # Initialize logging manager
-    logging_manager = LoggingManager()
+    logging_manager = LoggingManager(config)
     logger = logging_manager.get_logger()
     
-    # Add exception handler
-    @app.exception_handler(Exception)
-    async def global_exception_handler(request, exc):
-        return ErrorHandler.handle_exception(request, exc)
+    # Initialize metrics collector
+    metrics_collector = MetricsCollector()
     
-    # Add middleware for request logging
-    @app.middleware("http")
-    async def request_logger_middleware(request, call_next):
-        return await RequestLogger.log_request(request, call_next)
+    # Add request logger middleware
+    app.add_middleware(
+        RequestLogger,
+        logger=logger,
+        metrics_collector=metrics_collector
+    )
     
-    # Add health check endpoints
-    @app.get("/health")
-    def health_check():
-        return HealthCheck.check_health()
+    # Add exception handlers
+    error_handler = ErrorHandler(logger, metrics_collector)
+    app.add_exception_handler(Exception, error_handler.handle_exception)
     
-    @app.get("/health/ready")
-    def readiness_check():
-        return HealthCheck.check_readiness()
-    
-    @app.get("/health/live")
-    def liveness_check():
-        return HealthCheck.check_liveness()
-    
-    # Add metrics endpoint
-    @app.get("/metrics")
-    def get_metrics():
-        metrics_collector = MetricsCollector()
-        return metrics_collector.get_metrics()
-    
-    # Add logging configuration endpoint
-    @app.get("/logging/config")
-    def get_logging_config():
-        return logging_manager.config.to_dict()
-    
-    @app.post("/logging/config")
-    def update_logging_config(config: Dict[str, Any]):
-        new_config = LoggingConfig.from_dict(config)
-        logging_manager.update_config(new_config)
-        return {"status": "success", "config": new_config.to_dict()}
+    # Add health check endpoint
+    health_check = HealthCheck(logger, metrics_collector)
+    app.add_api_route("/health", health_check.check_health, methods=["GET"])
     
     logger.info("Application logging configured")
-
-# Get logger
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """
-    Get logger
     
-    Args:
-        name: Logger name
-        
-    Returns:
-        Logger
-    """
-    logging_manager = LoggingManager()
-    return logging_manager.get_logger(name)
-
-# Initialize logging
-logging_manager = LoggingManager()
-logger = logging_manager.get_logger()
-
-# Initialize metrics collector
-metrics_collector = MetricsCollector()
-
-# Export logger
-__all__ = [
-    "ErrorCode",
-    "ErrorSeverity",
-    "ErrorResponse",
-    "SegmentationError",
-    "ValidationError",
-    "ProcessingError",
-    "DataError",
-    "IntegrationError",
-    "SegmentationProcessingError",
-    "PrioritizationError",
-    "ParsingError",
-    "VisualizationError",
-    "FileNotFoundError",
-    "FileAccessError",
-    "LoggingConfig",
-    "LoggingManager",
-    "MetricsCollector",
-    "ErrorHandler",
-    "RequestLogger",
-    "HealthCheck",
-    "log_function_call",
-    "log_async_function_call",
-    "configure_app_logging",
-    "get_logger"
-]
+    return logger, metrics_collector

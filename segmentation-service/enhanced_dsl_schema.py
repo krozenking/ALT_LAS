@@ -11,7 +11,7 @@ These advanced features enable more complex command processing and task automati
 """
 
 from typing import Dict, List, Any, Optional, Union, Callable
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ValidationInfo
 import yaml
 import json
 import uuid
@@ -65,18 +65,18 @@ class Variable(BaseModel):
     value: Any = Field(None, description="Variable value")
     description: Optional[str] = Field(None, description="Variable description")
 
-    @validator('name')
+    @field_validator("name")
     def validate_name(cls, v):
         """Validate variable name"""
-        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', v):
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
             raise ValueError("Variable name must start with a letter or underscore and contain only letters, numbers, and underscores")
         return v
 
-    @validator('value')
-    def validate_value(cls, v, values):
+    @field_validator("value")
+    def validate_value(cls, v, info: ValidationInfo):
         """Validate variable value based on type"""
-        if 'type' in values:
-            var_type = values['type']
+        if "type" in info.data:
+            var_type = info.data["type"]
             if var_type == VariableType.STRING and v is not None and not isinstance(v, str):
                 raise ValueError("Value must be a string for string type variables")
             elif var_type == VariableType.NUMBER and v is not None and not isinstance(v, (int, float)):
@@ -92,32 +92,32 @@ class Variable(BaseModel):
 class Condition(BaseModel):
     """Model for conditions"""
     operator: ConditionOperator = Field(..., description="Condition operator")
-    left: Union[str, 'Condition'] = Field(..., description="Left operand (variable name or nested condition)")
-    right: Optional[Union[str, Any, 'Condition']] = Field(None, description="Right operand (variable name, value, or nested condition)")
+    left: Union[str, "Condition"] = Field(..., description="Left operand (variable name or nested condition)")
+    right: Optional[Union[str, Any, "Condition"]] = Field(None, description="Right operand (variable name, value, or nested condition)")
 
-    @root_validator
-    def validate_condition(cls, values):
+    @model_validator(mode="after")
+    def validate_condition(self):
         """Validate condition based on operator"""
-        operator = values.get('operator')
-        right = values.get('right')
-        
-        # Unary operators don't need a right operand
+        operator = self.operator
+        right = self.right
+        left = self.left
+
+        # Unary operators don"t need a right operand
         if operator == ConditionOperator.NOT and right is not None:
             raise ValueError("NOT operator should only have a left operand")
-            
+
         # Binary operators need both operands
         if operator != ConditionOperator.NOT and right is None:
             raise ValueError(f"Operator {operator} requires both left and right operands")
-            
+
         # Logical operators (AND, OR) need nested conditions
         if operator in [ConditionOperator.AND, ConditionOperator.OR]:
-            left = values.get('left')
             if not isinstance(left, Condition):
                 raise ValueError(f"Left operand for {operator} must be a condition")
             if not isinstance(right, Condition):
                 raise ValueError(f"Right operand for {operator} must be a condition")
-                
-        return values
+
+        return self
 
 class Loop(BaseModel):
     """Model for loops"""
@@ -130,25 +130,25 @@ class Loop(BaseModel):
     condition: Optional[Condition] = Field(None, description="Condition for while loops")
     body: List[str] = Field(..., description="IDs of segments in the loop body")
 
-    @root_validator
-    def validate_loop(cls, values):
+    @model_validator(mode="after")
+    def validate_loop(self):
         """Validate loop based on type"""
-        loop_type = values.get('type')
-        iterable = values.get('iterable')
-        start = values.get('start')
-        end = values.get('end')
-        condition = values.get('condition')
-        
+        loop_type = self.type
+        iterable = self.iterable
+        start = self.start
+        end = self.end
+        condition = self.condition
+
         if loop_type == LoopType.FOR_EACH and iterable is None:
             raise ValueError("FOR_EACH loops require an iterable")
-            
+
         if loop_type == LoopType.FOR_RANGE and (start is None or end is None):
             raise ValueError("FOR_RANGE loops require start and end values")
-            
+
         if loop_type == LoopType.WHILE and condition is None:
             raise ValueError("WHILE loops require a condition")
-            
-        return values
+
+        return self
 
 class FunctionParameter(BaseModel):
     """Model for function parameters"""
@@ -166,10 +166,10 @@ class Function(BaseModel):
     body: List[str] = Field(..., description="IDs of segments in the function body")
     description: Optional[str] = Field(None, description="Function description")
 
-    @validator('name')
+    @field_validator("name")
     def validate_name(cls, v):
         """Validate function name"""
-        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', v):
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
             raise ValueError("Function name must start with a letter or underscore and contain only letters, numbers, and underscores")
         return v
 
@@ -193,7 +193,7 @@ class TaskSegment(BaseModel):
     parameters: List[TaskParameter] = Field(default_factory=list, description="Parameters for the task")
     dependencies: List[str] = Field(default_factory=list, description="IDs of segments this segment depends on")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata for the segment")
-    
+
     # Advanced features
     variables: List[Variable] = Field(default_factory=list, description="Variables defined in this segment")
     condition: Optional[ConditionalBranch] = Field(None, description="Conditional branch for this segment")
@@ -201,21 +201,21 @@ class TaskSegment(BaseModel):
     function_def: Optional[Function] = Field(None, description="Function definition")
     function_call: Optional[FunctionCall] = Field(None, description="Function call")
 
-    @root_validator
-    def validate_segment(cls, values):
+    @model_validator(mode="after")
+    def validate_segment(self):
         """Validate segment based on advanced features"""
         # Only one advanced feature can be used per segment
         advanced_features = [
-            values.get('condition'),
-            values.get('loop'),
-            values.get('function_def'),
-            values.get('function_call')
+            self.condition,
+            self.loop,
+            self.function_def,
+            self.function_call
         ]
-        
+
         if sum(1 for feature in advanced_features if feature is not None) > 1:
             raise ValueError("Only one advanced feature (condition, loop, function_def, function_call) can be used per segment")
-            
-        return values
+
+        return self
 
 class AltFile(BaseModel):
     """Enhanced model for ALT file format with advanced features"""
@@ -229,29 +229,29 @@ class AltFile(BaseModel):
     chaos_level: Optional[int] = Field(None, description="Chaos level (1-10) for Chaos mode")
     segments: List[TaskSegment] = Field(..., description="Task segments")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    
+
     # Global definitions
     global_variables: List[Variable] = Field(default_factory=list, description="Global variables")
     functions: List[Function] = Field(default_factory=list, description="Function definitions")
 
-    @validator('mode')
+    @field_validator("mode")
     def validate_mode(cls, v):
         """Validate mode value"""
         valid_modes = ["Normal", "Dream", "Explore", "Chaos"]
         if v not in valid_modes:
             raise ValueError(f"Mode must be one of {valid_modes}")
         return v
-    
-    @validator('chaos_level')
-    def validate_chaos_level(cls, v, values):
+
+    @field_validator("chaos_level")
+    def validate_chaos_level(cls, v, info: ValidationInfo):
         """Validate chaos_level based on mode"""
-        if values.get('mode') == "Chaos" and (v is None or not 1 <= v <= 10):
+        if info.data.get("mode") == "Chaos" and (v is None or not 1 <= v <= 10):
             raise ValueError("Chaos level must be between 1 and 10 when mode is Chaos")
-        if values.get('mode') != "Chaos" and v is not None:
+        if info.data.get("mode") != "Chaos" and v is not None:
             raise ValueError("Chaos level should only be set when mode is Chaos")
         return v
-    
-    @validator('version')
+
+    @field_validator("version")
     def validate_version(cls, v):
         """Validate version"""
         if v != "2.0":
@@ -261,34 +261,34 @@ class AltFile(BaseModel):
 def alt_to_yaml(alt_file: AltFile) -> str:
     """
     Convert ALT file to YAML format
-    
+
     Args:
         alt_file: ALT file object
-        
+
     Returns:
         YAML string representation
     """
-    return yaml.dump(alt_file.dict(), sort_keys=False, default_flow_style=False)
+    return yaml.dump(alt_file.model_dump(), sort_keys=False, default_flow_style=False)
 
 def alt_to_json(alt_file: AltFile) -> str:
     """
     Convert ALT file to JSON format
-    
+
     Args:
         alt_file: ALT file object
-        
+
     Returns:
         JSON string representation
     """
-    return json.dumps(alt_file.dict(), indent=2)
+    return json.dumps(alt_file.model_dump(), indent=2)
 
 def yaml_to_alt(yaml_str: str) -> AltFile:
     """
     Convert YAML string to ALT file object
-    
+
     Args:
         yaml_str: YAML string
-        
+
     Returns:
         ALT file object
     """
@@ -298,10 +298,10 @@ def yaml_to_alt(yaml_str: str) -> AltFile:
 def json_to_alt(json_str: str) -> AltFile:
     """
     Convert JSON string to ALT file object
-    
+
     Args:
         json_str: JSON string
-        
+
     Returns:
         ALT file object
     """
@@ -311,7 +311,7 @@ def json_to_alt(json_str: str) -> AltFile:
 def save_alt_file(alt_file: AltFile, file_path: str, format: str = "yaml") -> None:
     """
     Save ALT file to disk
-    
+
     Args:
         alt_file: ALT file object
         file_path: Path to save the file
@@ -323,26 +323,26 @@ def save_alt_file(alt_file: AltFile, file_path: str, format: str = "yaml") -> No
         content = alt_to_json(alt_file)
     else:
         raise ValueError("Format must be either 'yaml' or 'json'")
-    
-    with open(file_path, 'w', encoding='utf-8') as f:
+
+    with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
 
 def load_alt_file(file_path: str) -> AltFile:
     """
     Load ALT file from disk
-    
+
     Args:
         file_path: Path to the file
-        
+
     Returns:
         ALT file object
     """
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
-    
-    if file_path.endswith('.yaml') or file_path.endswith('.yml'):
+
+    if file_path.endswith(".yaml") or file_path.endswith(".yml"):
         return yaml_to_alt(content)
-    elif file_path.endswith('.json'):
+    elif file_path.endswith(".json"):
         return json_to_alt(content)
     else:
         # Try to determine format from content
@@ -357,16 +357,16 @@ def load_alt_file(file_path: str) -> AltFile:
 def evaluate_condition(condition: Condition, variables: Dict[str, Any]) -> bool:
     """
     Evaluate a condition with given variables
-    
+
     Args:
         condition: Condition to evaluate
         variables: Dictionary of variables
-        
+
     Returns:
         Boolean result of condition evaluation
     """
     op = condition.operator
-    
+
     # Handle unary operators
     if op == ConditionOperator.NOT:
         if isinstance(condition.left, Condition):
@@ -374,175 +374,185 @@ def evaluate_condition(condition: Condition, variables: Dict[str, Any]) -> bool:
         else:
             left_val = variables.get(condition.left, False)
             return not left_val
-    
+
     # Handle binary operators
     left = condition.left
     right = condition.right
-    
+
     # Handle nested conditions
     if op in [ConditionOperator.AND, ConditionOperator.OR]:
         left_result = evaluate_condition(left, variables)
         right_result = evaluate_condition(right, variables)
-        
+
         if op == ConditionOperator.AND:
             return left_result and right_result
         else:  # OR
             return left_result or right_result
-    
+
     # Get values for comparison
+    left_val = None
     if isinstance(left, Condition):
         left_val = evaluate_condition(left, variables)
     elif isinstance(left, str) and left in variables:
         left_val = variables[left]
     else:
-        left_val = left
-        
+        left_val = left # Assume literal value if not a variable or condition
+
+    right_val = None
     if isinstance(right, Condition):
         right_val = evaluate_condition(right, variables)
     elif isinstance(right, str) and right in variables:
         right_val = variables[right]
     else:
-        right_val = right
-    
-    # Compare values
-    if op == ConditionOperator.EQUAL:
-        return left_val == right_val
-    elif op == ConditionOperator.NOT_EQUAL:
-        return left_val != right_val
-    elif op == ConditionOperator.GREATER_THAN:
-        return left_val > right_val
-    elif op == ConditionOperator.LESS_THAN:
-        return left_val < right_val
-    elif op == ConditionOperator.GREATER_EQUAL:
-        return left_val >= right_val
-    elif op == ConditionOperator.LESS_EQUAL:
-        return left_val <= right_val
-    elif op == ConditionOperator.CONTAINS:
-        return right_val in left_val
-    elif op == ConditionOperator.NOT_CONTAINS:
-        return right_val not in left_val
-    elif op == ConditionOperator.STARTS_WITH:
-        return left_val.startswith(right_val)
-    elif op == ConditionOperator.ENDS_WITH:
-        return left_val.endswith(right_val)
-    
-    raise ValueError(f"Unsupported operator: {op}")
+        right_val = right # Assume literal value if not a variable or condition
 
-# Example usage
+    # Perform comparison
+    try:
+        if op == ConditionOperator.EQUAL:
+            return left_val == right_val
+        elif op == ConditionOperator.NOT_EQUAL:
+            return left_val != right_val
+        elif op == ConditionOperator.GREATER_THAN:
+            return left_val > right_val
+        elif op == ConditionOperator.LESS_THAN:
+            return left_val < right_val
+        elif op == ConditionOperator.GREATER_EQUAL:
+            return left_val >= right_val
+        elif op == ConditionOperator.LESS_EQUAL:
+            return left_val <= right_val
+        elif op == ConditionOperator.CONTAINS:
+            return right_val in left_val
+        elif op == ConditionOperator.NOT_CONTAINS:
+            return right_val not in left_val
+        elif op == ConditionOperator.STARTS_WITH:
+            return str(left_val).startswith(str(right_val))
+        elif op == ConditionOperator.ENDS_WITH:
+            return str(left_val).endswith(str(right_val))
+        else:
+            raise ValueError(f"Unsupported operator: {op}")
+    except TypeError:
+        # Handle type errors during comparison gracefully
+        return False
+    except Exception as e:
+        # Log other potential errors during evaluation
+        print(f"Error evaluating condition: {e}")
+        return False
+
+# Example usage:
 if __name__ == "__main__":
-    # Create global variables
-    global_var1 = Variable(name="max_results", type=VariableType.NUMBER, value=10)
-    global_var2 = Variable(name="search_engine", type=VariableType.STRING, value="google")
-    
-    # Create a function
-    func_param1 = FunctionParameter(name="query", type=VariableType.STRING, required=True)
-    func_param2 = FunctionParameter(name="limit", type=VariableType.NUMBER, default_value=5, required=False)
-    
-    # Function body segments will be defined later
-    function = Function(
-        name="perform_search",
-        parameters=[func_param1, func_param2],
-        return_type=VariableType.ARRAY,
-        body=["segment3", "segment4"],
-        description="Perform a search with the given query"
-    )
-    
-    # Create a condition
-    condition = Condition(
-        operator=ConditionOperator.GREATER_THAN,
-        left="result_count",
-        right=0
-    )
-    
-    conditional_branch = ConditionalBranch(
-        condition=condition,
-        if_body=["segment5"],
-        else_body=["segment6"]
-    )
-    
-    # Create a loop
-    loop = Loop(
-        type=LoopType.FOR_EACH,
-        variable="result",
-        iterable="search_results",
-        body=["segment7"]
-    )
-    
-    # Create task segments
-    task1 = TaskSegment(
-        id="segment1",
-        task_type="variable_definition",
-        content="Define search parameters",
-        variables=[
-            Variable(name="query", type=VariableType.STRING, value="AI advancements"),
-            Variable(name="result_count", type=VariableType.NUMBER, value=0)
+    # Example ALT file structure
+    example_alt = {
+        "id": "alt-123",
+        "version": "2.0",
+        "command": "Search for python tutorials and save the best one",
+        "language": "en",
+        "mode": "Normal",
+        "persona": "research_assistant",
+        "global_variables": [
+            {"name": "search_query", "type": "string", "value": "python tutorials"},
+            {"name": "results_limit", "type": "number", "value": 5}
+        ],
+        "functions": [
+            {
+                "name": "save_result",
+                "parameters": [
+                    {"name": "url", "type": "string", "required": True},
+                    {"name": "filename", "type": "string", "required": True}
+                ],
+                "body": ["save_segment_id"]
+            }
+        ],
+        "segments": [
+            {
+                "id": "search_segment",
+                "task_type": "search_web",
+                "content": "Search for python tutorials",
+                "parameters": [
+                    {"name": "query", "value": "$search_query"},
+                    {"name": "max_results", "value": "$results_limit"}
+                ],
+                "metadata": {"priority": 1}
+            },
+            {
+                "id": "loop_segment",
+                "task_type": "control_flow",
+                "content": "Loop through search results",
+                "loop": {
+                    "type": "for_each",
+                    "variable": "result",
+                    "iterable": "search_segment.results", # Assuming search results are stored here
+                    "body": ["condition_segment"]
+                },
+                "dependencies": ["search_segment"]
+            },
+            {
+                "id": "condition_segment",
+                "task_type": "control_flow",
+                "content": "Check if result is relevant",
+                "condition": {
+                    "condition": {
+                        "operator": "contains",
+                        "left": "result.title", # Accessing loop variable property
+                        "right": "tutorial"
+                    },
+                    "if_body": ["call_save_function"],
+                    "else_body": []
+                },
+                "dependencies": ["loop_segment"]
+            },
+            {
+                "id": "call_save_function",
+                "task_type": "function_call",
+                "content": "Save relevant result",
+                "function_call": {
+                    "function_name": "save_result",
+                    "arguments": {
+                        "url": "$result.url",
+                        "filename": "f\"best_python_tutorial_{result.index}.txt\"" # Example f-string usage
+                    }
+                },
+                "dependencies": ["condition_segment"]
+            },
+            {
+                "id": "save_segment_id", # Segment inside the function body
+                "task_type": "save_file",
+                "content": "Save content to file",
+                "parameters": [
+                    {"name": "url", "value": "$url"}, # Accessing function parameter
+                    {"name": "filename", "value": "$filename"}
+                ]
+            }
         ]
-    )
-    
-    task2 = TaskSegment(
-        id="segment2",
-        task_type="function_call",
-        content="Call search function",
-        function_call=FunctionCall(
-            function_name="perform_search",
-            arguments={"query": "AI advancements", "limit": 10},
-            result_variable="search_results"
-        )
-    )
-    
-    task3 = TaskSegment(
-        id="segment3",
-        task_type="search",
-        content="Search for information",
-        parameters=[
-            TaskParameter(name="query", value="AI advancements", type="string", required=True)
-        ]
-    )
-    
-    task4 = TaskSegment(
-        id="segment4",
-        task_type="process",
-        content="Process search results",
-        dependencies=["segment3"]
-    )
-    
-    task5 = TaskSegment(
-        id="segment5",
-        task_type="create",
-        content="Create report with results",
-        condition=conditional_branch
-    )
-    
-    task6 = TaskSegment(
-        id="segment6",
-        task_type="notify",
-        content="Notify no results found",
-        condition=conditional_branch
-    )
-    
-    task7 = TaskSegment(
-        id="segment7",
-        task_type="analyze",
-        content="Analyze each result",
-        loop=loop
-    )
-    
-    # Create ALT file
-    alt_file = AltFile(
-        command="Search for AI advancements and create a report",
-        language="en",
-        mode="Normal",
-        persona="researcher",
-        segments=[task1, task2, task3, task4, task5, task6, task7],
-        global_variables=[global_var1, global_var2],
-        functions=[function],
-        metadata={"source": "user_input", "priority": "high"}
-    )
-    
-    # Convert to YAML and print
-    yaml_str = alt_to_yaml(alt_file)
-    print("YAML representation:")
-    print(yaml_str)
-    
-    # Save to file
-    save_alt_file(alt_file, "example_enhanced.alt.yaml")
+    }
+
+    # Validate and process the example
+    try:
+        alt_file_obj = AltFile(**example_alt)
+        print("ALT file validated successfully!")
+        
+        # Convert to YAML
+        yaml_output = alt_to_yaml(alt_file_obj)
+        print("\nYAML Output:")
+        print(yaml_output)
+        
+        # Convert to JSON
+        json_output = alt_to_json(alt_file_obj)
+        print("\nJSON Output:")
+        print(json_output)
+        
+        # Save and load
+        save_alt_file(alt_file_obj, "example_enhanced.yaml", format="yaml")
+        loaded_alt = load_alt_file("example_enhanced.yaml")
+        print("\nLoaded ALT file from YAML successfully!")
+        assert loaded_alt == alt_file_obj
+        
+        # Example condition evaluation
+        variables = {"result": {"title": "Best Python Tutorial Ever", "url": "http://example.com", "index": 1}, "search_query": "python tutorials"}
+        condition_to_eval = alt_file_obj.segments[2].condition.condition
+        result = evaluate_condition(condition_to_eval, variables)
+        print(f"\nCondition evaluation result: {result}")
+        
+    except Exception as e:
+        print(f"Error processing ALT file: {e}")
+
+

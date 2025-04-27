@@ -7,7 +7,11 @@ import {
   useColorMode, 
   Badge, 
   HStack, 
-  CloseButton 
+  CloseButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem
 } from '@chakra-ui/react';
 import { animations } from '@/styles/animations';
 
@@ -24,6 +28,7 @@ export interface Notification {
   priority: NotificationPriority;
   timestamp: Date;
   read: boolean;
+  snoozedUntil?: Date; // Add optional snooze timestamp
   actions?: {
     label: string;
     onClick: () => void;
@@ -36,6 +41,7 @@ interface NotificationItemProps {
   onDismiss: (id: string) => void;
   onMarkAsRead?: (id: string) => void;
   onActionClick?: (id: string, actionIndex: number) => void;
+  onSnooze?: (id: string, duration: number) => void; // Add snooze handler prop
 }
 
 // Helper to get icon based on type
@@ -108,6 +114,12 @@ export const NotificationItem: React.FC<NotificationItemProps> = memo(({
     }
   }, [notification.id, onActionClick]);
 
+  const handleSnooze = useCallback((duration: number) => {
+    if (onSnooze) {
+      onSnooze(notification.id, duration);
+    }
+  }, [notification.id, onSnooze]);
+
   const itemBg = colorMode === 'light' ? 'white' : 'gray.700';
   const itemHoverBg = colorMode === 'light' ? 'gray.50' : 'gray.600';
   const unreadBg = colorMode === 'light' ? `${colorScheme}.50` : `${colorScheme}.900`;
@@ -134,7 +146,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = memo(({
         <Box fontSize="xl" mr={3} mt={1} aria-hidden="true">{icon}</Box>
         <Box flex="1">
           <Flex justifyContent="space-between" alignItems="center" mb={1}>
-            <Text fontWeight="bold" id={`notification-title-${notification.id}`}>{notification.title}</Text>
+            <HStack>
+              <Text fontWeight="bold" id={`notification-title-${notification.id}`}>{notification.title}</Text>
+              {notification.priority === 'high' && <Badge colorScheme='red' variant='solid' fontSize='xs'>Yüksek</Badge>}
+              {notification.priority === 'medium' && <Badge colorScheme='orange' variant='solid' fontSize='xs'>Orta</Badge>}
+            </HStack>
             <Text fontSize="xs" color="gray.500">{timestampText}</Text>
           </Flex>
           <Text fontSize="sm" color={colorMode === 'light' ? 'gray.700' : 'gray.300'} id={`notification-message-${notification.id}`}>
@@ -163,14 +179,30 @@ export const NotificationItem: React.FC<NotificationItemProps> = memo(({
             </HStack>
           )}
         </Box>
-        <CloseButton 
-          size="sm" 
-          onClick={handleDismiss} 
-          aria-label="Bildirimi kapat"
-          position="absolute"
-          top="8px"
-          right="8px"
-        />
+        <Flex direction="column" ml={2}>
+          <CloseButton 
+            size="sm" 
+            onClick={handleDismiss} 
+            aria-label="Bildirimi kapat"
+            mb={1}
+          />
+          {onSnooze && (
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                aria-label="Bildirimi ertele"
+                icon={<Box fontSize="xs">⏰</Box>}
+                variant="ghost"
+                size="sm"
+              />
+              <MenuList minWidth="120px">
+                <MenuItem onClick={() => handleSnooze(5 * 60)}>5 dakika</MenuItem>
+                <MenuItem onClick={() => handleSnooze(15 * 60)}>15 dakika</MenuItem>
+                <MenuItem onClick={() => handleSnooze(60 * 60)}>1 saat</MenuItem>
+              </MenuList>
+            </Menu>
+          )}
+        </Flex>
       </Flex>
       {!notification.read && onMarkAsRead && (
         <Box 

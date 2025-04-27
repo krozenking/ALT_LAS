@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created `PieceRegistry` for managing available workflow pieces (`workflow-engine/src/engine/registry.py`).
 - Added basic `ManualTrigger` piece (`workflow-engine/src/pieces/triggers.py`).
 - Added basic `CodeExecutor` action piece (`workflow-engine/src/pieces/actions.py`).
+- Added `HttpRequest` action piece (`workflow-engine/src/pieces/actions.py`).
+- Added `Delay` action piece (`workflow-engine/src/pieces/actions.py`).
+- Added `ScheduleTrigger` piece (`workflow-engine/src/pieces/triggers.py`).
+- Added `WebhookTrigger` piece (`workflow-engine/src/pieces/triggers.py`).
+- Added `AiOrchestrator` integration piece (`workflow-engine/src/pieces/integrations.py`).
+- Added `OsIntegration` integration piece (`workflow-engine/src/pieces/integrations.py`).
 ## [1.0.0] - YYYY-MM-DD
 
 ### Added

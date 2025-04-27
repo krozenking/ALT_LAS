@@ -1,55 +1,49 @@
-# API Gateway Geliştirme Todo Listesi
+## İşçi 1: Kalan Görevler
 
-## Kimlik Doğrulama ve Yetkilendirme
-- [ ] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
-  - [x] Rol ve izin modeli tasarımı
-  - [x] Yetkilendirme middleware'i
-  - [ ] Route bazlı yetkilendirme
-  - [ ] Dinamik izin kontrolü
-- [ ] **Görev 1.8:** Kullanıcı yönetimi API'leri
-  - [x] Kullanıcı kaydı ve doğrulama
-  - [x] Kullanıcı profil yönetimi
-  - [ ] Şifre sıfırlama ve değiştirme
-  - [ ] Kullanıcı rolleri ve izinleri yönetimi
-- [ ] **Görev 1.9:** Oturum yönetimi ve token yenileme
-  - [x] Oturum oluşturma ve sonlandırma
-  - [x] Token yenileme endpoint'i
-  - [ ] Oturum zaman aşımı yönetimi
-  - [ ] Çoklu cihaz oturum yönetimi
+## Kimlik Doğrulama ve Yetkilendirme (Hafta 3-4)
+- [x] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
+  - [x] Route bazlı yetkilendirme
+  - [x] Dinamik izin kontrolü
+- [x] **Görev 1.8:** Kullanıcı yönetimi API'leri
+  - [x] Şifre sıfırlama ve değiştirme
+  - [x] Kullanıcı rolleri ve izinleri yönetimi
+- [x] **Görev 1.9:** Oturum yönetimi ve token yenileme
+  - [x] Oturum zaman aşımı yönetimi (Not: Blacklist iyileştirilmeli)
+  - [x] Çoklu cihaz oturum yönetimi
 - [ ] **Görev 1.10:** Güvenlik testleri
   - [ ] Kimlik doğrulama testleri
   - [ ] Yetkilendirme testleri
   - [ ] Token yönetimi testleri
   - [ ] Güvenlik açığı taraması
 
-## Servis Entegrasyonu
-- [ ] **Görev 1.11:** Segmentation Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
-- [ ] **Görev 1.12:** Runner Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
-- [ ] **Görev 1.13:** Archive Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
-- [ ] **Görev 1.14:** Servis keşif mekanizması
-  - [ ] Servis kayıt ve keşif sistemi
-  - [ ] Dinamik servis URL yapılandırması
-  - [ ] Servis sağlık kontrolü
-  - [ ] Servis yük dengeleme
-- [ ] **Görev 1.15:** Servis sağlık kontrolü ve izleme
-  - [ ] Sağlık kontrolü endpoint'leri
-  - [ ] Servis durumu izleme
-  - [ ] Metrik toplama
-  - [ ] Alarm ve bildirim mekanizması
+## Servis Entegrasyonu (Hafta 5-6)
+- [x] **Görev 1.11:** Segmentation Service ile entegrasyon
+  - [x] Servis iletişim protokolü (HTTP/Axios)
+  - [x] Request/response şemaları (Swagger/Kodda tanımlı)
+  - [x] Hata işleme ve yeniden deneme stratejisi (Circuit Breaker)
+  - [x] Timeout ve circuit breaker yapılandırması (serviceIntegration.ts)
+- [x] **Görev 1.12:** Runner Service ile entegrasyon
+  - [x] Servis iletişim protokolü (HTTP/Axios)
+  - [x] Request/response şemaları (Swagger/Kodda tanımlı)
+  - [x] Hata işleme ve yeniden deneme stratejisi (Circuit Breaker)
+  - [x] Timeout ve circuit breaker yapılandırması (serviceIntegration.ts)
+- [x] **Görev 1.13:** Archive Service ile entegrasyon
+  - [x] Servis iletişim protokolü (HTTP/Axios)
+  - [x] Request/response şemaları (Swagger/Kodda tanımlı)
+  - [x] Hata işleme ve yeniden deneme stratejisi (Circuit Breaker)
+  - [x] Timeout ve circuit breaker yapılandırması (serviceIntegration.ts)
+- [x] **Görev 1.14:** Servis keşif mekanizması
+  - [x] Servis kayıt ve keşif sistemi (serviceDiscovery.ts)
+  - [x] Dinamik servis URL yapılandırması (serviceIntegration.ts)
+  - [x] Servis sağlık kontrolü (serviceDiscovery.ts & serviceIntegration.ts)
+  - [x] Servis yük dengeleme (Round-Robin in serviceDiscovery.ts)
+- [x] **Görev 1.15:** Servis sağlık kontrolü ve izleme
+  - [x] Sağlık kontrolü endpoint'leri (/health in healthRoutes.ts)
+  - [x] Servis durumu izleme (/health & /health/services in healthRoutes.ts)
+  - [x] Metrik toplama (Basic metrics in /health)
+  - [-] Alarm ve bildirim mekanizması (Atlandı)
 
-## API Geliştirme ve Optimizasyon
+## API Geliştirme ve Optimizasyon (Hafta 7-8)
 - [ ] **Görev 1.16:** Komut işleme API'leri
   - [ ] Komut gönderme endpoint'i
   - [ ] Komut durumu sorgulama
@@ -76,7 +70,7 @@
   - [ ] Performans testleri
   - [ ] Yük testleri
 
-## İleri Özellikler
+## İleri Özellikler (Hafta 9-10)
 - [ ] **Görev 1.21:** WebSocket desteği
   - [ ] WebSocket sunucu yapılandırması
   - [ ] Bağlantı yönetimi
@@ -103,7 +97,7 @@
   - [ ] Ölçeklendirme stratejisi
   - [ ] Otomatik ölçeklendirme yapılandırması
 
-## Entegrasyon ve Stabilizasyon
+## Entegrasyon ve Stabilizasyon (Hafta 11-12)
 - [ ] **Görev 1.26:** UI entegrasyonu
   - [ ] UI gereksinimlerine göre API uyarlamaları
   - [ ] UI-spesifik endpoint'ler
@@ -130,14 +124,3 @@
   - [ ] Deployment scriptleri
   - [ ] Ortam yapılandırması (dev, test, prod)
 
-## Uygulama Planı
-1. Öncelikle mevcut kod yapısını inceleyerek tamamlanmış görevleri anlama
-2. Rol tabanlı yetkilendirme sistemini tamamlama (Görev 1.7)
-3. Kullanıcı yönetimi API'lerini geliştirme (Görev 1.8)
-4. Oturum yönetimi ve token yenileme işlevlerini tamamlama (Görev 1.9)
-5. Servis entegrasyonlarını gerçekleştirme (Görev 1.11-1.15)
-6. Komut işleme ve dosya yönetimi API'lerini geliştirme (Görev 1.16-1.17)
-7. Performans optimizasyonu ve API versiyonlama (Görev 1.18-1.19)
-8. İleri özellikleri ekleme (Görev 1.21-1.25)
-9. Entegrasyon ve stabilizasyon çalışmaları (Görev 1.26-1.30)
-10. Kapsamlı test ve dokümantasyon (Görev 1.10, 1.20, 1.27, 1.29)

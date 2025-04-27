@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Request, Response, NextFunction } from 'express';
 import { ServiceUnavailableError, BadRequestError } from '../utils/errors';
-import logger from '../utils/logger';
+import logger from "../utils/logger";
+import serviceDiscovery from "./serviceDiscovery"; // Import service discovery
 
 // Circuit breaker durumları
 type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
@@ -26,12 +27,12 @@ export class ServiceIntegration {
   private config: CircuitBreakerConfig;
 
   constructor(
-    serviceName: string, 
-    baseUrl: string,
+    serviceName: string,
+    // baseUrl: string, // Removed: Get dynamically from serviceDiscovery
     config: Partial<CircuitBreakerConfig> = {}
   ) {
     this.serviceName = serviceName;
-    this.baseUrl = baseUrl;
+    // this.baseUrl = baseUrl; // Removed
     
     // Varsayılan yapılandırma ile kullanıcı yapılandırmasını birleştir
     this.config = {
@@ -46,7 +47,8 @@ export class ServiceIntegration {
     // Durum izleme başlat
     setInterval(() => this.monitorCircuitState(), this.config.monitorInterval);
     
-    logger.info(`${this.serviceName} entegrasyonu başlatıldı: ${this.baseUrl}`);
+    // Log the service name, URL will be fetched dynamically
+    logger.info(`${this.serviceName} entegrasyonu başlatıldı (URL dinamik olarak alınacak)`);
   }
 
   /**
@@ -143,7 +145,9 @@ export class ServiceIntegration {
     }
 
     try {
-      const url = `${this.baseUrl}${path}`;
+      // Get the current base URL from service discovery
+      const baseUrl = serviceDiscovery.getServiceUrl(this.serviceName);
+      const url = `${baseUrl}${path}`;
       
       logger.debug(`${this.serviceName} isteği: ${method} ${url}`);
       
@@ -278,6 +282,10 @@ export class ServiceIntegration {
     try {
       // Servisin health endpoint'ine istek gönder
       await this.get('/health', {}, { 'X-Health-Check': 'true' });
+      
+      // Servis keşif yöneticisine sağlık durumunu bildir
+      await serviceDiscovery.checkServiceHealth(this.serviceName);
+      
       return true;
     } catch (error) {
       logger.warn(`${this.serviceName} sağlık kontrolü başarısız`);
@@ -310,8 +318,8 @@ export class ServiceIntegration {
 
 // Segmentation Service entegrasyonu
 export class SegmentationServiceIntegration extends ServiceIntegration {
-  constructor(baseUrl: string = process.env.SEGMENTATION_SERVICE_URL || 'http://segmentation-service:3001') {
-    super('SegmentationService', baseUrl);
+  constructor() {
+    super("SegmentationService");
   }
 
   /**
@@ -345,8 +353,8 @@ export class SegmentationServiceIntegration extends ServiceIntegration {
 
 // Runner Service entegrasyonu
 export class RunnerServiceIntegration extends ServiceIntegration {
-  constructor(baseUrl: string = process.env.RUNNER_SERVICE_URL || 'http://runner-service:3002') {
-    super('RunnerService', baseUrl);
+  constructor() {
+    super("RunnerService");
   }
 
   /**
@@ -389,8 +397,8 @@ export class RunnerServiceIntegration extends ServiceIntegration {
 
 // Archive Service entegrasyonu
 export class ArchiveServiceIntegration extends ServiceIntegration {
-  constructor(baseUrl: string = process.env.ARCHIVE_SERVICE_URL || 'http://archive-service:3003') {
-    super('ArchiveService', baseUrl);
+  constructor() {
+    super("ArchiveService");
   }
 
   /**

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import logger from '../utils/logger';
 import jwtService from '../services/jwtService';
+import sessionService, { DeviceInfo } from '../services/sessionService';
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors';
 import crypto from 'crypto'; // For generating reset tokens
 
@@ -15,7 +16,7 @@ interface User {
   roles: string[];
   permissions: string[];
   isActive: boolean;
-  refreshToken?: string; // Simple single refresh token storage
+  // refreshToken?: string; // Removed: Handled by sessionService
 }
 
 interface PasswordResetToken {
@@ -116,13 +117,14 @@ const register = async (
  */
 const login = async (
   username: string,
-  password: string
+  password: string,
+  deviceInfo: DeviceInfo // Added deviceInfo
 ): Promise<{ user: Partial<User>; token: string; refreshToken: string }> => {
   const user = Array.from(users.values()).find(u => u.username === username);
 
   if (!user || !user.isActive || !comparePassword(password, user.passwordHash)) {
     logger.warn(`Geçersiz giriş denemesi: ${username}`);
-    throw new UnauthorizedError('Geçersiz kullanıcı adı veya şifre ya da kullanıcı aktif değil');
+    throw new UnauthorizedError("Geçersiz kullanıcı adı veya şifre ya da kullanıcı aktif değil");
   }
 
   logger.info(`Kullanıcı girişi başarılı: ${username}`);
@@ -131,8 +133,8 @@ const login = async (
   const token = jwtService.generateToken(tokenPayload);
   const refreshToken = jwtService.generateRefreshToken(user.id);
 
-  // Update refresh token
-  user.refreshToken = refreshToken;
+  // Create a new session using sessionService
+  sessionService.createSession(user.id, refreshToken, deviceInfo);
 
   const { passwordHash: _, ...userWithoutPassword } = user;
   return {
@@ -149,13 +151,14 @@ const refreshToken = async (
   refreshToken: string
 ): Promise<{ token: string; refreshToken: string }> => {
   try {
-    // Verify the refresh token and get user ID
-    const decoded = jwtService.verifyRefreshToken(refreshToken);
-    const user = users.get(decoded.userId);
-
-    // Check if user exists and if the provided token matches the stored one (simple validation)
-    if (!user || user.refreshToken !== refreshToken) {
-        throw new UnauthorizedError('Geçersiz veya süresi dolmuş refresh token');
+    // Get session by refresh token
+    const session = sessionService.getSessionByRefreshToken(refreshToken);
+    const userId = session.userId;
+    
+    // Get user details
+    const user = users.get(userId);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedError('Kullanıcı bulunamadı veya aktif değil');
     }
 
     // Generate new tokens
@@ -163,10 +166,13 @@ const refreshToken = async (
     const newAccessToken = jwtService.generateToken(tokenPayload);
     const newRefreshToken = jwtService.generateRefreshToken(user.id);
 
-    // Update stored refresh token
-    user.refreshToken = newRefreshToken;
+    // Update session with new refresh token
+    sessionService.updateSession(session.id, {
+      refreshToken: newRefreshToken,
+      lastUsedAt: new Date()
+    });
 
-    logger.info(`Token yenileme başarılı for user ${user.id}`);
+    logger.info(`Token yenileme başarılı for user ${user.id}, session ${session.id}`);
     return { token: newAccessToken, refreshToken: newRefreshToken };
   } catch (error) {
     logger.warn('Token yenileme başarısız:', error);
@@ -176,24 +182,33 @@ const refreshToken = async (
 };
 
 /**
- * Log out a user (invalidate refresh token and blacklist access token).
+ * Log out a user (invalidate session and blacklist access token).
  */
-const logout = async (token: string): Promise<void> => {
-  try {
+const logout = async (token: string, refreshToken?: string): Promise<void> => {
+  // Invalidate the specific session if refresh token is provided
+  if (refreshToken) {
+    try {
+      sessionService.invalidateSessionByRefreshToken(refreshToken);
+    } catch (error) {
+      logger.warn(`Error invalidating session by refresh token during logout: ${error.message}`);
+    }
+  } else {
+    // If only access token is provided, try to find the user and invalidate all their sessions
+    // This is less specific but better than nothing
+    try {
       const decoded = jwtService.verifyToken(token) as any; // Verify to get user ID
-      const user = users.get(decoded.userId);
-      if (user) {
-          // Invalidate the stored refresh token
-          user.refreshToken = undefined;
-          logger.info(`User ${user.id} refresh token invalidated.`);
+      if (decoded && decoded.userId) {
+        sessionService.invalidateAllUserSessions(decoded.userId);
+        logger.info(`All sessions invalidated for user ${decoded.userId} during logout (access token only).`);
       }
-  } catch (error) {
-      // Ignore errors if token is already invalid/expired
-      logger.warn('Error during logout token verification (likely expired/invalid):', error);
+    } catch (error) {
+      logger.warn("Error invalidating all user sessions during logout (access token only):", error);
+    }
   }
+
   // Blacklist the access token itself
   jwtService.blacklistToken(token);
-  logger.info('Access token blacklisted.');
+  logger.info("Access token blacklisted.");
 };
 
 /**

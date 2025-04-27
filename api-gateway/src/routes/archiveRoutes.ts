@@ -3,7 +3,7 @@ import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware'; // Import authorization
 import logger from '../utils/logger';
 
-// Swagger JSDoc for route definitions
+import { archiveService } from '../services/serviceIntegration'; // Import the service
 /**
  * @swagger
  * tags:
@@ -99,30 +99,25 @@ router.post(
         
         logger.info(`Archive request by ${req.user?.roles?.includes('service') ? 'service' : 'admin'} ${req.user?.id}: ${lastFile}`);
         
-        // In a real application, make a request to the Archive Service
-        // TODO: Validate lastFile format/existence
-        // TODO: Call the actual Archive Service asynchronously or synchronously
+        // Validate lastFile format (basic check)
+        if (!lastFile.endsWith('.last')) {
+            return res.status(400).json({ message: 'Invalid lastFile format. Must end with .last extension' });
+        }
 
-        // Mock response
-        const archiveId = `arc_${Math.random().toString(36).substring(2, 9)}`;
-        const atlasId = `atlas_${Date.now()}`;
-        const successRate = metadata.successRate || Math.floor(Math.random() * 101); // Use metadata if provided
-        const archivedAt = new Date().toISOString();
-        
-        const response = {
-          id: archiveId,
-          status: 'success', // Assuming sync success for mock
-          atlasId,
-          successRate,
-          archivedAt,
-          metadata: {
-              userId: metadata.userId || req.user?.id, // Preserve original user if available
-              runnerId: metadata.runnerId, // Preserve runner ID if available
-              // ... other relevant metadata
-          }
+        // Prepare metadata with user info
+        const archiveMetadata = {
+            ...metadata,
+            archivedBy: req.user?.id,
+            archivedByRole: req.user?.roles?.[0] || 'unknown'
         };
+
+        // Call the Archive Service
+        const archiveResult = await archiveService.archiveLastFile(lastFile, archiveMetadata);
         
-        res.status(201).json(response);
+        logger.info(`Archive successful: ${archiveResult.id} for lastFile ${lastFile}`);
+        
+        // Return the response from the archive service
+        res.status(201).json(archiveResult);
       } catch (error) {
         logger.error('Error in Archive service:', error);
         throw error;
@@ -171,28 +166,21 @@ router.get(
       
       logger.info(`Archive record query: ${id} by user ${userId}`);
       
-      // In a real application, query record from the Archive Service
-      // TODO: Implement logic to fetch record from the actual service
-      // TODO: Check if the requesting user owns the record (based on userId in metadata) or is an admin
+      // Fetch record from the Archive Service
+      const atlasRecord = await archiveService.getAtlasFile(id);
 
-      // Mock response - assuming the record exists and belongs to the user or user is admin
-      // Basic authorization check (example - needs proper implementation)
-      // if (!isAdmin && fetchedRecord.metadata.userId !== userId) { 
-      //   throw new ForbiddenError('You are not authorized to view this archive record');
-      // }
+      // Authorization check: Ensure the user owns the record or is an admin
+      if (!isAdmin && atlasRecord.metadata?.userId !== userId) {
+        // throw new ForbiddenError('You are not authorized to view this archive record');
+        return res.status(403).json({ message: 'You are not authorized to view this archive record' });
+      }
 
-      res.json({
-        id,
-        status: 'success', // Assuming it's an archived record
-        atlasId: id, // Assuming id is the atlasId
-        successRate: Math.floor(Math.random() * 101),
-        archivedAt: new Date(Date.now() - 3600000).toISOString(), // Simulate past time
-        metadata: {
-            userId: userId, // Placeholder
-            // ... other metadata from Atlas record
-        }
-      });
-}));
+      logger.info(`Archive record retrieved: ${id}`);
+
+      // Return the actual record from the service
+      res.json(atlasRecord);
+    })
+);
 
 /**
  * @swagger
@@ -270,7 +258,7 @@ router.get(
  *         description: Server error
  */
 router.get(
-    '/search', 
+    '/search',
     authorizeRoles('user', 'admin'), // Requires user or admin role
     asyncHandler(async (req, res) => {
       const { query, userId: queryUserId, startDate, endDate, minSuccessRate, limit = 10, offset = 0 } = req.query;
@@ -284,33 +272,29 @@ router.get(
       } else if (!isAdmin && queryUserId && queryUserId !== requestorUserId) {
           return res.status(403).json({ message: 'You are not authorized to search records for another user' });
       }
-      
-      logger.info(`Archive search by user ${requestorUserId}: ${JSON.stringify(req.query)}, effectiveUserId: ${effectiveUserId}`);
-      
-      // In a real application, search in the Archive Service
-      // TODO: Pass validated and processed query parameters to the service
-      // TODO: The service should handle filtering by effectiveUserId
 
-      // Mock response
-      const numLimit = parseInt(limit as string, 10);
-      const numOffset = parseInt(offset as string, 10);
-      const results = Array.from({ length: Math.min(numLimit, 20) }, (_, i) => ({
-        id: `atlas-${numOffset + i}-${effectiveUserId}`,
-        status: 'success',
-        atlasId: `atlas-${numOffset + i}-${effectiveUserId}`,
-        successRate: Math.floor(Math.random() * 101),
-        archivedAt: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
-        metadata: {
-            userId: effectiveUserId,
-            // ... other metadata
-        }
-      }));
-      
-      res.json({
-        total: 50, // Mock total for this user
-        results
-      });
-}));
+      logger.info(`Archive search by user ${requestorUserId}: ${JSON.stringify(req.query)}, effectiveUserId: ${effectiveUserId}`);
+
+      // Construct search parameters for the service
+      const searchParams: Record<string, any> = {
+          limit: parseInt(limit as string, 10),
+          offset: parseInt(offset as string, 10),
+          userId: effectiveUserId // Service should filter by this user ID
+      };
+      if (query) searchParams.query = query;
+      if (startDate) searchParams.startDate = startDate; // TODO: Validate date format
+      if (endDate) searchParams.endDate = endDate; // TODO: Validate date format
+      if (minSuccessRate) searchParams.minSuccessRate = parseFloat(minSuccessRate as string);
+
+      // Call the Archive Service search function
+      const searchResults = await archiveService.searchAtlasFiles(searchParams);
+
+      logger.info(`Archive search completed for user ${effectiveUserId}. Found ${searchResults.total} results.`);
+
+      // Return the results from the service
+      res.json(searchResults);
+    })
+);
 
 export default router;
 

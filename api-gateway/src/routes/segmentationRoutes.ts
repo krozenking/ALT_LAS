@@ -3,7 +3,7 @@ import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware'; // Import authorization
 import logger from '../utils/logger';
 
-// Swagger JSDoc for route definitions
+import { segmentationService } from '../services/serviceIntegration'; // Import the service
 /**
  * @swagger
  * tags:
@@ -110,12 +110,35 @@ router.post(
         
         logger.info(`Segmentation request by user ${req.user?.id}: "${command.substring(0, 50)}${command.length > 50 ? '...' : ''}" (${mode}, ${persona})`);
         
-        // In a real application, make a request to the Segmentation Service
-        // For now, returning a mock response
+        // Use the segmentation service to process the command
         const segmentationId = `seg_${Math.random().toString(36).substring(2, 9)}`;
         const timestamp = new Date().toISOString();
         
-        // Simulate asynchronous operation start
+        // Create request payload
+        const segmentationRequest = {
+          command,
+          options: {
+            mode,
+            persona,
+            metadata: {
+              userId: req.user?.id,
+              timestamp,
+              ...metadata
+            }
+          }
+        };
+        
+        // Call the segmentation service asynchronously
+        // In a real implementation, this would be a non-blocking call
+        segmentationService.segmentCommand(command, segmentationRequest.options)
+          .then(result => {
+            logger.info(`Segmentation completed for ${segmentationId}: ${result.status}`);
+          })
+          .catch(error => {
+            logger.error(`Segmentation failed for ${segmentationId}: ${error.message}`);
+          });
+        
+        // Return immediate response with process ID
         const response = {
           id: segmentationId,
           status: 'pending', // Indicate the process has started
@@ -124,12 +147,10 @@ router.post(
             timestamp,
             mode,
             persona,
-            userId: req.user?.id, // Associate with user
+            userId: req.user?.id,
             ...metadata
           }
         };
-        
-        // TODO: Actually call the segmentation service asynchronously
         
         res.status(202).json(response); // 202 Accepted for async start
       } catch (error) {
@@ -172,7 +193,7 @@ router.post(
  *         description: Server error
  */
 router.get(
-    '/:id', 
+    '/:id',
     authorizeRoles('user', 'admin'), // Requires user or admin role
     asyncHandler(async (req, res) => {
       const { id } = req.params;
@@ -180,34 +201,33 @@ router.get(
       const isAdmin = req.user?.roles?.includes('admin');
 
       logger.info(`Segmentation status query: ${id} by user ${userId}`);
-      
-      // In a real application, query status from the Segmentation Service
-      // TODO: Implement logic to fetch status from the actual service
-      // TODO: Check if the requesting user owns the segmentation task or is an admin
-      
-      // Mock response - assuming the task exists and belongs to the user or user is admin
-      // Simulate different statuses based on ID for testing
+
+      // TODO: Fetch status from the actual segmentation service
+      // const statusResult = await segmentationService.getSegmentationStatus(id);
+
+      // TODO: Implement proper authorization check based on fetched data
+      // if (!isAdmin && statusResult.metadata.userId !== userId) {
+      //   throw new ForbiddenError('You are not authorized to view this segmentation process');
+      // }
+
+      // Mock response - replace with actual service call result
       let status = 'pending';
       if (id.endsWith('c')) status = 'completed';
       if (id.endsWith('e')) status = 'error';
 
-      // Basic authorization check (example - needs proper implementation)
-      // if (!isAdmin && fetchedTask.userId !== userId) { 
-      //   throw new ForbiddenError('You are not authorized to view this segmentation process');
-      // }
-
       res.json({
         id,
-        status: status,
-        altFile: `task_${id}.alt`,
+        status: status, // Use statusResult.status
+        altFile: `task_${id}.alt`, // Use statusResult.altFile
         metadata: {
-          timestamp: new Date(Date.now() - 60000).toISOString(), // Simulate past time
-          mode: 'Normal',
-          persona: 'technical_expert',
-          userId: userId // Placeholder
+          timestamp: new Date(Date.now() - 60000).toISOString(), // Use statusResult.metadata.timestamp
+          mode: 'Normal', // Use statusResult.metadata.mode
+          persona: 'technical_expert', // Use statusResult.metadata.persona
+          userId: userId // Use statusResult.metadata.userId
         }
       });
-}));
+    })
+);
 
 export default router;
 

@@ -14,6 +14,7 @@ import segmentationRoutes from './routes/segmentationRoutes';
 import runnerRoutes from './routes/runnerRoutes';
 import archiveRoutes from './routes/archiveRoutes';
 import serviceRoutes from './routes/serviceRoutes';
+import healthRoutes from './routes/healthRoutes'; // Added health routes
 import logger from './utils/logger';
 
 // Swagger/OpenAPI yapılandırması
@@ -35,9 +36,7 @@ app.use(rateLimiter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Sağlık kontrolü endpoint'i
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'UP', timestamp: new Date().toISOString() });
-});
+app.use("/health", healthRoutes);
 
 // API rotaları
 app.use('/api/auth', authRoutes);

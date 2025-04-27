@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles, authorizePermissions } from '../middleware/authMiddleware'; 
+import sessionService, { DeviceInfo } from '../services/sessionService';
 import authService from '../services/authService'; 
 import logger from '../utils/logger';
 
@@ -24,11 +25,20 @@ router.post('/register', asyncHandler(async (req, res) => {
   res.status(201).json(result);
 }));
 
-router.post('/login', asyncHandler(async (req, res) => {
+router.post("/login", asyncHandler(async (req, res) => {
   const { username, password } = req.body;
   // TODO: Validate input
-  const result = await authService.login(username, password);
-  logger.info(`User login successful: ${username}`);
+  
+  // Extract device info from request headers (example)
+  const deviceInfo: DeviceInfo = {
+    userAgent: req.headers["user-agent"],
+    ip: req.ip, // Ensure express is configured to trust proxy if needed
+    // You might add more specific device identification logic here
+    deviceName: req.headers["user-agent"]?.split("(")[1]?.split(")")[0] || "Unknown Device"
+  };
+
+  const result = await authService.login(username, password, deviceInfo);
+  logger.info(`User login successful: ${username} from ${deviceInfo.deviceName}`);
   res.json(result);
 }));
 
@@ -129,13 +139,14 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
 
 router.use(authenticateJWT);
 
-router.post('/logout', asyncHandler(async (req, res) => {
+router.post("/logout", asyncHandler(async (req, res) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader?.split(' ')[1] || '';
+  const token = authHeader?.split(" ")[1] || "";
+  const { refreshToken } = req.body; // Get refresh token from body if provided
   
-  await authService.logout(token); 
+  await authService.logout(token, refreshToken); 
   logger.info(`User logout: ${req.user?.username}`);
-  res.json({ message: 'Successfully logged out' });
+  res.json({ message: "Successfully logged out" });
 }));
 
 router.get('/me', asyncHandler(async (req, res) => {
@@ -368,4 +379,119 @@ router.delete(
 }));
 
 export default router;
+
+
+
+
+// --- Session Management Routes ---
+
+/**
+ * @swagger
+ * /api/auth/me/sessions:
+ *   get:
+ *     summary: Lists the current user's active sessions
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of active sessions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   deviceInfo:
+ *                     type: object
+ *                     properties:
+ *                       deviceName:
+ *                         type: string
+ *                       browser:
+ *                         type: string
+ *                       os:
+ *                         type: string
+ *                       ip:
+ *                         type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   lastUsedAt:
+ *                     type: string
+ *                     format: date-time
+ *       401:
+ *         description: Authorization error
+ *       500:
+ *         description: Server error
+ */
+router.get("/me/sessions", asyncHandler(async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: "Authorization required" });
+    }
+    const activeSessions = sessionService.getUserActiveSessions(userId);
+    // Map sessions to exclude sensitive info like full refreshToken
+    const safeSessions = activeSessions.map(s => ({
+        id: s.id,
+        deviceInfo: {
+            deviceName: s.deviceInfo.deviceName,
+            browser: s.deviceInfo.browser,
+            os: s.deviceInfo.os,
+            ip: s.deviceInfo.ip // Consider masking part of the IP
+        },
+        createdAt: s.createdAt,
+        lastUsedAt: s.lastUsedAt
+    }));
+    logger.info(`User ${userId} listed their active sessions`);
+    res.json(safeSessions);
+}));
+
+/**
+ * @swagger
+ * /api/auth/me/sessions/{sessionId}:
+ *   delete:
+ *     summary: Revokes a specific session for the current user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: sessionId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Session revoked successfully
+ *       401:
+ *         description: Authorization error
+ *       403:
+ *         description: Forbidden (trying to revoke another user's session)
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Server error
+ */
+router.delete("/me/sessions/:sessionId", asyncHandler(async (req, res) => {
+    const userId = req.user?.id;
+    const sessionIdToRevoke = req.params.sessionId;
+
+    if (!userId) {
+        return res.status(401).json({ message: "Authorization required" });
+    }
+
+    // Verify the session belongs to the current user before revoking
+    const session = sessionService.getUserActiveSessions(userId).find(s => s.id === sessionIdToRevoke);
+    if (!session) {
+        // Session not found or doesn't belong to the user
+        return res.status(404).json({ message: "Session not found or access denied" });
+    }
+
+    sessionService.invalidateSession(sessionIdToRevoke);
+    logger.info(`User ${userId} revoked session ${sessionIdToRevoke}`);
+    res.status(204).send();
+}));
 

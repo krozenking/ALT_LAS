@@ -55,7 +55,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-storybook": "^0.6.15",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "jest-axe": "^10.0.0",

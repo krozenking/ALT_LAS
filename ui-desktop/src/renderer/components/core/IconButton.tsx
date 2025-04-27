@@ -8,7 +8,7 @@ export interface IconButtonProps extends BoxProps {
   isDisabled?: boolean;
   isLoading?: boolean;
   icon: React.ReactNode;
-  ariaLabel: string;
+  ariaLabel: string; // Keep existing ariaLabel prop
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -18,34 +18,34 @@ export const IconButton: React.FC<IconButtonProps> = ({
   isDisabled = false,
   isLoading = false,
   icon,
-  ariaLabel,
+  ariaLabel, // Use the provided ariaLabel
   onClick,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
-  
+
   // Apply glassmorphism effect based on color mode and variant
   const getGlassStyle = () => {
     if (variant === 'glass') {
-      return colorMode === 'light' 
+      return colorMode === 'light'
         ? glassmorphism.create(0.7, 8, 1)
         : glassmorphism.createDark(0.7, 8, 1);
     } else if (variant === 'glass-primary') {
       return {
-        ...(colorMode === 'light' 
+        ...(colorMode === 'light'
           ? glassmorphism.create(0.7, 8, 1)
           : glassmorphism.createDark(0.7, 8, 1)),
-        bg: colorMode === 'light' 
+        bg: colorMode === 'light'
           ? 'rgba(62, 92, 118, 0.8)'
           : 'rgba(62, 92, 118, 0.6)',
         color: 'white',
       };
     } else if (variant === 'glass-secondary') {
       return {
-        ...(colorMode === 'light' 
+        ...(colorMode === 'light'
           ? glassmorphism.create(0.7, 8, 1)
           : glassmorphism.createDark(0.7, 8, 1)),
-        bg: colorMode === 'light' 
+        bg: colorMode === 'light'
           ? 'rgba(199, 144, 96, 0.8)'
           : 'rgba(199, 144, 96, 0.6)',
         color: 'white',
@@ -63,43 +63,44 @@ export const IconButton: React.FC<IconButtonProps> = ({
         color: colorMode === 'light' ? 'primary.500' : 'primary.400',
       };
     }
-    
+
     return {};
   };
-  
+
   // Size styles
   const getSizeStyle = () => {
     switch (size) {
       case 'sm':
-        return { 
-          width: '32px', 
-          height: '32px', 
-          fontSize: 'sm' 
+        return {
+          width: '32px',
+          height: '32px',
+          fontSize: 'sm'
         };
       case 'lg':
-        return { 
-          width: '48px', 
-          height: '48px', 
-          fontSize: 'lg' 
+        return {
+          width: '48px',
+          height: '48px',
+          fontSize: 'lg'
         };
       case 'md':
       default:
-        return { 
-          width: '40px', 
-          height: '40px', 
-          fontSize: 'md' 
+        return {
+          width: '40px',
+          height: '40px',
+          fontSize: 'md'
         };
     }
   };
-  
+
   // Disabled styles
   const disabledStyle = isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
     _active: {},
+    _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
   } : {};
-  
+
   // Loading styles
   const loadingStyle = isLoading ? {
     position: 'relative',
@@ -118,17 +119,19 @@ export const IconButton: React.FC<IconButtonProps> = ({
       borderTopColor: 'transparent',
       animation: 'spin 0.8s linear infinite',
     },
+    _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {};
-  
+
   return (
     <Box
       as="button"
+      type="button" // Explicitly set type for accessibility
       display="inline-flex"
       alignItems="center"
       justifyContent="center"
       borderRadius="md"
       transition="all 0.2s ease-in-out"
-      aria-label={ariaLabel}
+      aria-label={ariaLabel} // Use the mandatory ariaLabel prop
       _hover={!isDisabled && !isLoading ? {
         transform: 'translateY(-2px)',
         boxShadow: 'md',
@@ -136,18 +139,25 @@ export const IconButton: React.FC<IconButtonProps> = ({
       _active={!isDisabled && !isLoading ? {
         transform: 'translateY(0)',
       } : {}}
+      _focus={!isDisabled && !isLoading ? {
+        outline: 'none', // Remove default outline
+        boxShadow: 'outline', // Use Chakra's focus outline style
+        zIndex: 1, // Ensure focus style is visible
+      } : {}}
       {...getGlassStyle()}
       {...getSizeStyle()}
       {...disabledStyle}
       {...loadingStyle}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
-      {...rest}
       aria-disabled={isDisabled}
       aria-busy={isLoading}
+      {...rest}
     >
-      {isLoading ? <Box opacity={0}>{icon}</Box> : icon}
+      {/* Wrap icon in a span for better accessibility structure if needed, but Box is fine */} 
+      {isLoading ? <Box opacity={0} aria-hidden="true">{icon}</Box> : <Box aria-hidden="true">{icon}</Box>}
     </Box>
   );
 };
 
 export default IconButton;
+

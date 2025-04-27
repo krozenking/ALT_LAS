@@ -10,6 +10,7 @@ export interface ButtonProps extends BoxProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
+  'aria-label'?: string; // Add aria-label prop for accessibility
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -21,32 +22,33 @@ export const Button: React.FC<ButtonProps> = ({
   rightIcon,
   onClick,
   children,
+  'aria-label': ariaLabel, // Destructure aria-label
   ...rest
 }) => {
   const { colorMode } = useColorMode();
-  
+
   // Apply glassmorphism effect based on color mode and variant
   const getGlassStyle = () => {
     if (variant === 'glass') {
-      return colorMode === 'light' 
+      return colorMode === 'light'
         ? glassmorphism.create(0.7, 8, 1)
         : glassmorphism.createDark(0.7, 8, 1);
     } else if (variant === 'glass-primary') {
       return {
-        ...(colorMode === 'light' 
+        ...(colorMode === 'light'
           ? glassmorphism.create(0.7, 8, 1)
           : glassmorphism.createDark(0.7, 8, 1)),
-        bg: colorMode === 'light' 
+        bg: colorMode === 'light'
           ? 'rgba(62, 92, 118, 0.8)'
           : 'rgba(62, 92, 118, 0.6)',
         color: 'white',
       };
     } else if (variant === 'glass-secondary') {
       return {
-        ...(colorMode === 'light' 
+        ...(colorMode === 'light'
           ? glassmorphism.create(0.7, 8, 1)
           : glassmorphism.createDark(0.7, 8, 1)),
-        bg: colorMode === 'light' 
+        bg: colorMode === 'light'
           ? 'rgba(199, 144, 96, 0.8)'
           : 'rgba(199, 144, 96, 0.6)',
         color: 'white',
@@ -64,10 +66,10 @@ export const Button: React.FC<ButtonProps> = ({
         color: colorMode === 'light' ? 'primary.500' : 'primary.400',
       };
     }
-    
+
     return {};
   };
-  
+
   // Size styles
   const getSizeStyle = () => {
     switch (size) {
@@ -80,15 +82,16 @@ export const Button: React.FC<ButtonProps> = ({
         return { px: 4, py: 2, fontSize: 'md' };
     }
   };
-  
+
   // Disabled styles
   const disabledStyle = isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
     _active: {},
+    _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
   } : {};
-  
+
   // Loading styles
   const loadingStyle = isLoading ? {
     position: 'relative',
@@ -107,11 +110,16 @@ export const Button: React.FC<ButtonProps> = ({
       borderTopColor: 'transparent',
       animation: 'spin 0.8s linear infinite',
     },
+    _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {};
-  
+
+  // Determine aria-label: Use provided label, or children if it's a string, otherwise undefined
+  const finalAriaLabel = ariaLabel || (typeof children === 'string' ? undefined : 'Button'); // Default label if no text/label
+
   return (
     <Box
       as="button"
+      type="button" // Explicitly set type for accessibility
       display="inline-flex"
       alignItems="center"
       justifyContent="center"
@@ -125,23 +133,29 @@ export const Button: React.FC<ButtonProps> = ({
       _active={!isDisabled && !isLoading ? {
         transform: 'translateY(0)',
       } : {}}
+      _focus={!isDisabled && !isLoading ? {
+        outline: 'none', // Remove default outline
+        boxShadow: 'outline', // Use Chakra's focus outline style
+        zIndex: 1, // Ensure focus style is visible
+      } : {}}
       {...getGlassStyle()}
       {...getSizeStyle()}
       {...disabledStyle}
       {...loadingStyle}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
-      {...rest}
       aria-disabled={isDisabled}
       aria-busy={isLoading}
+      aria-label={finalAriaLabel} // Add computed aria-label
+      {...rest}
     >
       {leftIcon && (
-        <Box mr={2} display="inline-flex" alignItems="center">
+        <Box mr={children ? 2 : 0} display="inline-flex" alignItems="center" aria-hidden="true">
           {leftIcon}
         </Box>
       )}
       {isLoading ? <Box opacity={0}>{children}</Box> : children}
       {rightIcon && (
-        <Box ml={2} display="inline-flex" alignItems="center">
+        <Box ml={children ? 2 : 0} display="inline-flex" alignItems="center" aria-hidden="true">
           {rightIcon}
         </Box>
       )}
@@ -150,3 +164,4 @@ export const Button: React.FC<ButtonProps> = ({
 };
 
 export default Button;
+

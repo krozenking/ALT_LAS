@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useCallback, memo } from 'react';
-import { Box, Flex, useColorMode } from '@chakra-ui/react';
+import { Box, Flex, useColorMode, Text, VisuallyHidden } from '@chakra-ui/react';
 import Panel from '@/components/composition/Panel';
 import SplitView from '@/components/composition/SplitView';
 import PanelContainer from '@/components/composition/PanelContainer';
@@ -68,6 +68,11 @@ const TaskItem = memo(({
     return task.status === 'idle' ? 'running' : 
       task.status === 'running' ? 'completed' : 'idle';
   }, [task.status]);
+
+  // Memoize aria-valuetext for progress bar
+  const progressAriaValueText = useMemo(() => {
+    return task.progress ? `${task.name}: ${task.progress}% tamamlandı` : `${task.name}: Beklemede`;
+  }, [task.name, task.progress]);
   
   // Use useCallback for event handlers to prevent unnecessary re-renders
   const handleStatusChange = useCallback(() => {
@@ -77,6 +82,11 @@ const TaskItem = memo(({
   const handleStop = useCallback(() => {
     onStatusUpdate(task.id, 'idle');
   }, [task.id, onStatusUpdate]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Allow activating buttons within the card via Enter/Space if needed
+    // Currently, focus goes directly to buttons in standalone mode
+  }, []);
   
   return (
     <Card 
@@ -88,6 +98,9 @@ const TaskItem = memo(({
       mb={3} 
       p={3}
       _hover={{ transform: 'translateY(-2px)', transition: 'transform 0.2s' }}
+      // Removed focus styles from Card itself, focus should be on interactive elements within
+      // tabIndex={-1} // Make non-focusable by default, focus managed by list or buttons
+      onKeyDown={handleKeyDown}
     >
       <Flex justifyContent="space-between" alignItems="center" mb={2}>
         <Box fontWeight="medium" id={taskNameId}>{task.name}</Box>
@@ -99,6 +112,7 @@ const TaskItem = memo(({
           borderRadius="full"
           bg={statusColor}
           color="white"
+          // aria-live="polite" // Avoid aria-live here, might be too noisy on list updates
         >
           {statusText}
         </Box>
@@ -109,7 +123,7 @@ const TaskItem = memo(({
         fontSize="sm" 
         color={colorMode === 'light' ? 'gray.600' : 'gray.300'}
       >
-        Durum: {task.progress ? `%${task.progress} Tamamlandı` : 'Beklemede'}
+        İlerleme: {task.progress ? `%${task.progress}` : '0%'}
       </Box>
       
       <Box 
@@ -122,12 +136,13 @@ const TaskItem = memo(({
         aria-valuenow={task.progress || 0}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuetext={task.progress ? `${task.progress}% completed` : 'Pending'}
+        aria-valuetext={progressAriaValueText} // Use more descriptive text
+        aria-label={`${task.name} ilerleme durumu`}
       >
         <Box 
           bg={progressColor} 
           h="4px" 
-          w={`${task.progress}%`} 
+          w={`${task.progress || 0}%`} // Ensure width is 0% if progress is null/undefined
           borderRadius="full" 
         />
       </Box>
@@ -139,6 +154,7 @@ const TaskItem = memo(({
             size="sm" 
             mr={2}
             onClick={handleStatusChange}
+            aria-label={`${buttonText}: ${task.name}`}
           >
             {buttonText}
           </Button>
@@ -147,6 +163,7 @@ const TaskItem = memo(({
             variant="glass-secondary" 
             size="sm"
             onClick={handleStop}
+            aria-label={`Görevi durdur: ${task.name}`}
           >
             Durdur
           </Button>
@@ -164,6 +181,8 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
 }) => {
   const { colorMode } = useColorMode();
   const { tasks, isLoading, error, updateTask } = useTasks();
+  const listId = useId();
+  const listLabelId = `${listId}-label`;
   
   // Handle task status update with useCallback to prevent unnecessary re-renders
   const handleStatusUpdate = useCallback((id: string, status: string) => {
@@ -173,7 +192,7 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
   // Render loading state
   if (isLoading) {
     return (
-      <Box p={3}>
+      <Box p={3} role="alert" aria-live="polite">
         <Card variant="glass" p={4} textAlign="center">
           Görevler yükleniyor...
         </Card>
@@ -184,7 +203,7 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
   // Render error state
   if (error) {
     return (
-      <Box p={3}>
+      <Box p={3} role="alert" aria-live="assertive"> {/* Use assertive for errors */} 
         <Card variant="glass" p={4} textAlign="center" bg="rgba(244, 67, 54, 0.1)">
           Görevler yüklenirken hata oluştu. Lütfen tekrar deneyin.
         </Card>
@@ -193,16 +212,23 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
   }
   
   return (
-    <Box p={variant === 'standalone' ? 4 : 2} role="list">
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          variant={variant}
-          colorMode={colorMode}
-          onStatusUpdate={handleStatusUpdate}
-        />
-      ))}
+    <Box p={variant === 'standalone' ? 4 : 2} role="list" id={listId} aria-labelledby={listLabelId}>
+      <VisuallyHidden id={listLabelId}>Görev Listesi</VisuallyHidden>
+      {tasks.length > 0 ? (
+        tasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            variant={variant}
+            colorMode={colorMode}
+            onStatusUpdate={handleStatusUpdate}
+          />
+        ))
+      ) : (
+        <Card variant="glass" p={4} textAlign="center">
+          <Text>Aktif görev bulunmamaktadır.</Text>
+        </Card>
+      )}
     </Box>
   );
 });
@@ -211,3 +237,4 @@ export const TaskManager: React.FC<TaskManagerProps> = memo(({
 TaskManager.displayName = 'TaskManager';
 
 export default TaskManager;
+

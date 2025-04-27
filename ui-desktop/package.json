@@ -60,6 +60,7 @@
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "jest-axe": "^10.0.0",
     "jsdom": "^23.0.1",
+    "license-checker": "^25.0.1",
     "node-loader": "^2.0.0",
     "storybook": "^8.6.12",
     "style-loader": "^3.3.3",
@@ -75,6 +76,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
+    "@types/react-window": "^1.8.8",
     "electron-squirrel-startup": "^1.0.0",
     "framer-motion": "^10.17.9",
     "react": "^19.1.0",
@@ -82,6 +84,7 @@
     "react-hook-form": "^7.49.2",
     "react-icons": "^4.12.0",
     "react-query": "^3.39.3",
+    "react-window": "^1.8.11",
     "zustand": "^4.4.7"
   }
 }

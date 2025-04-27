@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { 
-  Box, 
-  Flex, 
-  Text, 
-  IconButton, 
-  useColorMode, 
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import {
+  Box,
+  Flex,
+  Text,
+  IconButton,
+  useColorMode,
   Badge,
   Drawer,
   DrawerBody,
@@ -23,410 +23,132 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Divider
+  Divider,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  VStack,
+  HStack,
+  Tooltip,
+  VisuallyHidden,
+  useToast
 } from '@chakra-ui/react';
+import { NotificationItem, Notification, NotificationType } from './NotificationItem';
 import { animations } from '@/styles/animations';
 
-// Notification types
-export type NotificationPriority = 'low' | 'medium' | 'high' | 'critical';
-export type NotificationCategory = 'system' | 'task' | 'alert' | 'info';
-
-export interface NotificationAction {
-  label: string;
-  onClick: () => void;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  priority: NotificationPriority;
-  category: NotificationCategory;
-  actions?: NotificationAction[];
-  autoClose?: number; // Time in ms after which notification should auto-close
-}
-
+// NotificationCenter properties
 interface NotificationCenterProps {
   initialNotifications?: Notification[];
-  onNotificationAdd?: (notification: Notification) => void;
-  onNotificationRemove?: (id: string) => void;
   onNotificationRead?: (id: string) => void;
-  onNotificationClear?: () => void;
+  onNotificationDismiss?: (id: string) => void;
+  onNotificationAction?: (id: string, actionIndex: number) => void;
+  onClearAll?: () => void;
+  onClearRead?: () => void;
 }
 
-// Helper function to get priority color - Memoize edilebilir
-const getPriorityColor = (priority: NotificationPriority, colorMode: string): string => {
-  switch (priority) {
-    case 'critical':
-      return colorMode === 'light' ? 'red.500' : 'red.300';
-    case 'high':
-      return colorMode === 'light' ? 'orange.500' : 'orange.300';
-    case 'medium':
-      return colorMode === 'light' ? 'blue.500' : 'blue.300';
-    case 'low':
-    default:
-      return colorMode === 'light' ? 'gray.500' : 'gray.300';
-  }
-};
-
-// Helper function to get category icon - Memoize edilebilir
-const getCategoryIcon = (category: NotificationCategory): string => {
-  switch (category) {
-    case 'system':
-      return '⚙️';
-    case 'task':
-      return '📋';
-    case 'alert':
-      return '⚠️';
-    case 'info':
-    default:
-      return 'ℹ️';
-  }
-};
-
-// Format relative time - Memoize edilebilir
-const formatRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) {
-    return 'Şimdi';
-  } else if (diffInSeconds < 3600) {
-    const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} dakika önce`;
-  } else if (diffInSeconds < 86400) {
-    const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} saat önce`;
-  } else {
-    const days = Math.floor(diffInSeconds / 86400);
-    return `${days} gün önce`;
-  }
-};
-
-// Memoize edilmiş NotificationBell bileşeni
-const NotificationBell = memo(({ unreadCount, onOpen }: { unreadCount: number, onOpen: () => void }) => {
-  return (
-    <Box position="relative" display="inline-block">
-      <IconButton
-        aria-label="Bildirimler"
-        icon={<Box fontSize="xl">🔔</Box>}
-        variant="glass"
-        onClick={onOpen}
-        {...animations.performanceUtils.forceGPU}
-      />
-      
-      {/* Unread Badge */}
-      {unreadCount > 0 && (
-        <Badge
-          position="absolute"
-          top="-2px"
-          right="-2px"
-          borderRadius="full"
-          bg="red.500"
-          color="white"
-          fontSize="xs"
-          fontWeight="bold"
-          p="1"
-          minW="18px"
-          textAlign="center"
-          animation={`${animations.keyframes.pulse} 2s infinite`}
-          {...animations.performanceUtils.forceGPU}
-        >
-          {unreadCount}
-        </Badge>
-      )}
-    </Box>
-  );
-});
-
-// Memoize edilmiş NotificationItem bileşeni
-const NotificationItem = memo(({ 
-  notification, 
-  colorMode, 
-  onMarkAsRead 
-}: { 
-  notification: Notification, 
-  colorMode: string, 
-  onMarkAsRead: (id: string) => void 
-}) => {
-  // Kategori ikonunu memoize et
-  const categoryIcon = useMemo(() => getCategoryIcon(notification.category), [notification.category]);
-  
-  // Zaman formatını memoize et
-  const formattedTime = useMemo(() => formatRelativeTime(notification.timestamp), [notification.timestamp]);
-  
-  // Renk şemasını memoize et
-  const colorScheme = useMemo(() => {
-    return notification.priority === 'critical' ? 'red' :
-           notification.priority === 'high' ? 'orange' :
-           notification.priority === 'medium' ? 'blue' : 'gray';
-  }, [notification.priority]);
-  
-  // Olay işleyicilerini memoize et
-  const handleClick = useCallback(() => {
-    onMarkAsRead(notification.id);
-  }, [notification.id, onMarkAsRead]);
-  
-  return (
-    <Box
-      key={notification.id}
-      p={4}
-      borderBottomWidth="1px"
-      borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
-      bg={!notification.read ? (colorMode === 'light' ? 'blue.50' : 'blue.900') : 'transparent'}
-      onClick={handleClick}
-      cursor="pointer"
-      transition="background-color 0.2s"
-      _hover={{
-        bg: colorMode === 'light' ? 'gray.100' : 'gray.700'
-      }}
-      role="region"
-      aria-label={`Bildirim: ${notification.title}`}
-    >
-      <Flex justifyContent="space-between" alignItems="flex-start">
-        <Flex alignItems="center">
-          <Box 
-            mr={3} 
-            fontSize="xl"
-            aria-hidden="true"
-          >
-            {categoryIcon}
-          </Box>
-          <Box>
-            <Flex alignItems="center">
-              <Text fontWeight="bold" mr={2}>{notification.title}</Text>
-              <Badge 
-                colorScheme={colorScheme}
-                fontSize="xs"
-              >
-                {notification.priority}
-              </Badge>
-            </Flex>
-            <Text fontSize="sm" color={colorMode === 'light' ? 'gray.600' : 'gray.300'}>
-              {notification.message}
-            </Text>
-          </Box>
-        </Flex>
-        <Text 
-          fontSize="xs" 
-          color={colorMode === 'light' ? 'gray.500' : 'gray.400'}
-          ml={2}
-        >
-          {formattedTime}
-        </Text>
-      </Flex>
-      
-      {/* Notification Actions */}
-      {notification.actions && notification.actions.length > 0 && (
-        <NotificationActions actions={notification.actions} />
-      )}
-    </Box>
-  );
-});
-
-// Memoize edilmiş NotificationActions bileşeni
-const NotificationActions = memo(({ actions }: { actions: NotificationAction[] }) => {
-  return (
-    <Flex mt={3} justifyContent="flex-end">
-      {actions.map((action, index) => (
-        <Button
-          key={index}
-          size="sm"
-          variant={index === 0 ? 'solid' : 'outline'}
-          colorScheme={index === 0 ? 'blue' : 'gray'}
-          ml={2}
-          onClick={(e) => {
-            e.stopPropagation();
-            action.onClick();
-          }}
-        >
-          {action.label}
-        </Button>
-      ))}
-    </Flex>
-  );
-});
-
-// Memoize edilmiş NotificationFilters bileşeni
-const NotificationFilters = memo(({ 
-  onSetActiveFilter, 
-  onSetActivePriorityFilter, 
-  onMarkAllAsRead, 
-  onClearAllNotifications 
-}: { 
-  onSetActiveFilter: (filter: NotificationCategory | 'all') => void, 
-  onSetActivePriorityFilter: (priority: NotificationPriority | 'all') => void, 
-  onMarkAllAsRead: () => void, 
-  onClearAllNotifications: () => void 
-}) => {
-  // Kategori filtre işleyicilerini memoize et
-  const handleFilterAll = useCallback(() => onSetActiveFilter('all'), [onSetActiveFilter]);
-  const handleFilterSystem = useCallback(() => onSetActiveFilter('system'), [onSetActiveFilter]);
-  const handleFilterTask = useCallback(() => onSetActiveFilter('task'), [onSetActiveFilter]);
-  const handleFilterAlert = useCallback(() => onSetActiveFilter('alert'), [onSetActiveFilter]);
-  const handleFilterInfo = useCallback(() => onSetActiveFilter('info'), [onSetActiveFilter]);
-  
-  // Öncelik filtre işleyicilerini memoize et
-  const handlePriorityAll = useCallback(() => onSetActivePriorityFilter('all'), [onSetActivePriorityFilter]);
-  const handlePriorityCritical = useCallback(() => onSetActivePriorityFilter('critical'), [onSetActivePriorityFilter]);
-  const handlePriorityHigh = useCallback(() => onSetActivePriorityFilter('high'), [onSetActivePriorityFilter]);
-  const handlePriorityMedium = useCallback(() => onSetActivePriorityFilter('medium'), [onSetActivePriorityFilter]);
-  const handlePriorityLow = useCallback(() => onSetActivePriorityFilter('low'), [onSetActivePriorityFilter]);
-  
-  return (
-    <Flex>
-      <Menu>
-        <MenuButton 
-          as={Button} 
-          variant="ghost" 
-          size="sm" 
-          mr={2}
-          aria-label="Filtrele"
-        >
-          Filtrele
-        </MenuButton>
-        <MenuList>
-          <MenuItem onClick={handleFilterAll}>
-            Tüm Kategoriler
-          </MenuItem>
-          <MenuItem onClick={handleFilterSystem}>
-            Sistem
-          </MenuItem>
-          <MenuItem onClick={handleFilterTask}>
-            Görevler
-          </MenuItem>
-          <MenuItem onClick={handleFilterAlert}>
-            Uyarılar
-          </MenuItem>
-          <MenuItem onClick={handleFilterInfo}>
-            Bilgiler
-          </MenuItem>
-          <Divider my={2} />
-          <MenuItem onClick={handlePriorityAll}>
-            Tüm Öncelikler
-          </MenuItem>
-          <MenuItem onClick={handlePriorityCritical}>
-            Kritik
-          </MenuItem>
-          <MenuItem onClick={handlePriorityHigh}>
-            Yüksek
-          </MenuItem>
-          <MenuItem onClick={handlePriorityMedium}>
-            Orta
-          </MenuItem>
-          <MenuItem onClick={handlePriorityLow}>
-            Düşük
-          </MenuItem>
-        </MenuList>
-      </Menu>
-      <Menu>
-        <MenuButton 
-          as={Button} 
-          variant="ghost" 
-          size="sm"
-          aria-label="İşlemler"
-        >
-          İşlemler
-        </MenuButton>
-        <MenuList>
-          <MenuItem onClick={onMarkAllAsRead}>
-            Tümünü Okundu İşaretle
-          </MenuItem>
-          <MenuItem onClick={onClearAllNotifications}>
-            Tümünü Temizle
-          </MenuItem>
-        </MenuList>
-      </Menu>
-    </Flex>
-  );
-});
-
-// Memoize edilmiş NotificationList bileşeni
-const NotificationList = memo(({ 
-  notifications, 
-  colorMode, 
-  onMarkAsRead, 
-  showOnlyUnread = false 
-}: { 
-  notifications: Notification[], 
-  colorMode: string, 
-  onMarkAsRead: (id: string) => void, 
-  showOnlyUnread?: boolean 
-}) => {
-  // Gösterilecek bildirimleri filtrele
-  const displayedNotifications = useMemo(() => {
-    return showOnlyUnread ? notifications.filter(n => !n.read) : notifications;
-  }, [notifications, showOnlyUnread]);
-  
-  if (displayedNotifications.length === 0) {
-    return (
-      <Box p={8} textAlign="center">
-        <Text color={colorMode === 'light' ? 'gray.500' : 'gray.400'}>
-          {showOnlyUnread ? 'Okunmamış bildirim bulunmuyor' : 'Bildirim bulunmuyor'}
-        </Text>
-      </Box>
-    );
-  }
-  
-  return (
-    <>
-      {displayedNotifications.map(notification => (
-        <NotificationItem 
-          key={notification.id}
-          notification={notification}
-          colorMode={colorMode}
-          onMarkAsRead={onMarkAsRead}
-        />
-      ))}
-    </>
-  );
-});
+// Filter types
+type NotificationFilter = 'all' | 'unread' | NotificationType;
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   initialNotifications = [],
-  onNotificationAdd,
-  onNotificationRemove,
   onNotificationRead,
-  onNotificationClear
+  onNotificationDismiss,
+  onNotificationAction,
+  onClearAll,
+  onClearRead
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { colorMode } = useColorMode();
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
-  const [activeFilter, setActiveFilter] = useState<NotificationCategory | 'all'>('all');
-  const [activePriorityFilter, setActivePriorityFilter] = useState<NotificationPriority | 'all'>('all');
+  const toast = useToast();
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const drawerContentRef = useRef<HTMLDivElement>(null);
   
-  // Count unread notifications - useMemo ile optimize edildi
-  const unreadCount = useMemo(() => {
-    return notifications.filter(notification => !notification.read).length;
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  
+  // Update unread count when notifications change
+  useEffect(() => {
+    const count = notifications.filter(notification => !notification.read).length;
+    setUnreadCount(count);
   }, [notifications]);
   
-  // Add notification
-  const addNotification = useCallback((notification: Notification) => {
-    setNotifications(prev => [notification, ...prev]);
-    if (onNotificationAdd) {
-      onNotificationAdd(notification);
+  // Filter notifications based on active filter and search query
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notification => {
+      // Apply type/status filter
+      const matchesFilter = 
+        activeFilter === 'all' || 
+        (activeFilter === 'unread' && !notification.read) ||
+        notification.type === activeFilter;
+      
+      // Apply search filter
+      const matchesSearch = 
+        searchQuery === '' ||
+        notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        notification.message.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesFilter && matchesSearch;
+    });
+  }, [notifications, activeFilter, searchQuery]);
+  
+  // Group notifications by date
+  const groupedNotifications = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    
+    const groups: { [key: string]: Notification[] } = {
+      'Bugün': [],
+      'Dün': [],
+      'Bu Hafta': [],
+      'Daha Eski': []
+    };
+    
+    filteredNotifications.forEach(notification => {
+      const notifDate = new Date(notification.timestamp);
+      notifDate.setHours(0, 0, 0, 0);
+      
+      if (notifDate.getTime() === today.getTime()) {
+        groups['Bugün'].push(notification);
+      } else if (notifDate.getTime() === yesterday.getTime()) {
+        groups['Dün'].push(notification);
+      } else if (notifDate.getTime() >= lastWeek.getTime()) {
+        groups['Bu Hafta'].push(notification);
+      } else {
+        groups['Daha Eski'].push(notification);
+      }
+    });
+    
+    // Remove empty groups
+    return Object.entries(groups).filter(([_, groupNotifications]) => groupNotifications.length > 0);
+  }, [filteredNotifications]);
+  
+  // Handle notification dismissal
+  const handleDismiss = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+    
+    if (onNotificationDismiss) {
+      onNotificationDismiss(id);
     }
     
-    // Auto-close notification if specified
-    if (notification.autoClose) {
-      setTimeout(() => {
-        removeNotification(notification.id);
-      }, notification.autoClose);
-    }
-  }, [onNotificationAdd]);
+    toast({
+      title: "Bildirim kapatıldı",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+      position: "bottom-right"
+    });
+  }, [onNotificationDismiss, toast]);
   
-  // Remove notification
-  const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-    if (onNotificationRemove) {
-      onNotificationRemove(id);
-    }
-  }, [onNotificationRemove]);
-  
-  // Mark notification as read
-  const markAsRead = useCallback((id: string) => {
+  // Handle marking notification as read
+  const handleMarkAsRead = useCallback((id: string) => {
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === id 
@@ -434,152 +156,336 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
           : notification
       )
     );
+    
     if (onNotificationRead) {
       onNotificationRead(id);
     }
   }, [onNotificationRead]);
   
-  // Mark all notifications as read
-  const markAllAsRead = useCallback(() => {
+  // Handle notification action click
+  const handleActionClick = useCallback((id: string, actionIndex: number) => {
+    const notification = notifications.find(n => n.id === id);
+    
+    if (notification && notification.actions && notification.actions[actionIndex]) {
+      // Execute the action
+      notification.actions[actionIndex].onClick();
+      
+      // Mark as read after action
+      handleMarkAsRead(id);
+      
+      if (onNotificationAction) {
+        onNotificationAction(id, actionIndex);
+      }
+    }
+  }, [notifications, handleMarkAsRead, onNotificationAction]);
+  
+  // Handle clear all notifications
+  const handleClearAll = useCallback(() => {
+    setNotifications([]);
+    
+    if (onClearAll) {
+      onClearAll();
+    }
+    
+    toast({
+      title: "Tüm bildirimler temizlendi",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+      position: "bottom-right"
+    });
+  }, [onClearAll, toast]);
+  
+  // Handle clear read notifications
+  const handleClearRead = useCallback(() => {
+    setNotifications(prev => prev.filter(notification => !notification.read));
+    
+    if (onClearRead) {
+      onClearRead();
+    }
+    
+    toast({
+      title: "Okunmuş bildirimler temizlendi",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+      position: "bottom-right"
+    });
+  }, [onClearRead, toast]);
+  
+  // Handle filter change
+  const handleFilterChange = useCallback((filter: NotificationFilter) => {
+    setActiveFilter(filter);
+  }, []);
+  
+  // Handle search change
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+  
+  // Mark all as read
+  const handleMarkAllAsRead = useCallback(() => {
     setNotifications(prev => 
       prev.map(notification => ({ ...notification, read: true }))
     );
-  }, []);
-  
-  // Clear all notifications
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([]);
-    if (onNotificationClear) {
-      onNotificationClear();
-    }
-  }, [onNotificationClear]);
-  
-  // Filter notifications - useMemo ile optimize edildi
-  const filteredNotifications = useMemo(() => {
-    return notifications.filter(notification => {
-      const categoryMatch = activeFilter === 'all' || notification.category === activeFilter;
-      const priorityMatch = activePriorityFilter === 'all' || notification.priority === activePriorityFilter;
-      return categoryMatch && priorityMatch;
-    });
-  }, [notifications, activeFilter, activePriorityFilter]);
-  
-  // Demo notifications for testing
-  useEffect(() => {
-    if (notifications.length === 0) {
-      // Add some demo notifications
-      const demoNotifications: Notification[] = [
-        {
-          id: '1',
-          title: 'Sistem Güncellemesi',
-          message: 'Yeni bir sistem güncellemesi mevcut. Şimdi yüklemek ister misiniz?',
-          timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-          read: false,
-          priority: 'high',
-          category: 'system',
-          actions: [
-            { label: 'Şimdi Yükle', onClick: () => console.log('Update now clicked') },
-            { label: 'Daha Sonra', onClick: () => console.log('Later clicked') }
-          ]
-        },
-        {
-          id: '2',
-          title: 'Görev Tamamlandı',
-          message: 'Ekran yakalama görevi başarıyla tamamlandı.',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          read: true,
-          priority: 'medium',
-          category: 'task'
-        },
-        {
-          id: '3',
-          title: 'Disk Alanı Uyarısı',
-          message: 'Disk alanı %90 doluluk seviyesine ulaştı. Bazı dosyaları temizlemeniz önerilir.',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-          read: false,
-          priority: 'critical',
-          category: 'alert'
-        },
-        {
-          id: '4',
-          title: 'Yeni Özellik',
-          message: 'Yüksek kontrast tema artık kullanılabilir. Ayarlar menüsünden etkinleştirebilirsiniz.',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-          read: false,
-          priority: 'low',
-          category: 'info'
+    
+    if (onNotificationRead) {
+      notifications.forEach(notification => {
+        if (!notification.read) {
+          onNotificationRead(notification.id);
         }
-      ];
-      
-      setNotifications(demoNotifications);
+      });
     }
-  }, []);
+    
+    toast({
+      title: "Tüm bildirimler okundu olarak işaretlendi",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+      position: "bottom-right"
+    });
+  }, [notifications, onNotificationRead, toast]);
   
-  // Bileşen displayName'leri
-  NotificationBell.displayName = 'NotificationBell';
-  NotificationItem.displayName = 'NotificationItem';
-  NotificationActions.displayName = 'NotificationActions';
-  NotificationFilters.displayName = 'NotificationFilters';
-  NotificationList.displayName = 'NotificationList';
+  // Get notification type counts
+  const typeCounts = useMemo(() => {
+    const counts: Record<NotificationFilter, number> = {
+      all: notifications.length,
+      unread: notifications.filter(n => !n.read).length,
+      info: notifications.filter(n => n.type === 'info').length,
+      success: notifications.filter(n => n.type === 'success').length,
+      warning: notifications.filter(n => n.type === 'warning').length,
+      error: notifications.filter(n => n.type === 'error').length,
+      task: notifications.filter(n => n.type === 'task').length,
+    };
+    return counts;
+  }, [notifications]);
+  
+  // Notification bell icon with unread indicator
+  const NotificationBell = (
+    <Box position="relative">
+      <Box fontSize="xl" aria-hidden="true">🔔</Box>
+      {unreadCount > 0 && (
+        <Badge
+          position="absolute"
+          top="-8px"
+          right="-8px"
+          colorScheme="red"
+          borderRadius="full"
+          fontSize="xs"
+          minW="18px"
+          height="18px"
+          textAlign="center"
+          p="0"
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </Badge>
+      )}
+      <VisuallyHidden>
+        {unreadCount > 0 
+          ? `${unreadCount} okunmamış bildirim` 
+          : 'Bildirim yok'}
+      </VisuallyHidden>
+    </Box>
+  );
   
   return (
     <>
-      {/* Notification Bell Icon */}
-      <NotificationBell unreadCount={unreadCount} onOpen={onOpen} />
+      {/* Notification Bell Button */}
+      <Tooltip label={`Bildirimler (${unreadCount} okunmamış)`} aria-label="Bildirimler">
+        <IconButton
+          ref={btnRef}
+          aria-label="Bildirimleri aç"
+          icon={NotificationBell}
+          variant="glass"
+          onClick={onOpen}
+          {...animations.performanceUtils.forceGPU}
+        />
+      </Tooltip>
       
       {/* Notification Drawer */}
       <Drawer
         isOpen={isOpen}
         placement="right"
         onClose={onClose}
+        finalFocusRef={btnRef}
         size="md"
-        aria-labelledby="notification-center-header"
       >
         <DrawerOverlay />
         <DrawerContent
+          ref={drawerContentRef}
           bg={colorMode === 'light' ? 'white' : 'gray.800'}
           borderLeftRadius="md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notification-center-header"
         >
           <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px">
+          <DrawerHeader borderBottomWidth="1px" id="notification-center-header">
             <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold" id="notification-center-header">Bildirimler</Text>
-              <NotificationFilters 
-                onSetActiveFilter={setActiveFilter}
-                onSetActivePriorityFilter={setActivePriorityFilter}
-                onMarkAllAsRead={markAllAsRead}
-                onClearAllNotifications={clearAllNotifications}
-              />
+              <Text fontSize="xl" fontWeight="bold">Bildirim Merkezi</Text>
+              <Menu>
+                <MenuButton
+                  as={IconButton}
+                  aria-label="Bildirim işlemleri"
+                  icon={<Box aria-hidden="true">⋮</Box>}
+                  variant="ghost"
+                  size="sm"
+                />
+                <MenuList>
+                  <MenuItem 
+                    icon={<Box aria-hidden="true">✓</Box>} 
+                    onClick={handleMarkAllAsRead}
+                    isDisabled={typeCounts.unread === 0}
+                  >
+                    Tümünü Okundu İşaretle
+                  </MenuItem>
+                  <MenuItem 
+                    icon={<Box aria-hidden="true">🧹</Box>} 
+                    onClick={handleClearRead}
+                    isDisabled={notifications.length === typeCounts.unread}
+                  >
+                    Okunmuşları Temizle
+                  </MenuItem>
+                  <MenuItem 
+                    icon={<Box aria-hidden="true">🗑️</Box>} 
+                    onClick={handleClearAll}
+                    isDisabled={notifications.length === 0}
+                  >
+                    Tümünü Temizle
+                  </MenuItem>
+                </MenuList>
+              </Menu>
             </Flex>
           </DrawerHeader>
           
-          <DrawerBody p={0}>
-            <Tabs isFitted variant="enclosed">
-              <TabList>
-                <Tab>Tümü ({notifications.length})</Tab>
-                <Tab>Okunmamış ({unreadCount})</Tab>
-              </TabList>
-              
-              <TabPanels>
-                {/* All Notifications */}
-                <TabPanel p={0}>
-                  <NotificationList 
-                    notifications={filteredNotifications}
-                    colorMode={colorMode}
-                    onMarkAsRead={markAsRead}
+          <DrawerBody p={4}>
+            <VStack spacing={4} align="stretch">
+              {/* Search and Filters */}
+              <Box>
+                <InputGroup mb={3}>
+                  <InputLeftElement pointerEvents="none">
+                    <Box color="gray.500" aria-hidden="true">🔍</Box>
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Bildirimlerde ara..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    aria-label="Bildirimlerde ara"
                   />
-                </TabPanel>
+                </InputGroup>
                 
-                {/* Unread Notifications */}
-                <TabPanel p={0}>
-                  <NotificationList 
-                    notifications={filteredNotifications}
-                    colorMode={colorMode}
-                    onMarkAsRead={markAsRead}
-                    showOnlyUnread={true}
-                  />
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
+                <HStack spacing={2} overflowX="auto" py={2} className="notification-filters" role="tablist" aria-label="Bildirim filtreleri">
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'all' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('all')}
+                    aria-selected={activeFilter === 'all'}
+                    role="tab"
+                  >
+                    Tümü ({typeCounts.all})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'unread' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('unread')}
+                    aria-selected={activeFilter === 'unread'}
+                    role="tab"
+                    colorScheme={typeCounts.unread > 0 ? 'red' : undefined}
+                  >
+                    Okunmamış ({typeCounts.unread})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'info' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('info')}
+                    aria-selected={activeFilter === 'info'}
+                    role="tab"
+                    leftIcon={<Box aria-hidden="true">ℹ️</Box>}
+                  >
+                    Bilgi ({typeCounts.info})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'success' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('success')}
+                    aria-selected={activeFilter === 'success'}
+                    role="tab"
+                    leftIcon={<Box aria-hidden="true">✅</Box>}
+                  >
+                    Başarı ({typeCounts.success})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'warning' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('warning')}
+                    aria-selected={activeFilter === 'warning'}
+                    role="tab"
+                    leftIcon={<Box aria-hidden="true">⚠️</Box>}
+                  >
+                    Uyarı ({typeCounts.warning})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'error' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('error')}
+                    aria-selected={activeFilter === 'error'}
+                    role="tab"
+                    leftIcon={<Box aria-hidden="true">❌</Box>}
+                  >
+                    Hata ({typeCounts.error})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={activeFilter === 'task' ? 'solid' : 'outline'}
+                    onClick={() => handleFilterChange('task')}
+                    aria-selected={activeFilter === 'task'}
+                    role="tab"
+                    leftIcon={<Box aria-hidden="true">⏳</Box>}
+                  >
+                    Görev ({typeCounts.task})
+                  </Button>
+                </HStack>
+              </Box>
+              
+              <Divider />
+              
+              {/* Notification List */}
+              {filteredNotifications.length > 0 ? (
+                <Box role="list" aria-label="Bildirimler">
+                  {groupedNotifications.map(([groupName, groupNotifications]) => (
+                    <Box key={groupName} mb={4}>
+                      <Text fontWeight="medium" mb={2} color="gray.500">{groupName}</Text>
+                      {groupNotifications.map(notification => (
+                        <NotificationItem
+                          key={notification.id}
+                          notification={notification}
+                          onDismiss={handleDismiss}
+                          onMarkAsRead={handleMarkAsRead}
+                          onActionClick={handleActionClick}
+                        />
+                      ))}
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Flex 
+                  height="200px" 
+                  alignItems="center" 
+                  justifyContent="center" 
+                  flexDirection="column"
+                  p={8}
+                >
+                  <Box fontSize="4xl" mb={4} aria-hidden="true">📭</Box>
+                  <Text color="gray.500">
+                    {searchQuery 
+                      ? 'Arama kriterlerine uygun bildirim bulunamadı' 
+                      : activeFilter !== 'all' 
+                        ? `${activeFilter === 'unread' ? 'Okunmamış' : activeFilter} bildirim bulunamadı` 
+                        : 'Bildirim bulunmuyor'}
+                  </Text>
+                </Flex>
+              )}
+            </VStack>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
@@ -587,7 +493,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   );
 });
 
-// Ensure displayName is set for React DevTools
 NotificationCenter.displayName = 'NotificationCenter';
 
 export default NotificationCenter;

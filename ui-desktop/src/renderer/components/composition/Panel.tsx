@@ -42,6 +42,8 @@ export const Panel: React.FC<PanelProps> = ({
       position="relative"
       transition="all 0.2s ease-in-out"
       _hover={{ boxShadow: 'lg' }}
+      role="region"
+      aria-label={title || 'Panel'}
       {...rest}
     >
       {/* Panel Header */}

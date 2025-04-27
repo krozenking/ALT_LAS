@@ -58,6 +58,9 @@ export const DragHandle: React.FC<DragHandleProps> = ({
       onMouseMove={onDrag}
       onMouseUp={onDragEnd}
       onMouseLeave={onDragEnd}
+      role="separator"
+      aria-orientation={orientation}
+      tabIndex={0}
       {...getSizeStyle()}
       {...rest}
     />

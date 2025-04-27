@@ -159,6 +159,7 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
       width="100%"
       height="100%"
       overflow="hidden"
+      aria-label="Panel Container"
       {...rest}
     >
       {/* Render panels */}

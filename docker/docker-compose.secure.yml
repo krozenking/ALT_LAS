@@ -1,0 +1,318 @@
+# Secure Docker Compose Configuration
+# Created by Worker 8 (Security and DevOps Specialist)
+# Updated by Worker 1 to include OS Integration Service
+# This file uses secure Dockerfiles and applies security best practices.
+
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.secure.api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production # Use production environment for security
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    read_only: true # Mount volumes as needed for writes
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # Needed to bind to port 3000 as non-root
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  segmentation-service:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.secure.segmentation-service
+    ports:
+      - "8080:8080" # Changed port from 8000 to 8080 to match Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # Needed to bind to port 8080 as non-root
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  runner-service:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.secure.runner-service
+    ports:
+      - "8082:8082" # Changed port from 8080 to 8082 to match Dockerfile
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # Needed to bind to port 8082 as non-root
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  archive-service:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.secure.archive-service
+    ports:
+      - "8081:8081" # Changed port from 9000 to 8081 to match Dockerfile
+    volumes:
+      # Mount config read-only if possible, or specific paths needed for write
+      - ./config:/app/config:ro
+      - ./migrations:/app/migrations:ro # Assuming migrations are read-only at runtime
+    networks:
+      - alt_las_network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # Needed to bind to port 8081 as non-root
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  os-integration-service:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.secure.os-integration-service
+    ports:
+      - "8083:8083"
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # Needed to bind to port 8083 as non-root
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:14-alpine # Use Alpine variant for smaller footprint
+    environment:
+      - POSTGRES_USER=altlas
+      - POSTGRES_PASSWORD=altlas_password # Consider using secrets
+      - POSTGRES_DB=altlas_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U altlas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  nats:
+    image: nats:alpine # Use Alpine variant
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8222/varz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  # Monitoring stack (Prometheus, Chronograf, InfluxDB) - Security hardening can be applied similarly
+  # Consider resource limits, read-only mounts where possible, network policies if using Swarm/K8s
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro # Mount config read-only
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle' # Allows hot reloads
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+  chronograf:
+    image: chronograf:latest
+    ports:
+      - "8888:8888"
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+    volumes:
+      - chronograf_data:/var/lib/chronograf
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+
+  influxdb:
+    image: influxdb:1.8-alpine # Use Alpine variant
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=altlas_metrics
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin_password # Consider using secrets
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    networks:
+      - alt_las_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  alt_las_network:
+    driver: bridge
+    # Consider adding internal: true if external access is only via gateway
+    # driver_opts:
+    #   com.docker.network.driver.mtu: 1450 # Example option
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  chronograf_data:
+  influxdb_data:
+    # Consider driver options for volumes if needed (e.g., backups, encryption)
+

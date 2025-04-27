@@ -1,228 +1,298 @@
 """
-Performance Optimization Module for ALT_LAS Segmentation Service
+Performance Optimizer Module for ALT_LAS Segmentation Service
 
-This module provides performance optimization capabilities for the Segmentation Service,
-including caching, parallel processing, and lazy loading of resources.
+This module provides functionality to optimize the performance of the Segmentation Service
+through caching, parallel processing, and other optimization techniques.
 """
 
 import time
-import logging
 import functools
+import logging
 import threading
-from typing import Dict, List, Any, Optional, Callable, Tuple
+import multiprocessing
+from typing import Dict, List, Any, Optional, Union, Callable, Tuple, TypeVar, Hashable
 import concurrent.futures
 from datetime import datetime, timedelta
 
 # Configure logging
 logger = logging.getLogger('performance_optimizer')
 
-class Cache:
-    """Simple in-memory cache with expiration"""
-    
-    def __init__(self, max_size: int = 100, ttl_seconds: int = 3600):
-        """
-        Initialize the cache
-        
-        Args:
-            max_size: Maximum number of items in cache
-            ttl_seconds: Time to live in seconds
-        """
-        self.max_size = max_size
-        self.ttl_seconds = ttl_seconds
-        self.cache = {}
-        self.timestamps = {}
-        self.lock = threading.RLock()
-    
-    def get(self, key: str) -> Optional[Any]:
-        """
-        Get value from cache
-        
-        Args:
-            key: Cache key
-            
-        Returns:
-            Cached value or None if not found or expired
-        """
-        with self.lock:
-            if key not in self.cache:
-                return None
-            
-            timestamp = self.timestamps.get(key)
-            if timestamp and datetime.now() - timestamp > timedelta(seconds=self.ttl_seconds):
-                # Expired
-                del self.cache[key]
-                del self.timestamps[key]
-                return None
-            
-            return self.cache[key]
-    
-    def set(self, key: str, value: Any) -> None:
-        """
-        Set value in cache
-        
-        Args:
-            key: Cache key
-            value: Value to cache
-        """
-        with self.lock:
-            # If cache is full, remove oldest item
-            if len(self.cache) >= self.max_size and key not in self.cache:
-                oldest_key = min(self.timestamps.items(), key=lambda x: x[1])[0]
-                del self.cache[oldest_key]
-                del self.timestamps[oldest_key]
-            
-            self.cache[key] = value
-            self.timestamps[key] = datetime.now()
-    
-    def clear(self) -> None:
-        """Clear the cache"""
-        with self.lock:
-            self.cache.clear()
-            self.timestamps.clear()
-    
-    def size(self) -> int:
-        """
-        Get current cache size
-        
-        Returns:
-            Number of items in cache
-        """
-        with self.lock:
-            return len(self.cache)
+# Type variables for generic functions
+T = TypeVar('T')
+R = TypeVar('R')
 
 class PerformanceOptimizer:
-    """Class for performance optimization"""
+    """Class for optimizing the performance of the Segmentation Service"""
     
-    def __init__(self):
-        """Initialize the performance optimizer"""
-        self.cache = Cache()
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
-        self.stats = {
-            'cache_hits': 0,
-            'cache_misses': 0,
-            'processing_times': [],
-            'parallel_tasks': 0
-        }
-    
-    def cached(self, func: Callable) -> Callable:
+    def __init__(self, cache_size: int = 100, cache_ttl: int = 3600, 
+                max_workers: Optional[int] = None):
         """
-        Decorator for caching function results
+        Initialize the performance optimizer
         
         Args:
-            func: Function to cache
+            cache_size: Maximum number of items to store in the cache
+            cache_ttl: Time-to-live for cache items in seconds
+            max_workers: Maximum number of worker threads/processes for parallel execution
+        """
+        self.cache_size = cache_size
+        self.cache_ttl = cache_ttl
+        self.max_workers = max_workers or min(32, (multiprocessing.cpu_count() * 2))
+        
+        # Initialize cache
+        self._cache: Dict[str, Tuple[Any, datetime]] = {}
+        self._cache_lock = threading.RLock()
+        
+        # Initialize thread pool
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_workers,
+            thread_name_prefix="segmentation-worker"
+        )
+        
+        # Initialize process pool
+        self._process_pool = concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.max_workers
+        )
+        
+        logger.info(f"Performance optimizer initialized with cache_size={cache_size}, "
+                   f"cache_ttl={cache_ttl}, max_workers={self.max_workers}")
+    
+    def memoize(self, func: Callable[..., T]) -> Callable[..., T]:
+        """
+        Decorator to memoize a function
+        
+        Args:
+            func: Function to memoize
             
         Returns:
-            Decorated function
+            Memoized function
         """
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # Create cache key from function name and arguments
+            # Create a cache key from the function name and arguments
             key_parts = [func.__name__]
-            key_parts.extend([str(arg) for arg in args])
-            key_parts.extend([f"{k}={v}" for k, v in sorted(kwargs.items())])
+            key_parts.extend(str(arg) for arg in args)
+            key_parts.extend(f"{k}={v}" for k, v in sorted(kwargs.items()))
             cache_key = ":".join(key_parts)
             
-            # Try to get from cache
-            cached_result = self.cache.get(cache_key)
-            if cached_result is not None:
-                self.stats['cache_hits'] += 1
-                return cached_result
+            # Check if the result is in the cache
+            with self._cache_lock:
+                if cache_key in self._cache:
+                    result, timestamp = self._cache[cache_key]
+                    # Check if the cache entry is still valid
+                    if datetime.now() - timestamp < timedelta(seconds=self.cache_ttl):
+                        logger.debug(f"Cache hit for {func.__name__}")
+                        return result
             
-            # Cache miss, call function
-            self.stats['cache_misses'] += 1
-            start_time = time.time()
+            # Execute the function
             result = func(*args, **kwargs)
-            processing_time = time.time() - start_time
-            self.stats['processing_times'].append(processing_time)
             
-            # Cache result
-            self.cache.set(cache_key, result)
+            # Store the result in the cache
+            with self._cache_lock:
+                # If the cache is full, remove the oldest entry
+                if len(self._cache) >= self.cache_size:
+                    oldest_key = min(self._cache.items(), key=lambda x: x[1][1])[0]
+                    del self._cache[oldest_key]
+                
+                # Add the new entry
+                self._cache[cache_key] = (result, datetime.now())
             
             return result
         
         return wrapper
     
-    def parallel(self, func: Callable, items: List[Any], *args, **kwargs) -> List[Any]:
+    def clear_cache(self):
+        """Clear the cache"""
+        with self._cache_lock:
+            self._cache.clear()
+        logger.info("Cache cleared")
+    
+    def run_in_thread(self, func: Callable[..., T], *args, **kwargs) -> concurrent.futures.Future:
         """
-        Execute function in parallel for each item
+        Run a function in a separate thread
         
         Args:
-            func: Function to execute
+            func: Function to run
+            *args: Positional arguments for the function
+            **kwargs: Keyword arguments for the function
+            
+        Returns:
+            Future object representing the execution of the function
+        """
+        return self._thread_pool.submit(func, *args, **kwargs)
+    
+    def run_in_process(self, func: Callable[..., T], *args, **kwargs) -> concurrent.futures.Future:
+        """
+        Run a function in a separate process
+        
+        Args:
+            func: Function to run
+            *args: Positional arguments for the function
+            **kwargs: Keyword arguments for the function
+            
+        Returns:
+            Future object representing the execution of the function
+        """
+        return self._process_pool.submit(func, *args, **kwargs)
+    
+    def map_parallel(self, func: Callable[[T], R], items: List[T], 
+                    use_processes: bool = False) -> List[R]:
+        """
+        Apply a function to each item in a list in parallel
+        
+        Args:
+            func: Function to apply
             items: List of items to process
-            *args: Additional arguments for func
-            **kwargs: Additional keyword arguments for func
+            use_processes: Whether to use processes instead of threads
             
         Returns:
             List of results
         """
-        self.stats['parallel_tasks'] += 1
+        executor = self._process_pool if use_processes else self._thread_pool
+        return list(executor.map(func, items))
+    
+    def batch_process(self, func: Callable[[List[T]], List[R]], items: List[T], 
+                     batch_size: int = 10) -> List[R]:
+        """
+        Process a list of items in batches
         
-        # Create partial function with fixed args and kwargs
-        partial_func = functools.partial(func, *args, **kwargs)
+        Args:
+            func: Function to apply to each batch
+            items: List of items to process
+            batch_size: Size of each batch
+            
+        Returns:
+            List of results
+        """
+        results = []
         
-        # Submit all tasks
-        futures = [self.executor.submit(partial_func, item) for item in items]
-        
-        # Wait for all tasks to complete
-        concurrent.futures.wait(futures)
-        
-        # Get results
-        results = [future.result() for future in futures]
+        # Process items in batches
+        for i in range(0, len(items), batch_size):
+            batch = items[i:i+batch_size]
+            batch_results = func(batch)
+            results.extend(batch_results)
         
         return results
     
-    def timed(self, func: Callable) -> Callable:
+    def time_execution(self, func: Callable[..., T], *args, **kwargs) -> Tuple[T, float]:
         """
-        Decorator for timing function execution
+        Time the execution of a function
         
         Args:
             func: Function to time
+            *args: Positional arguments for the function
+            **kwargs: Keyword arguments for the function
             
         Returns:
-            Decorated function
+            Tuple of (result, execution_time_in_seconds)
         """
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        logger.info(f"Function {func.__name__} executed in {execution_time:.6f} seconds")
+        
+        return result, execution_time
+    
+    def lazy_load(self, func: Callable[[], T]) -> Callable[[], T]:
+        """
+        Decorator for lazy loading of resources
+        
+        Args:
+            func: Function that loads a resource
+            
+        Returns:
+            Function that lazily loads the resource
+        """
+        sentinel = object()
+        result = sentinel
+        
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            start_time = time.time()
-            result = func(*args, **kwargs)
-            processing_time = time.time() - start_time
-            self.stats['processing_times'].append(processing_time)
-            logger.debug(f"Function {func.__name__} took {processing_time:.4f} seconds")
+        def wrapper():
+            nonlocal result
+            if result is sentinel:
+                result = func()
             return result
         
         return wrapper
     
-    def get_stats(self) -> Dict[str, Any]:
+    def rate_limit(self, func: Callable[..., T], calls_per_second: float) -> Callable[..., T]:
         """
-        Get performance statistics
+        Decorator to rate limit a function
         
+        Args:
+            func: Function to rate limit
+            calls_per_second: Maximum number of calls per second
+            
         Returns:
-            Dictionary of statistics
+            Rate-limited function
         """
-        stats = self.stats.copy()
+        min_interval = 1.0 / calls_per_second
+        last_call_time = 0.0
+        call_lock = threading.Lock()
         
-        # Calculate average processing time
-        if stats['processing_times']:
-            stats['avg_processing_time'] = sum(stats['processing_times']) / len(stats['processing_times'])
-            stats['max_processing_time'] = max(stats['processing_times'])
-            stats['min_processing_time'] = min(stats['processing_times'])
-        else:
-            stats['avg_processing_time'] = 0
-            stats['max_processing_time'] = 0
-            stats['min_processing_time'] = 0
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            nonlocal last_call_time
+            
+            with call_lock:
+                current_time = time.time()
+                elapsed = current_time - last_call_time
+                
+                # If we've called the function too recently, sleep
+                if elapsed < min_interval:
+                    time.sleep(min_interval - elapsed)
+                
+                # Update the last call time
+                last_call_time = time.time()
+            
+            # Call the function
+            return func(*args, **kwargs)
         
-        # Add cache stats
-        stats['cache_size'] = self.cache.size()
-        
-        return stats
+        return wrapper
     
-    def clear_cache(self) -> None:
-        """Clear the cache"""
-        self.cache.clear()
+    def optimize_memory(self, func: Callable[..., T]) -> Callable[..., T]:
+        """
+        Decorator to optimize memory usage of a function
+        
+        Args:
+            func: Function to optimize
+            
+        Returns:
+            Memory-optimized function
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Record memory usage before execution
+            try:
+                import psutil
+                process = psutil.Process()
+                memory_before = process.memory_info().rss / 1024 / 1024  # MB
+            except ImportError:
+                memory_before = None
+            
+            # Execute the function
+            result = func(*args, **kwargs)
+            
+            # Record memory usage after execution
+            try:
+                if memory_before is not None:
+                    memory_after = process.memory_info().rss / 1024 / 1024  # MB
+                    memory_diff = memory_after - memory_before
+                    logger.info(f"Function {func.__name__} memory usage: {memory_diff:.2f} MB")
+            except:
+                pass
+            
+            return result
+        
+        return wrapper
     
-    def shutdown(self) -> None:
-        """Shutdown the executor"""
-        self.executor.shutdown(wait=True)
+    def shutdown(self):
+        """Shutdown the optimizer and release resources"""
+        self._thread_pool.shutdown()
+        self._process_pool.shutdown()
+        self.clear_cache()
+        logger.info("Performance optimizer shutdown")
 
 # Create a global instance
 performance_optimizer = PerformanceOptimizer()
@@ -237,49 +307,54 @@ def get_performance_optimizer() -> PerformanceOptimizer:
     """
     return performance_optimizer
 
-# Main function for testing
+# Example usage
 if __name__ == "__main__":
-    # Test the performance optimizer
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    
+    # Create a performance optimizer
     optimizer = PerformanceOptimizer()
     
-    # Test caching
-    @optimizer.cached
-    def expensive_function(n):
-        time.sleep(0.1)  # Simulate expensive operation
-        return n * n
+    # Example of memoization
+    @optimizer.memoize
+    def fibonacci(n):
+        if n <= 1:
+            return n
+        return fibonacci(n-1) + fibonacci(n-2)
     
-    # First call (cache miss)
-    result1 = expensive_function(5)
-    print(f"Result 1: {result1}")
-    
-    # Second call (cache hit)
-    result2 = expensive_function(5)
-    print(f"Result 2: {result2}")
-    
-    # Different argument (cache miss)
-    result3 = expensive_function(10)
-    print(f"Result 3: {result3}")
-    
-    # Test parallel processing
+    # Example of parallel processing
     def process_item(item):
-        time.sleep(0.1)  # Simulate processing
+        time.sleep(0.1)  # Simulate work
         return item * 2
     
-    items = [1, 2, 3, 4, 5]
-    
-    # Sequential processing
+    # Test memoization
     start_time = time.time()
-    sequential_results = [process_item(item) for item in items]
-    sequential_time = time.time() - start_time
-    print(f"Sequential results: {sequential_results}")
-    print(f"Sequential time: {sequential_time:.4f} seconds")
+    result1 = fibonacci(30)
+    time1 = time.time() - start_time
     
-    # Parallel processing
     start_time = time.time()
-    parallel_results = optimizer.parallel(process_item, items)
-    parallel_time = time.time() - start_time
-    print(f"Parallel results: {parallel_results}")
-    print(f"Parallel time: {parallel_time:.4f} seconds")
+    result2 = fibonacci(30)  # Should be cached
+    time2 = time.time() - start_time
     
-    # Print stats
-    print(f"Stats: {optimizer.get_stats()}")
+    print(f"Fibonacci result: {result1}")
+    print(f"First call: {time1:.6f} seconds")
+    print(f"Second call (cached): {time2:.6f} seconds")
+    print(f"Speedup: {time1/time2:.2f}x")
+    
+    # Test parallel processing
+    items = list(range(100))
+    
+    start_time = time.time()
+    results_serial = [process_item(item) for item in items]
+    time_serial = time.time() - start_time
+    
+    start_time = time.time()
+    results_parallel = optimizer.map_parallel(process_item, items)
+    time_parallel = time.time() - start_time
+    
+    print(f"Serial processing: {time_serial:.6f} seconds")
+    print(f"Parallel processing: {time_parallel:.6f} seconds")
+    print(f"Speedup: {time_serial/time_parallel:.2f}x")
+    
+    # Shutdown the optimizer
+    optimizer.shutdown()

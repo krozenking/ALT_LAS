@@ -142,6 +142,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
       {...loadingStyle}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       {...rest}
+      aria-disabled={isDisabled}
+      aria-busy={isLoading}
     >
       {isLoading ? <Box opacity={0}>{icon}</Box> : icon}
     </Box>

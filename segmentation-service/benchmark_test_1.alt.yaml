@@ -1,0 +1,35 @@
+id: 02004201-b8fc-49f1-a6be-e1962905ceb7
+version: '1.0'
+timestamp: '2025-04-27T15:12:06.693033'
+command: "T\xFCm .jpg dosyalar\u0131n\u0131 bir klas\xF6re ta\u015F\u0131 ve s\u0131\
+  k\u0131\u015Ft\u0131r"
+language: tr
+mode: Dream
+persona: creative_writer
+chaos_level: null
+segments:
+- id: 3557be38-a628-44c4-9cb5-ff1a571bfcec
+  task_type: execute
+  content: "T\xFCm .jpg dosyalar\u0131n\u0131 bir klas\xF6re ta\u015F\u0131"
+  parameters:
+  - name: content
+    value: "T\xFCm .jpg dosyalar\u0131n\u0131 bir klas\xF6re ta\u015F\u0131"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+- id: f7e2b6a4-a6e3-4326-b937-fd55b62501fb
+  task_type: execute
+  content: "s\u0131k\u0131\u015Ft\u0131r"
+  parameters:
+  - name: content
+    value: "s\u0131k\u0131\u015Ft\u0131r"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+metadata: {}

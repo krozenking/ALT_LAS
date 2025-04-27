@@ -20,7 +20,7 @@ from enhanced_error_handling import (
     ErrorCode, ErrorSeverity, ErrorResponse, SegmentationError,
     ValidationError, ProcessingError, DataError, IntegrationError,
     SegmentationProcessingError, PrioritizationError, ParsingError,
-    VisualizationError, FileNotFoundError, FileAccessError,
+    VisualizationError, CustomFileNotFoundError, FileAccessError,
     LoggingConfig, LoggingManager, MetricsCollector, ErrorHandler,
     RequestLogger, HealthCheck, log_function_call, log_async_function_call,
     configure_app_logging, get_logger

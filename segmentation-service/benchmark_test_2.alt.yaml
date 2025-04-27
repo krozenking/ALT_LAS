@@ -1,0 +1,35 @@
+id: 11a96615-1831-417b-9e72-26ac143d3a12
+version: '1.0'
+timestamp: '2025-04-27T15:12:06.693802'
+command: "Google'da yapay zeka hakk\u0131nda arama yap ve sonu\xE7lar\u0131 bir dosyaya\
+  \ kaydet"
+language: tr
+mode: Chaos
+persona: system_admin
+chaos_level: 5
+segments:
+- id: dc0bca5a-ac55-4c49-a93f-f43c2bde515f
+  task_type: execute
+  content: "Google'da yapay zeka hakk\u0131nda arama yap"
+  parameters:
+  - name: content
+    value: "Google'da yapay zeka hakk\u0131nda arama"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+- id: 92b2508a-ff03-4a02-802e-5e0308a96589
+  task_type: execute
+  content: "sonu\xE7lar\u0131 bir dosyaya kaydet"
+  parameters:
+  - name: content
+    value: "sonu\xE7lar\u0131 bir dosyaya kaydet"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+metadata: {}

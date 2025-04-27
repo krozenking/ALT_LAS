@@ -7,7 +7,7 @@ import os
 import logging
 from command_parser import CommandParser, get_command_parser
 from dsl_schema import AltFile, TaskSegment, TaskParameter
-from alt_file_handler import AltFileHandler, get_file_handler
+from alt_file_handler import AltFileHandler, get_alt_file_handler
 from task_prioritization import TaskPrioritizer, get_task_prioritizer
 from language_processor import LanguageProcessor, get_language_processor
 
@@ -127,7 +127,7 @@ def health_check():
 def segment_command(
     request: SegmentationRequest,
     command_parser = Depends(get_command_parser),
-    file_handler = Depends(get_file_handler),
+    file_handler = Depends(get_alt_file_handler),
     language_processor = Depends(get_language_processor),
 ):
     """
@@ -196,7 +196,7 @@ def segment_command(
 @app.get("/segment/{task_id}", response_model=SegmentationResponse)
 def get_segmentation_status(
     task_id: str = Path(..., description="Task ID"),
-    file_handler = Depends(get_file_handler)
+    file_handler = Depends(get_alt_file_handler)
 ):
     """
     Get segmentation status
@@ -244,7 +244,7 @@ def get_segmentation_status(
 @app.post("/prioritize", response_model=PrioritizationResponse)
 def prioritize_alt_file(
     request: PrioritizationRequest,
-    file_handler = Depends(get_file_handler),
+    file_handler = Depends(get_alt_file_handler),
     task_prioritizer = Depends(get_task_prioritizer)
 ):
     """
@@ -321,7 +321,7 @@ def prioritize_alt_file(
 @app.get("/prioritize/{alt_file}/visualize", response_model=PrioritizationVisualizationResponse)
 def visualize_prioritization(
     alt_file: str = Path(..., description="ALT file to visualize"),
-    file_handler = Depends(get_file_handler),
+    file_handler = Depends(get_alt_file_handler),
     task_prioritizer = Depends(get_task_prioritizer)
 ):
     """
@@ -458,148 +458,4 @@ def update_prioritization_config(
         return config
     except Exception as e:
         logger.error(f"Error updating prioritization configuration: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error updating prioritization configuration: {str(e)}")
-
-# List ALT files endpoint
-@app.get("/alt-files", response_model=List[str])
-def list_alt_files(
-    file_handler = Depends(get_file_handler)
-):
-    """
-    List all ALT files
-    
-    Args:
-        file_handler: ALT file handler
-        
-    Returns:
-        List of ALT filenames
-    """
-    try:
-        return file_handler.list_alt_files()
-    except Exception as e:
-        logger.error(f"Error listing ALT files: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error listing ALT files: {str(e)}")
-
-# Get ALT file endpoint
-@app.get("/alt-files/{filename}", response_model=AltFileModel)
-def get_alt_file(
-    filename: str = Path(..., description="ALT filename"),
-    file_handler = Depends(get_file_handler)
-):
-    """
-    Get an ALT file
-    
-    Args:
-        filename: ALT filename
-        file_handler: ALT file handler
-        
-    Returns:
-        ALT file
-    """
-    try:
-        try:
-            alt_file = file_handler.load_alt_file(filename)
-        except FileNotFoundError:
-            raise HTTPException(status_code=404, detail=f"ALT file not found: {filename}")
-        
-        # Convert to response model
-        segments = []
-        for segment in alt_file.segments:
-            segments.append(SegmentModel(
-                id=segment.id,
-                task_type=segment.task_type,
-                content=segment.content,
-                parameters=[p.dict() for p in segment.parameters],
-                dependencies=segment.dependencies,
-                metadata=segment.metadata
-            ))
-        
-        return AltFileModel(
-            id=alt_file.id,
-            command=alt_file.command,
-            language=alt_file.language,
-            mode=alt_file.mode,
-            persona=alt_file.persona,
-            chaos_level=alt_file.chaos_level,
-            segments=segments,
-            metadata=alt_file.metadata
-        )
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        logger.error(f"Error getting ALT file: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error getting ALT file: {str(e)}")
-
-# Delete ALT file endpoint
-@app.delete("/alt-files/{filename}")
-def delete_alt_file(
-    filename: str = Path(..., description="ALT filename"),
-    file_handler = Depends(get_file_handler)
-):
-    """
-    Delete an ALT file
-    
-    Args:
-        filename: ALT filename
-        file_handler: ALT file handler
-        
-    Returns:
-        Success message
-    """
-    try:
-        success = file_handler.delete_alt_file(filename)
-        if not success:
-            raise HTTPException(status_code=404, detail=f"ALT file not found: {filename}")
-        
-        return {"message": f"ALT file deleted: {filename}"}
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        logger.error(f"Error deleting ALT file: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error deleting ALT file: {str(e)}")
-
-# List supported languages endpoint
-@app.get("/languages")
-def list_supported_languages(
-    language_processor = Depends(get_language_processor)
-):
-    """
-    List supported languages
-    
-    Args:
-        language_processor: Language processor
-        
-    Returns:
-        List of supported languages
-    """
-    return {
-        "supported_languages": language_processor.get_supported_languages()
-    }
-
-# List supported modes endpoint
-@app.get("/modes")
-def list_supported_modes():
-    """
-    List supported modes
-    
-    Returns:
-        List of supported modes
-    """
-    return {
-        "supported_modes": [
-            {"code": "Normal", "description": "Standard processing mode"},
-            {"code": "Dream", "description": "Creative processing mode"},
-            {"code": "Explore", "description": "Exploratory processing mode"},
-            {"code": "Chaos", "description": "Unpredictable processing mode with chaos level (1-10)"}
-        ]
-    }
-
-# Run the application
-if __name__ == "__main__":
-    import uvicorn
-    
-    # Get port from environment or use default
-    port = int(os.environ.get("PORT", 8000))
-    
-    # Run the application
-    uvicorn.run(app, host="0.0.0.0", port=port)
+        raise HTTPException(status_code=500, detail="Internal server error while updating prioritization configuration")

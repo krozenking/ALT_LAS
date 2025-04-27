@@ -22,7 +22,7 @@ import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import modules to test
-from enhanced_language_processor import LanguageProcessor, get_language_processor
+from enhanced_language_processor import EnhancedLanguageProcessor, get_enhanced_language_processor
 from language_resources_manager import LanguageResourcesManager
 
 # Setup logging

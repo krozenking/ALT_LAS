@@ -1,0 +1,34 @@
+id: 1c6705b0-65a3-4713-9f31-07e2e269d94b
+version: '1.0'
+timestamp: '2025-04-27T15:12:06.694546'
+command: "Sistem performans\u0131n\u0131 kontrol et ve bir rapor olu\u015Ftur"
+language: tr
+mode: Normal
+persona: technical_expert
+chaos_level: null
+segments:
+- id: a61db5a0-440c-4f23-8331-6cb4c45bf8be
+  task_type: execute
+  content: "Sistem performans\u0131n\u0131 kontrol et"
+  parameters:
+  - name: content
+    value: "Sistem performans\u0131n\u0131 kontrol et"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+- id: 488ef86f-f436-4431-97ae-6863dbb34ffa
+  task_type: execute
+  content: "bir rapor olu\u015Ftur"
+  parameters:
+  - name: content
+    value: "bir rapor olu\u015Ftur"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+metadata: {}

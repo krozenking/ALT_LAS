@@ -1,0 +1,38 @@
+# Development Dockerfile for Archive Service
+# Created by Worker 8 (Security and DevOps Specialist)
+
+FROM golang:1.19-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install development dependencies
+RUN apk add --no-cache git build-base curl vim bash
+
+# Copy Go module files
+COPY archive-service/go.mod archive-service/go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Install development tools
+RUN go install github.com/cosmtrek/air@latest && \
+    go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Create non-root user but allow write access for development
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports (application and debugger)
+EXPOSE 8081 2345
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8081/health || exit 1
+
+# Command to run the application with hot reloading
+# Note: Source code will be mounted at runtime via volume
+CMD ["air", "-c", ".air.toml"]

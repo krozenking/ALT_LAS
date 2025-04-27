@@ -1,0 +1,50 @@
+# Development Dockerfile for OS Integration Service
+# Created by Worker 8 (Security and DevOps Specialist)
+
+FROM rust:1.65-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install development dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    git \
+    curl \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install cargo-watch for hot reloading
+RUN cargo install cargo-watch
+
+# Copy Cargo files
+COPY os-integration-service/Cargo.toml os-integration-service/Cargo.lock ./
+
+# Create dummy source file to cache dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs
+
+# Build dependencies (debug build for development)
+RUN cargo build
+
+# Create non-root user but allow write access for development
+RUN groupadd -r appgroup && \
+    useradd -r -g appgroup -d /app -s /bin/bash -c "Docker image user" appuser && \
+    chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8083
+
+# Add health check (Assuming a /health endpoint exists, adjust if needed)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8083/health || exit 1
+
+# Command to run the application with hot reloading
+# Note: Source code will be mounted at runtime via volume
+CMD ["cargo", "watch", "-x", "run"]

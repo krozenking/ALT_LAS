@@ -61,6 +61,14 @@ export const DragHandle: React.FC<DragHandleProps> = ({
       role="separator"
       aria-orientation={orientation}
       tabIndex={0}
+      aria-label={orientation === 'horizontal' ? "Horizontal drag handle" : "Vertical drag handle"}
+      aria-roledescription="Use arrow keys to move adjacent elements when focused"
+      onKeyDown={(e) => {
+        // TODO: Implement keyboard interaction logic
+        // e.g., check e.key for ArrowLeft/Right/Up/Down
+        // Call a parent handler to adjust layout based on orientation
+        console.log("DragHandle key down:", e.key);
+      }}
       {...getSizeStyle()}
       {...rest}
     />

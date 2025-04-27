@@ -39,6 +39,7 @@ import { animations } from '@/styles/animations';
 // NotificationCenter properties
 interface NotificationCenterProps {
   initialNotifications?: Notification[];
+  isFocusModeActive?: boolean; // Add prop to indicate focus mode status
   onNotificationRead?: (id: string) => void;
   onNotificationDismiss?: (id: string) => void;
   onNotificationAction?: (id: string, actionIndex: number) => void;
@@ -51,6 +52,7 @@ type NotificationFilter = 'all' | 'unread' | NotificationType;
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   initialNotifications = [],
+  isFocusModeActive = false, // Default to false
   onNotificationRead,
   onNotificationDismiss,
   onNotificationAction,
@@ -77,6 +79,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   // Filter notifications based on active filter and search query
   const filteredNotifications = useMemo(() => {
     return notifications.filter(notification => {
+      // Skip high priority notifications in focus mode
+      if (isFocusModeActive && notification.priority !== 'high') {
+        return false;
+      }
+      
       // Apply type/status filter
       const matchesFilter = 
         activeFilter === 'all' || 
@@ -91,7 +98,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
       
       return matchesFilter && matchesSearch;
     });
-  }, [notifications, activeFilter, searchQuery]);
+  }, [notifications, activeFilter, searchQuery, isFocusModeActive]);
   
   // Group notifications by date
   const groupedNotifications = useMemo(() => {
@@ -161,6 +168,45 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
       onNotificationRead(id);
     }
   }, [onNotificationRead]);
+  
+  // Handle notification snooze
+  const handleSnooze = useCallback((id: string, duration: number) => {
+    // Hide notification temporarily
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === id 
+          ? { ...notification, snoozedUntil: new Date(Date.now() + duration * 1000) } 
+          : notification
+      )
+    );
+    
+    toast({
+      title: `Bildirim ${Math.floor(duration / 60)} dakika ertelendi`,
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+      position: "bottom-right"
+    });
+    
+    // Set timeout to "unsnooze" after duration
+    setTimeout(() => {
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, snoozedUntil: undefined } 
+            : notification
+        )
+      );
+      
+      toast({
+        title: "Ertelenen bildirim geri döndü",
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right"
+      });
+    }, duration * 1000);
+  }, [toast]);
   
   // Handle notification action click
   const handleActionClick = useCallback((id: string, actionIndex: number) => {
@@ -454,14 +500,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
                 <Box role="list" aria-label="Bildirimler">
                   {groupedNotifications.map(([groupName, groupNotifications]) => (
                     <Box key={groupName} mb={4}>
-                      <Text fontWeight="medium" mb={2} color="gray.500">{groupName}</Text>
-                      {groupNotifications.map(notification => (
+                      <Text fontWeight="medium" mb={2} color="gray.500">{groupName}</Text>                      {groupNotifications.map(notification => (
                         <NotificationItem
                           key={notification.id}
                           notification={notification}
                           onDismiss={handleDismiss}
                           onMarkAsRead={handleMarkAsRead}
                           onActionClick={handleActionClick}
+                          onSnooze={handleSnooze} // Pass snooze handler
                         />
                       ))}
                     </Box>

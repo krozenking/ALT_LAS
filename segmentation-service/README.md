@@ -2,7 +2,7 @@
 
 ## Genel Bakış
 
-Segmentation Service, ALT_LAS platformunun komut segmentasyonu ve görev analizi bileşenidir. Bu servis, kullanıcı komutlarını alır, analiz eder ve bunları ALT_LAS sisteminin işleyebileceği görev segmentlerine dönüştürür.
+Segmentation Service, ALT_LAS platformunun komut segmentasyonu ve görev analizi bileşenidir. Bu servis, kullanıcı komutlarını alır, analiz eder ve bunları ALT_LAS sisteminin işleyebileceği görev segmentlerine dönüştürür. Servis ayrıca, komut işleme davranışını özelleştirmek için **Mod** ve **Persona** sistemlerini destekler.
 
 ## Mimari
 
@@ -10,11 +10,13 @@ Segmentation Service, aşağıdaki bileşenlerden oluşur:
 
 1. **FastAPI Uygulaması**: RESTful API sağlayan ana uygulama
 2. **Komut Ayrıştırıcı**: Doğal dil komutlarını yapılandırılmış görevlere dönüştürür
-3. **DSL Şeması**: Görev segmentlerinin veri modelini tanımlar
-4. **ALT Dosya İşleyici**: *.alt dosyalarını okuma, yazma ve yönetme işlevleri sağlar
-5. **Görev Önceliklendirme**: Görevleri önem ve bağımlılıklarına göre sıralar
-6. **Performans Optimizasyonu**: Servisin performansını iyileştiren araçlar sağlar
-7. **Hata İşleme**: Yapılandırılmış hata yanıtları ve loglama sağlar
+3. **Mod İşleyici**: Farklı işlem modlarının (Normal, Dream, Explore, Chaos) etkilerini uygular
+4. **Persona İşleyici**: Farklı personaların (technical_expert, creative_writer, researcher, project_manager) etkilerini uygular
+5. **DSL Şeması**: Görev segmentlerinin veri modelini tanımlar
+6. **ALT Dosya İşleyici**: *.alt dosyalarını okuma, yazma ve yönetme işlevleri sağlar
+7. **Görev Önceliklendirme**: Görevleri önem ve bağımlılıklarına göre sıralar
+8. **Performans Optimizasyonu**: Servisin performansını iyileştiren araçlar sağlar
+9. **Hata İşleme**: Yapılandırılmış hata yanıtları ve loglama sağlar
 
 ## API Referansı
 
@@ -40,17 +42,18 @@ Servisin sağlık durumunu kontrol eder.
 POST /segment
 ```
 
-Bir komutu segmentlere ayırır ve bir ALT dosyası oluşturur.
+Bir komutu segmentlere ayırır ve bir ALT dosyası oluşturur. İstek gövdesinde `mode` ve `persona` parametreleri ile işlem davranışını özelleştirebilirsiniz.
 
 **İstek Gövdesi**:
 ```json
 {
   "command": "Dosyaları sırala ve en büyük 10 tanesini göster",
-  "mode": "Normal",
-  "persona": "technical_expert",
+  "mode": "Explore", // Opsiyonel, varsayılan: "Normal"
+  "persona": "researcher", // Opsiyonel, varsayılan: "technical_expert"
   "metadata": {
     "user_id": "12345",
-    "session_id": "abcdef"
+    "session_id": "abcdef",
+    "chaos_level": 7 // Sadece mode="Chaos" ise geçerli (1-10)
   }
 }
 ```
@@ -65,8 +68,8 @@ Bir komutu segmentlere ayırır ve bir ALT dosyası oluşturur.
   "segments_count": 2,
   "metadata": {
     "timestamp": "2025-04-26T06:49:00.000Z",
-    "mode": "Normal",
-    "persona": "technical_expert",
+    "mode": "Explore",
+    "persona": "researcher",
     "parse_time_seconds": 0.1234,
     "user_id": "12345",
     "session_id": "abcdef"
@@ -120,7 +123,33 @@ Desteklenen dillerin listesini döndürür.
 GET /modes
 ```
 
-Desteklenen modların listesini döndürür.
+Desteklenen işlem modlarının listesini döndürür.
+
+### Desteklenen Personalar
+
+```
+GET /personas
+```
+
+Desteklenen personaların listesini döndürür.
+
+## Mod ve Persona Sistemi
+
+Segmentation Service, komut işleme davranışını özelleştirmek için Mod ve Persona sistemlerini kullanır:
+
+### Modlar
+- **Normal**: Standart, deterministik ayrıştırma.
+- **Dream**: Daha yaratıcı ve soyut yorumlama, ek parametreler veya görevler önerebilir.
+- **Explore**: Komutun kapsamını genişleten, ilgili kavramları araştıran veya alternatif yaklaşımlar sunan yorumlama.
+- **Chaos**: `chaos_level` (1-10) parametresine bağlı olarak rastgelelik ve öngörülemezlik ekler.
+
+### Personalar
+- **technical_expert** (Varsayılan): Hassasiyet, teknik detaylar ve spesifik parametrelere odaklanır.
+- **creative_writer**: Anlatı, stil ve betimleyici unsurlara odaklanır.
+- **researcher**: Bilgi toplama, analiz ve kaynak göstermeye odaklanır.
+- **project_manager**: Görev yönetimi, zaman çizelgesi ve kaynaklara odaklanır.
+
+Mod ve Persona etkileri, oluşturulan `TaskSegment` nesnelerinin `metadata` alanında belirtilir.
 
 ## Veri Modelleri
 
@@ -209,7 +238,7 @@ cd ALT_LAS/segmentation-service
 pip install -r requirements_updated.txt
 
 # NLTK verilerini indir
-python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+python -c "import nltk; nltk.download(\'punkt\'); nltk.download(\'stopwords\'); nltk.download(\'wordnet\')"
 ```
 
 ### Çalıştırma
@@ -282,7 +311,7 @@ Segmentation Service'e katkıda bulunmak için:
 
 1. Depoyu fork edin
 2. Yeni bir branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add some amazing feature'`)
+3. Değişikliklerinizi commit edin (`git commit -m \'Add some amazing feature\'`)
 4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
 5. Bir Pull Request açın
 

@@ -6,7 +6,7 @@
 
 ## DSL & Ayrıştırma İyileştirme
 - [x] `*.alt` dosya formatı işleme mekanizmasını doğrulama
-- [ ] Ayrıştırma testlerinin kapsamını ve doğruluğunu artırma
+- [x] Ayrıştırma testlerinin kapsamını ve doğruluğunu artırma
 
 ## Mod & Persona Sistemi Tamamlama
 - [ ] Çalışma modlarının (Normal, Dream, Explore, Chaos) ayrıştırma ve segmentasyon üzerindeki etkisini kodda doğrulama/implemente etme

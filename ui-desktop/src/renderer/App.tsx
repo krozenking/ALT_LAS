@@ -1,9 +1,10 @@
 import React, { lazy, Suspense } from 'react';
-import { Box, Flex, useColorMode, Button, HStack, Text, useToast, Spinner, Center } from '@chakra-ui/react';
+import { Box, Flex, useColorMode, Button, HStack, Text, useToast, Spinner, Center, Tab, TabList, TabPanel, TabPanels, Tabs } from '@chakra-ui/react';
 import { ChakraProvider } from '@chakra-ui/react';
 import DemoLayout from '@/components/layouts/DemoLayout';
 import { theme } from '@/styles/theme'; // Import the base theme
 import { highContrastTheme } from '@/styles/highContrastTheme'; // Import the new high contrast theme
+import AnimationTest from '@/components/test/AnimationTest'; // Import the animation test component
 
 // Lazy load feature components to improve initial load time
 const NotificationCenter = lazy(() => import('@/components/feature/NotificationCenter'));
@@ -21,6 +22,7 @@ const LoadingFallback = () => (
 const App: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const [isHighContrast, setIsHighContrast] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState(0);
   const toast = useToast();
 
   // Check for high contrast preference in localStorage
@@ -131,14 +133,46 @@ const App: React.FC = () => {
           </Suspense>
         </HStack>
         
-        <DemoLayout 
-          // Remove background image in high contrast mode for better visibility
-          backgroundImage={!isHighContrast ? (colorMode === 'light' 
-            ? "url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')" 
-            : "url('https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80')")
-            : undefined
-          }
-        />
+        <Tabs 
+          index={activeTab} 
+          onChange={setActiveTab} 
+          variant="enclosed" 
+          position="absolute" 
+          top="16" 
+          left="4" 
+          right="4" 
+          zIndex="5"
+        >
+          <TabList>
+            <Tab>Demo</Tab>
+            <Tab>Animation Test</Tab>
+          </TabList>
+          
+          <TabPanels>
+            <TabPanel p={0}>
+              <DemoLayout 
+                // Remove background image in high contrast mode for better visibility
+                backgroundImage={!isHighContrast ? (colorMode === 'light' 
+                  ? "url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')" 
+                  : "url('https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80')")
+                  : undefined
+                }
+              />
+            </TabPanel>
+            
+            <TabPanel>
+              <Box 
+                p={4} 
+                bg={colorMode === 'light' ? 'white' : 'gray.800'} 
+                borderRadius="md" 
+                boxShadow="md"
+                mt={4}
+              >
+                <AnimationTest />
+              </Box>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
         
         {/* High contrast mode indicator */}
         {isHighContrast && (

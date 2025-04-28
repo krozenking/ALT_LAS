@@ -28,8 +28,8 @@ Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması 
 - [x] **Görev 5.3.5:** Performans profilleme ve darboğaz analizi
 
 ### Görev 5.4: Animasyon Optimizasyonu
-- [ ] **Görev 5.4.1:** GPU hızlandırmalı animasyonların implementasyonu
-- [ ] **Görev 5.4.2:** Animasyon performans testleri ve iyileştirmeleri
+- [x] **Görev 5.4.1:** GPU hızlandırmalı animasyonların implementasyonu
+- [x] **Görev 5.4.2:** Animasyon performans testleri ve iyileştirmeleri
 - [ ] **Görev 5.4.3:** Animasyon zamanlama ve easing fonksiyonlarının optimize edilmesi
 - [ ] **Görev 5.4.4:** Düşük performanslı cihazlar için animasyon alternatiflerinin oluşturulması
 - [ ] **Görev 5.4.5:** Animasyon dokümantasyonunun hazırlanması

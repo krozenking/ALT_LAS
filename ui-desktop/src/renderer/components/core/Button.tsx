@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
+import { animations } from '@/styles/animations';
 
 export interface ButtonProps extends BoxProps {
   variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
@@ -64,6 +65,7 @@ export const Button: React.FC<ButtonProps> = memo(({
   ...rest
 }) => {
   const { colorMode } = useColorMode();
+  const prefersReducedMotion = animations.performanceUtils.prefersReducedMotion();
 
   // Apply glassmorphism effect based on color mode and variant
   const getGlassStyle = () => {
@@ -130,7 +132,7 @@ export const Button: React.FC<ButtonProps> = memo(({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
   } : {}, [isDisabled]);
 
-  // Loading styles - memoized to prevent recalculation
+  // Loading styles with GPU-accelerated animation - memoized to prevent recalculation
   const loadingStyle = React.useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
@@ -139,14 +141,15 @@ export const Button: React.FC<ButtonProps> = memo(({
       position: 'absolute',
       top: '50%',
       left: '50%',
-      transform: 'translate(-50%, -50%)',
+      transform: 'translate3d(-50%, -50%, 0)', // GPU-accelerated transform
       width: '1em',
       height: '1em',
       borderRadius: '50%',
       border: '2px solid',
       borderColor: 'currentColor',
       borderTopColor: 'transparent',
-      animation: 'spin 0.8s linear infinite',
+      animation: `${animations.keyframes.spin} 0.8s linear infinite`,
+      willChange: 'transform', // Hint for browser optimization
     },
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {}, [isLoading]);
@@ -167,16 +170,36 @@ export const Button: React.FC<ButtonProps> = memo(({
   // Memoize glass style to prevent recalculation on every render
   const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
 
-  // Memoize hover and active styles
-  const interactionStyles = React.useMemo(() => ({
-    _hover: !isDisabled && !isLoading ? {
-      transform: 'translateY(-2px)',
-      boxShadow: 'md',
-    } : {},
-    _active: !isDisabled && !isLoading ? {
-      transform: 'translateY(0)',
-    } : {},
-  }), [isDisabled, isLoading]);
+  // Memoize hover and active styles with GPU acceleration
+  const interactionStyles = React.useMemo(() => {
+    // If user prefers reduced motion, use simpler animations or none
+    if (prefersReducedMotion) {
+      return {
+        _hover: !isDisabled && !isLoading ? {
+          filter: 'brightness(1.05)',
+        } : {},
+        _active: !isDisabled && !isLoading ? {
+          filter: 'brightness(0.95)',
+        } : {},
+      };
+    }
+    
+    // Use GPU-accelerated animations for standard experience
+    return {
+      _hover: !isDisabled && !isLoading ? {
+        transform: 'translate3d(0, -2px, 0)', // GPU-accelerated transform
+        boxShadow: 'md',
+        transition: animations.createAdaptiveTransition(['transform', 'box-shadow'], 'fast', animations.easings.easeOut),
+      } : {},
+      _active: !isDisabled && !isLoading ? {
+        transform: 'translate3d(0, 0, 0)', // GPU-accelerated transform
+        transition: animations.createAdaptiveTransition('transform', 'ultraFast', animations.easings.easeOut),
+      } : {},
+    };
+  }, [isDisabled, isLoading, prefersReducedMotion]);
+
+  // Apply GPU acceleration utilities
+  const gpuAcceleration = animations.performanceUtils.forceGPU;
 
   return (
     <Box
@@ -188,7 +211,7 @@ export const Button: React.FC<ButtonProps> = memo(({
       justifyContent="center"
       borderRadius="md"
       fontWeight="medium"
-      transition="all 0.2s ease-in-out"
+      transition={animations.createAdaptiveTransition(['transform', 'box-shadow', 'background', 'opacity'], 'normal', animations.easings.easeOut)}
       position="relative" // Ensure position context for focus styles
       _focus={{
         ...focusStyles
@@ -201,6 +224,7 @@ export const Button: React.FC<ButtonProps> = memo(({
       {...getSizeStyle}
       {...disabledStyle}
       {...loadingStyle}
+      {...gpuAcceleration} // Apply GPU acceleration
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       aria-disabled={isDisabled}
       aria-busy={isLoading}

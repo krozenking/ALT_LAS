@@ -1,15 +1,19 @@
 import React, { useId, memo } from 'react';
-import { Box, BoxProps, useColorMode, Heading } from '@chakra-ui/react';
+import { Box, BoxProps, useColorMode, Card as ChakraCard, CardHeader, CardBody, CardFooter } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
+import { animations } from '@/styles/animations'; // Import animations
 
 export interface CardProps extends BoxProps {
-  variant?: 'glass' | 'solid' | 'outline';
-  header?: React.ReactNode;
-  headerLevel?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'; // Allow specifying header level
+  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  isDisabled?: boolean;
+  isInteractive?: boolean;
+  title?: React.ReactNode;
   footer?: React.ReactNode;
-  isHoverable?: boolean;
-  role?: string; // Allow overriding the default role
-  isFocusable?: boolean; // Add prop to make card focusable
+  onClick?: (e: React.MouseEvent) => void;
+  headerProps?: BoxProps;
+  bodyProps?: BoxProps;
+  footerProps?: BoxProps;
 }
 
 // Custom comparison function for memoization
@@ -17,10 +21,11 @@ const areEqual = (prevProps: CardProps, nextProps: CardProps) => {
   // Compare primitive props
   if (
     prevProps.variant !== nextProps.variant ||
-    prevProps.headerLevel !== nextProps.headerLevel ||
-    prevProps.isHoverable !== nextProps.isHoverable ||
-    prevProps.role !== nextProps.role ||
-    prevProps.isFocusable !== nextProps.isFocusable
+    prevProps.size !== nextProps.size ||
+    prevProps.isDisabled !== nextProps.isDisabled ||
+    prevProps.isInteractive !== nextProps.isInteractive ||
+    prevProps.onClick !== nextProps.onClick ||
+    prevProps.children !== nextProps.children
   ) {
     return false;
   }
@@ -34,13 +39,12 @@ const areEqual = (prevProps: CardProps, nextProps: CardProps) => {
   }
 
   // Deep comparison is expensive, so we'll assume complex props changed if they're provided
+  // This is a trade-off between performance and correctness
   if (
-    (prevProps.header && !nextProps.header) ||
-    (!prevProps.header && nextProps.header) ||
+    (prevProps.title && !nextProps.title) ||
+    (!prevProps.title && nextProps.title) ||
     (prevProps.footer && !nextProps.footer) ||
-    (!prevProps.footer && nextProps.footer) ||
-    (prevProps.children && !nextProps.children) ||
-    (!prevProps.children && nextProps.children)
+    (!prevProps.footer && nextProps.footer)
   ) {
     return false;
   }
@@ -51,121 +55,187 @@ const areEqual = (prevProps: CardProps, nextProps: CardProps) => {
 
 export const Card: React.FC<CardProps> = memo(({
   variant = 'glass',
-  header,
-  headerLevel = 'h3', // Default header level
+  size = 'md',
+  isDisabled = false,
+  isInteractive = false,
+  title,
   footer,
-  isHoverable = true,
+  onClick,
   children,
-  role = 'region', // Default role to region, suitable for landmark
-  isFocusable = false, // Default to not focusable
+  headerProps,
+  bodyProps,
+  footerProps,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
-  const headerId = useId();
-  const contentId = useId();
+  const prefersReducedMotion = animations.performanceUtils.prefersReducedMotion();
 
-  // Apply glassmorphism effect based on color mode and variant - memoized
-  const getCardStyle = React.useMemo(() => {
+  // Apply glassmorphism effect based on color mode and variant
+  const getGlassStyle = () => {
     if (variant === 'glass') {
       return colorMode === 'light'
-        ? glassmorphism.create(0.7, 10, 1)
-        : glassmorphism.createDark(0.7, 10, 1);
+        ? glassmorphism.create(0.7, 8, 1)
+        : glassmorphism.createDark(0.7, 8, 1);
+    } else if (variant === 'glass-primary') {
+      return {
+        ...(colorMode === 'light'
+          ? glassmorphism.create(0.7, 8, 1)
+          : glassmorphism.createDark(0.7, 8, 1)),
+        bg: colorMode === 'light'
+          ? 'rgba(62, 92, 118, 0.8)'
+          : 'rgba(62, 92, 118, 0.6)',
+        color: 'white',
+      };
+    } else if (variant === 'glass-secondary') {
+      return {
+        ...(colorMode === 'light'
+          ? glassmorphism.create(0.7, 8, 1)
+          : glassmorphism.createDark(0.7, 8, 1)),
+        bg: colorMode === 'light'
+          ? 'rgba(199, 144, 96, 0.8)'
+          : 'rgba(199, 144, 96, 0.6)',
+        color: 'white',
+      };
     } else if (variant === 'solid') {
       return {
-        bg: colorMode === 'light' ? 'white' : 'gray.800',
+        bg: colorMode === 'light' ? 'white' : 'gray.700',
+        color: colorMode === 'light' ? 'gray.800' : 'white',
         boxShadow: 'md',
-        borderRadius: 'md',
       };
     } else if (variant === 'outline') {
       return {
         bg: 'transparent',
         border: '1px solid',
-        borderColor: colorMode === 'light' ? 'gray.200' : 'gray.700',
-        borderRadius: 'md',
+        borderColor: colorMode === 'light' ? 'gray.200' : 'gray.600',
+        color: colorMode === 'light' ? 'gray.800' : 'white',
       };
     }
 
     return {};
-  }, [variant, colorMode]);
+  };
 
-  // Hover effect - memoized
-  const hoverStyle = React.useMemo(() => isHoverable ? {
-    _hover: {
-      transform: 'translateY(-4px)',
-      boxShadow: 'lg',
-      transition: 'all 0.3s ease',
+  // Size styles - memoized to prevent recalculation
+  const getSizeStyle = React.useMemo(() => {
+    switch (size) {
+      case 'sm':
+        return { p: 3 };
+      case 'lg':
+        return { p: 6 };
+      case 'md':
+      default:
+        return { p: 4 };
     }
-  } : {}, [isHoverable]);
+  }, [size]);
+
+  // Disabled styles - memoized to prevent recalculation
+  const disabledStyle = React.useMemo(() => isDisabled ? {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+    _hover: {},
+    _active: {},
+    _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
+  } : {}, [isDisabled]);
 
   // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
-  // Applied only if isFocusable is true
-  const focusStyles = React.useMemo(() => isFocusable ? {
+  const focusStyles = React.useMemo(() => !isDisabled && isInteractive ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
     zIndex: 1, // Ensure focus style is visible
-  } : {}, [isFocusable, colorMode]);
+  } : {}, [isDisabled, isInteractive, colorMode]);
 
-  // Determine aria-labelledby based on header presence
-  const ariaLabelledBy = header ? headerId : undefined;
+  // Memoize glass style to prevent recalculation on every render
+  const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
+
+  // Memoize hover and active styles with GPU acceleration
+  const interactionStyles = React.useMemo(() => {
+    if (!isInteractive || isDisabled) {
+      return {};
+    }
+
+    // If user prefers reduced motion, use simpler animations or none
+    if (prefersReducedMotion) {
+      return {
+        cursor: 'pointer',
+        _hover: {
+          filter: 'brightness(1.05)',
+        },
+        _active: {
+          filter: 'brightness(0.95)',
+        },
+      };
+    }
+    
+    // Use GPU-accelerated animations for standard experience
+    return {
+      cursor: 'pointer',
+      _hover: {
+        transform: 'translate3d(0, -4px, 0)', // GPU-accelerated transform
+        boxShadow: 'xl',
+        transition: animations.createAdaptiveTransition(['transform', 'box-shadow'], 'normal', animations.easings.easeOut),
+      },
+      _active: {
+        transform: 'scale3d(0.98, 0.98, 1) translate3d(0, -2px, 0)', // GPU-accelerated transform
+        transition: animations.createAdaptiveTransition('transform', 'fast', animations.easings.easeOut),
+      },
+    };
+  }, [isInteractive, isDisabled, prefersReducedMotion]);
+
+  // Apply GPU acceleration utilities
+  const gpuAcceleration = animations.performanceUtils.forceGPU;
 
   return (
     <Box
-      display="flex"
-      flexDirection="column"
+      borderRadius="lg"
       overflow="hidden"
-      transition="all 0.2s ease-in-out"
+      transition={animations.createAdaptiveTransition(['transform', 'box-shadow', 'background', 'opacity'], 'normal', animations.easings.easeOut)}
       position="relative" // Ensure position context for focus styles
-      {...getCardStyle}
-      {...hoverStyle}
+      tabIndex={isInteractive && !isDisabled ? 0 : undefined}
+      role={isInteractive ? 'button' : undefined}
+      aria-disabled={isDisabled}
       _focus={{
         ...focusStyles
       }}
       _focusVisible={{
         ...focusStyles
       }}
-      role={role} // Apply role
-      aria-labelledby={ariaLabelledBy} // Label by header if exists
-      // aria-describedby={contentId} // Describe by content - removed as content might be complex and not suitable for description
-      tabIndex={isFocusable ? 0 : undefined} // Make focusable if needed
-      data-focus-visible-added // Support for focus-visible polyfill
+      {...interactionStyles}
+      {...glassStyle}
+      {...getSizeStyle}
+      {...disabledStyle}
+      {...gpuAcceleration} // Apply GPU acceleration
+      onClick={isInteractive && !isDisabled ? onClick : undefined}
+      onKeyDown={isInteractive && !isDisabled ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.(e as any);
+        }
+      } : undefined}
       {...rest}
     >
-      {/* Card Header */}
-      {header && (
-        <Box
-          p={4}
-          borderBottom="1px solid"
-          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
-          className="card-header"
+      {title && (
+        <Box 
+          as="header" 
+          p={4} 
+          borderBottomWidth={1}
+          {...headerProps}
         >
-          {/* Render header content, ensuring it has the correct ID */} 
-          {typeof header === 'string' ? (
-            <Heading as={headerLevel} size="md" id={headerId}>{header}</Heading>
-          ) : (
-            // If header is a complex node, ensure the primary text element within it gets the ID
-            // For simplicity, wrapping in a Box with ID. User should ensure semantic heading inside.
-            <Box id={headerId}>{header}</Box> 
-          )}
+          {title}
         </Box>
       )}
-
-      {/* Card Content */}
-      <Box
+      
+      <Box 
         p={4}
-        flex="1"
-        className="card-content"
-        id={contentId} // Keep id for potential custom use, but removed from aria-describedby
+        {...bodyProps}
       >
         {children}
       </Box>
-
-      {/* Card Footer */}
+      
       {footer && (
-        <Box
-          p={4}
-          borderTop="1px solid"
-          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
-          className="card-footer"
+        <Box 
+          as="footer" 
+          p={4} 
+          borderTopWidth={1}
+          {...footerProps}
         >
           {footer}
         </Box>

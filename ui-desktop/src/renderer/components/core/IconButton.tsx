@@ -1,15 +1,16 @@
 import React, { memo } from 'react';
-import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
+import { Box, BoxProps, useColorMode, IconButton as ChakraIconButton } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
+import { animations } from '@/styles/animations'; // Import animations
 
 export interface IconButtonProps extends BoxProps {
   variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
   isLoading?: boolean;
-  icon: React.ReactNode;
-  ariaLabel: string; // Required ariaLabel prop
+  icon: React.ReactElement;
   onClick?: (e: React.MouseEvent) => void;
+  'aria-label': string; // Required for accessibility
 }
 
 // Custom comparison function for memoization
@@ -21,7 +22,7 @@ const areEqual = (prevProps: IconButtonProps, nextProps: IconButtonProps) => {
     prevProps.isDisabled !== nextProps.isDisabled ||
     prevProps.isLoading !== nextProps.isLoading ||
     prevProps.onClick !== nextProps.onClick ||
-    prevProps.ariaLabel !== nextProps.ariaLabel
+    prevProps['aria-label'] !== nextProps['aria-label']
   ) {
     return false;
   }
@@ -34,8 +35,8 @@ const areEqual = (prevProps: IconButtonProps, nextProps: IconButtonProps) => {
     }
   }
 
-  // Assume icon changed if provided
-  if ((prevProps.icon && !nextProps.icon) || (!prevProps.icon && nextProps.icon)) {
+  // Shallow compare icon element type
+  if (prevProps.icon?.type !== nextProps.icon?.type) {
     return false;
   }
 
@@ -49,11 +50,12 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
   isDisabled = false,
   isLoading = false,
   icon,
-  ariaLabel, // Use the provided ariaLabel
   onClick,
+  'aria-label': ariaLabel,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
+  const prefersReducedMotion = animations.performanceUtils.prefersReducedMotion();
 
   // Apply glassmorphism effect based on color mode and variant
   const getGlassStyle = () => {
@@ -98,32 +100,20 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     return {};
   };
 
-  // Size styles - memoized
+  // Size styles - memoized to prevent recalculation
   const getSizeStyle = React.useMemo(() => {
     switch (size) {
       case 'sm':
-        return {
-          width: '32px',
-          height: '32px',
-          fontSize: 'sm'
-        };
+        return { boxSize: 8, fontSize: 'md' }; // Adjusted size for icon button
       case 'lg':
-        return {
-          width: '48px',
-          height: '48px',
-          fontSize: 'lg'
-        };
+        return { boxSize: 12, fontSize: 'xl' }; // Adjusted size for icon button
       case 'md':
       default:
-        return {
-          width: '40px',
-          height: '40px',
-          fontSize: 'md'
-        };
+        return { boxSize: 10, fontSize: 'lg' }; // Adjusted size for icon button
     }
   }, [size]);
 
-  // Disabled styles - memoized
+  // Disabled styles - memoized to prevent recalculation
   const disabledStyle = React.useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
@@ -132,7 +122,7 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
   } : {}, [isDisabled]);
 
-  // Loading styles - memoized
+  // Loading styles with GPU-accelerated animation - memoized to prevent recalculation
   const loadingStyle = React.useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
@@ -141,14 +131,15 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
       position: 'absolute',
       top: '50%',
       left: '50%',
-      transform: 'translate(-50%, -50%)',
+      transform: 'translate3d(-50%, -50%, 0)', // GPU-accelerated transform
       width: '1em',
       height: '1em',
       borderRadius: '50%',
       border: '2px solid',
       borderColor: 'currentColor',
       borderTopColor: 'transparent',
-      animation: 'spin 0.8s linear infinite',
+      animation: `${animations.keyframes.spin} 0.8s linear infinite`,
+      willChange: 'transform', // Hint for browser optimization
     },
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {}, [isLoading]);
@@ -160,19 +151,39 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     zIndex: 1, // Ensure focus style is visible
   } : {}, [isDisabled, isLoading, colorMode]);
 
-  // Memoize glass style
+  // Memoize glass style to prevent recalculation on every render
   const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
 
-  // Memoize interaction styles
-  const interactionStyles = React.useMemo(() => ({
-    _hover: !isDisabled && !isLoading ? {
-      transform: 'translateY(-2px)',
-      boxShadow: 'md',
-    } : {},
-    _active: !isDisabled && !isLoading ? {
-      transform: 'translateY(0)',
-    } : {},
-  }), [isDisabled, isLoading]);
+  // Memoize hover and active styles with GPU acceleration
+  const interactionStyles = React.useMemo(() => {
+    // If user prefers reduced motion, use simpler animations or none
+    if (prefersReducedMotion) {
+      return {
+        _hover: !isDisabled && !isLoading ? {
+          filter: 'brightness(1.05)',
+        } : {},
+        _active: !isDisabled && !isLoading ? {
+          filter: 'brightness(0.95)',
+        } : {},
+      };
+    }
+    
+    // Use GPU-accelerated animations for standard experience
+    return {
+      _hover: !isDisabled && !isLoading ? {
+        transform: 'translate3d(0, -2px, 0)', // GPU-accelerated transform
+        boxShadow: 'md',
+        transition: animations.createAdaptiveTransition(['transform', 'box-shadow'], 'fast', animations.easings.easeOut),
+      } : {},
+      _active: !isDisabled && !isLoading ? {
+        transform: 'translate3d(0, 0, 0)', // GPU-accelerated transform
+        transition: animations.createAdaptiveTransition('transform', 'ultraFast', animations.easings.easeOut),
+      } : {},
+    };
+  }, [isDisabled, isLoading, prefersReducedMotion]);
+
+  // Apply GPU acceleration utilities
+  const gpuAcceleration = animations.performanceUtils.forceGPU;
 
   return (
     <Box
@@ -183,9 +194,9 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
       alignItems="center"
       justifyContent="center"
       borderRadius="md"
-      transition="all 0.2s ease-in-out"
+      fontWeight="medium"
+      transition={animations.createAdaptiveTransition(['transform', 'box-shadow', 'background', 'opacity'], 'normal', animations.easings.easeOut)}
       position="relative" // Ensure position context for focus styles
-      aria-label={ariaLabel} // Use the mandatory ariaLabel prop
       _focus={{
         ...focusStyles
       }}
@@ -197,26 +208,16 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
       {...getSizeStyle}
       {...disabledStyle}
       {...loadingStyle}
+      {...gpuAcceleration} // Apply GPU acceleration
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       aria-disabled={isDisabled}
       aria-busy={isLoading}
+      aria-label={ariaLabel} // Use required aria-label
       data-focus-visible-added // Support for focus-visible polyfill
       tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order
       {...rest}
     >
-      {/* Wrap icon in a span for better accessibility structure */}
-      {isLoading ? (
-        <Box opacity={0} aria-hidden="true">{icon}</Box>
-      ) : (
-        <Box
-          aria-hidden="true"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          {icon}
-        </Box>
-      )}
+      {isLoading ? <Box opacity={0}>{icon}</Box> : icon}
     </Box>
   );
 }, areEqual);
@@ -225,3 +226,4 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
 IconButton.displayName = 'IconButton';
 
 export default IconButton;
+

@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/errorMiddleware';
 import logger from '../utils/logger';
 import jwtService from '../services/jwtService';
 import sessionService, { DeviceInfo } from '../services/sessionService';
+import authorizationService from '../services/authorizationService'; // Import authorizationService
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors';
 import crypto from 'crypto'; // For generating reset tokens
 
@@ -16,6 +17,10 @@ interface User {
   roles: string[];
   permissions: string[];
   isActive: boolean;
+  firstName?: string; // Added for profile
+  lastName?: string; // Added for profile
+  createdAt?: Date; // Added for profile
+  updatedAt?: Date; // Added for profile
   // refreshToken?: string; // Removed: Handled by sessionService
 }
 
@@ -32,12 +37,14 @@ const passwordResetTokens = new Map<string, PasswordResetToken>(); // token -> R
 // Helper to hash password (use a proper library like bcrypt in production)
 const simpleHash = (password: string): string => {
     // WARNING: Insecure hashing for demonstration only!
+    // In a real app, use bcrypt.hashSync(password, saltRounds);
     return `hashed_${password}`;
 }
 
 // Helper to compare password
 const comparePassword = (plainPassword: string, hash: string): boolean => {
     // WARNING: Insecure comparison for demonstration only!
+    // In a real app, use bcrypt.compareSync(plainPassword, hash);
     return `hashed_${plainPassword}` === hash;
 }
 
@@ -48,8 +55,10 @@ users.set('1', {
   passwordHash: simpleHash('password'), 
   email: 'admin@example.com',
   roles: ['admin'],
-  permissions: ['read:users', 'manage:users', 'manage:roles', 'manage:permissions', 'delete:users', 'read:permissions'],
-  isActive: true
+  permissions: Object.keys(authorizationService.getPermissions()), // Admin has all permissions
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date()
 });
 
 users.set('2', {
@@ -58,166 +67,167 @@ users.set('2', {
   passwordHash: simpleHash('password'), 
   email: 'user@example.com',
   roles: ['user'],
-  permissions: [],
-  isActive: true
+  permissions: [], // User might get permissions dynamically or via roles
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date()
 });
 
 // --- Service Functions --- 
 
 /**
- * Register a new user.
+ * Create a new user.
  */
-const register = async (
-  username: string,
-  password: string,
-  email: string,
-  roles: string[] = ['user']
-): Promise<{ user: Partial<User>; token: string; refreshToken: string }> => {
-  if (Array.from(users.values()).some(u => u.username === username)) {
+const createUser = async (
+  userData: Pick<User, 'username' | 'email' | 'passwordHash' | 'firstName' | 'lastName' | 'roles'>
+): Promise<Partial<User>> => {
+  if (Array.from(users.values()).some(u => u.username === userData.username)) {
     throw new BadRequestError('Bu kullanıcı adı zaten kullanılıyor');
   }
-  if (Array.from(users.values()).some(u => u.email === email)) {
+  if (userData.email && Array.from(users.values()).some(u => u.email === userData.email)) {
     throw new BadRequestError('Bu e-posta adresi zaten kullanılıyor');
   }
-  if (!password || password.length < 6) {
+  if (!userData.passwordHash || userData.passwordHash.length < 6) {
+    // Note: This check should be on the plain password before hashing in a real app
     throw new BadRequestError('Şifre en az 6 karakter olmalıdır');
   }
 
   const id = crypto.randomUUID();
   const newUser: User = {
     id,
-    username,
-    passwordHash: simpleHash(password),
-    email,
-    roles,
-    permissions: [], // Assign default empty permissions
-    isActive: true // Activate user by default
+    username: userData.username,
+    passwordHash: simpleHash(userData.passwordHash), // Hash the password
+    email: userData.email,
+    roles: userData.roles || ['user'],
+    permissions: [], // Start with no direct permissions
+    isActive: true, // Activate user by default
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
 
   users.set(id, newUser);
-  logger.info(`Yeni kullanıcı kaydedildi: ${username} (ID: ${id})`);
-
-  const tokenPayload = { userId: id, username, roles: newUser.roles, permissions: newUser.permissions };
-  const token = jwtService.generateToken(tokenPayload);
-  const refreshToken = jwtService.generateRefreshToken(id);
-  
-  // Store refresh token (simple single token strategy)
-  newUser.refreshToken = refreshToken;
+  logger.info(`Yeni kullanıcı oluşturuldu: ${newUser.username} (ID: ${id})`);
 
   const { passwordHash: _, ...userWithoutPassword } = newUser;
-  return {
-    user: userWithoutPassword,
-    token,
-    refreshToken
-  };
+  return userWithoutPassword;
 };
 
 /**
- * Log in a user.
+ * Validate user credentials.
  */
-const login = async (
-  username: string,
-  password: string,
-  deviceInfo: DeviceInfo // Added deviceInfo
-): Promise<{ user: Partial<User>; token: string; refreshToken: string }> => {
+const validateUser = async (username: string, password: string): Promise<User> => {
   const user = Array.from(users.values()).find(u => u.username === username);
 
   if (!user || !user.isActive || !comparePassword(password, user.passwordHash)) {
     logger.warn(`Geçersiz giriş denemesi: ${username}`);
     throw new UnauthorizedError("Geçersiz kullanıcı adı veya şifre ya da kullanıcı aktif değil");
   }
-
-  logger.info(`Kullanıcı girişi başarılı: ${username}`);
-
-  const tokenPayload = { userId: user.id, username: user.username, roles: user.roles, permissions: user.permissions };
-  const token = jwtService.generateToken(tokenPayload);
-  const refreshToken = jwtService.generateRefreshToken(user.id);
-
-  // Create a new session using sessionService
-  sessionService.createSession(user.id, refreshToken, deviceInfo);
-
-  const { passwordHash: _, ...userWithoutPassword } = user;
-  return {
-    user: userWithoutPassword,
-    token,
-    refreshToken
-  };
+  return user;
 };
 
 /**
- * Refresh access token using a refresh token.
+ * Save refresh token (associating with user - simple example).
+ * In a real app, this would be stored securely, likely in the session store.
  */
-const refreshToken = async (
-  refreshToken: string
-): Promise<{ token: string; refreshToken: string }> => {
+const saveRefreshToken = async (userId: string, refreshToken: string): Promise<void> => {
+  // This is a placeholder. Refresh tokens are managed by sessionService.
+  logger.debug(`Placeholder saveRefreshToken called for user ${userId}`);
+};
+
+/**
+ * Validate refresh token.
+ * In a real app, check against the session store.
+ */
+const validateRefreshToken = async (userId: string, refreshToken: string): Promise<boolean> => {
   try {
-    // Get session by refresh token
     const session = sessionService.getSessionByRefreshToken(refreshToken);
-    const userId = session.userId;
-    
-    // Get user details
-    const user = users.get(userId);
-    if (!user || !user.isActive) {
-      throw new UnauthorizedError('Kullanıcı bulunamadı veya aktif değil');
-    }
-
-    // Generate new tokens
-    const tokenPayload = { userId: user.id, username: user.username, roles: user.roles, permissions: user.permissions };
-    const newAccessToken = jwtService.generateToken(tokenPayload);
-    const newRefreshToken = jwtService.generateRefreshToken(user.id);
-
-    // Update session with new refresh token
-    sessionService.updateSession(session.id, {
-      refreshToken: newRefreshToken,
-      lastUsedAt: new Date()
-    });
-
-    logger.info(`Token yenileme başarılı for user ${user.id}, session ${session.id}`);
-    return { token: newAccessToken, refreshToken: newRefreshToken };
+    return session.userId === userId && session.expiresAt > new Date();
   } catch (error) {
-    logger.warn('Token yenileme başarısız:', error);
-    if (error instanceof UnauthorizedError) throw error;
-    throw new UnauthorizedError('Refresh token doğrulama hatası');
+    return false;
   }
 };
 
 /**
- * Log out a user (invalidate session and blacklist access token).
+ * Invalidate refresh token.
+ * In a real app, remove/invalidate from the session store.
  */
-const logout = async (token: string, refreshToken?: string): Promise<void> => {
-  // Invalidate the specific session if refresh token is provided
-  if (refreshToken) {
-    try {
-      sessionService.invalidateSessionByRefreshToken(refreshToken);
-    } catch (error) {
-      logger.warn(`Error invalidating session by refresh token during logout: ${error.message}`);
-    }
-  } else {
-    // If only access token is provided, try to find the user and invalidate all their sessions
-    // This is less specific but better than nothing
-    try {
-      const decoded = jwtService.verifyToken(token) as any; // Verify to get user ID
-      if (decoded && decoded.userId) {
-        sessionService.invalidateAllUserSessions(decoded.userId);
-        logger.info(`All sessions invalidated for user ${decoded.userId} during logout (access token only).`);
-      }
-    } catch (error) {
-      logger.warn("Error invalidating all user sessions during logout (access token only):", error);
-    }
+const invalidateRefreshToken = async (userId: string, refreshToken: string): Promise<void> => {
+  try {
+    sessionService.invalidateSessionByRefreshToken(refreshToken);
+  } catch (error) {
+    logger.warn(`Error invalidating refresh token via sessionService: ${error.message}`);
   }
+};
 
-  // Blacklist the access token itself
-  jwtService.blacklistToken(token);
-  logger.info("Access token blacklisted.");
+/**
+ * Create a user session.
+ */
+const createSession = async (userId: string, sessionId: string, ipAddress: string, userAgent: string): Promise<void> => {
+  // This is a placeholder. Sessions are managed by sessionService.
+  // A refresh token would typically be generated here and stored in the session.
+  const refreshToken = jwtService.generateRefreshToken(userId); // Generate a token
+  sessionService.createSession(userId, refreshToken, { ipAddress, userAgent, id: sessionId });
+  logger.info(`Session created for user ${userId}, session ID: ${sessionId}`);
+};
+
+/**
+ * End a specific user session.
+ */
+const endSession = async (userId: string, sessionId: string): Promise<void> => {
+  try {
+    sessionService.invalidateSessionById(sessionId);
+  } catch (error) {
+    logger.warn(`Error ending session ${sessionId} for user ${userId}: ${error.message}`);
+    throw new NotFoundError('Oturum bulunamadı veya zaten sonlandırılmış');
+  }
+};
+
+/**
+ * End all sessions for a user.
+ */
+const endAllSessions = async (userId: string): Promise<void> => {
+  sessionService.invalidateAllUserSessions(userId);
+  logger.info(`All sessions ended for user ${userId}`);
+};
+
+/**
+ * End all sessions for a user except the specified one.
+ */
+const endAllSessionsExcept = async (userId: string, currentSessionId: string): Promise<void> => {
+  const sessions = sessionService.getUserSessions(userId);
+  sessions.forEach(session => {
+    if (session.id !== currentSessionId) {
+      try {
+        sessionService.invalidateSessionById(session.id);
+      } catch (error) {
+        logger.warn(`Error ending session ${session.id} for user ${userId}: ${error.message}`);
+      }
+    }
+  });
+  logger.info(`All sessions except ${currentSessionId} ended for user ${userId}`);
 };
 
 /**
  * Get user details by ID (excluding password).
  */
-const getUserById = async (userId: string): Promise<Partial<User>> => {
+const getUserById = async (userId: string): Promise<Partial<User> | null> => {
   const user = users.get(userId);
   if (!user) {
-    throw new NotFoundError('Kullanıcı bulunamadı');
+    return null;
+  }
+  const { passwordHash: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
+};
+
+/**
+ * Get user details by Email (excluding password).
+ */
+const getUserByEmail = async (email: string): Promise<Partial<User> | null> => {
+  const user = Array.from(users.values()).find(u => u.email === email);
+  if (!user) {
+    return null;
   }
   const { passwordHash: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
@@ -251,14 +261,47 @@ const getAllUsers = async (): Promise<Partial<User>[]> => {
 };
 
 /**
+ * Get user sessions.
+ */
+const getUserSessions = async (userId: string): Promise<any[]> => {
+  return sessionService.getUserSessions(userId);
+};
+
+/**
+ * Save password reset token.
+ */
+const savePasswordResetToken = async (userId: string, token: string, expiresAt: Date): Promise<void> => {
+  passwordResetTokens.set(token, { userId, token, expiresAt });
+  logger.info(`Password reset token saved for user ${userId}`);
+};
+
+/**
+ * Validate password reset token.
+ */
+const validatePasswordResetToken = async (token: string): Promise<Partial<User> | null> => {
+  const resetInfo = passwordResetTokens.get(token);
+  if (!resetInfo || resetInfo.expiresAt < new Date()) {
+    return null;
+  }
+  return getUserById(resetInfo.userId);
+};
+
+/**
+ * Invalidate password reset token.
+ */
+const invalidatePasswordResetToken = async (token: string): Promise<void> => {
+  passwordResetTokens.delete(token);
+  logger.info(`Password reset token invalidated: ${token}`);
+};
+
+/**
  * Request a password reset.
  */
-const requestPasswordReset = async (email: string): Promise<void> => {
+const requestPasswordReset = async (email: string): Promise<string | null> => {
     const user = Array.from(users.values()).find(u => u.email === email && u.isActive);
     if (!user) {
         logger.warn(`Password reset requested for non-existent or inactive email: ${email}`);
-        // Don't throw error, just return to prevent email enumeration
-        return;
+        return null; // Don't throw error, just return to prevent email enumeration
     }
 
     // Generate a secure random token
@@ -266,40 +309,35 @@ const requestPasswordReset = async (email: string): Promise<void> => {
     const expiresAt = new Date(Date.now() + 3600000); // 1 hour expiry
 
     // Store the token (associate with user ID)
-    passwordResetTokens.set(token, { userId: user.id, token, expiresAt });
+    await savePasswordResetToken(user.id, token, expiresAt);
 
     // TODO: Send email to user.email with the reset link/token
     logger.info(`Password reset token generated for user ${user.id}. Token: ${token}. Email not sent (mock).`);
+    return token; // Return token for potential use (e.g., in response during dev)
 };
 
 /**
  * Reset password using a token.
  */
 const resetPassword = async (token: string, newPassword: string): Promise<void> => {
-    const resetInfo = passwordResetTokens.get(token);
-
-    if (!resetInfo || resetInfo.expiresAt < new Date()) {
+    const user = await validatePasswordResetToken(token);
+    if (!user) {
         throw new UnauthorizedError('Geçersiz veya süresi dolmuş şifre sıfırlama tokenı');
     }
 
-    const user = users.get(resetInfo.userId);
-    if (!user) {
-        // Should not happen if token is valid, but check anyway
+    const userToUpdate = users.get(user.id!);
+    if (!userToUpdate) {
         throw new NotFoundError('Token ile ilişkili kullanıcı bulunamadı');
     }
 
-    // TODO: Add password strength validation
-    if (!newPassword || newPassword.length < 6) {
-        throw new BadRequestError('Yeni şifre en az 6 karakter olmalıdır');
-    }
-
     // Update password
-    user.passwordHash = simpleHash(newPassword);
+    userToUpdate.passwordHash = simpleHash(newPassword);
+    userToUpdate.updatedAt = new Date();
 
     // Invalidate the reset token
-    passwordResetTokens.delete(token);
-    // Invalidate any active refresh tokens for the user
-    user.refreshToken = undefined;
+    await invalidatePasswordResetToken(token);
+    // Invalidate all active sessions for the user
+    await endAllSessions(user.id!);
 
     logger.info(`User ${user.id} password reset successfully.`);
 };
@@ -317,17 +355,14 @@ const changePassword = async (userId: string, currentPassword: string, newPasswo
         throw new UnauthorizedError('Mevcut şifre yanlış');
     }
 
-    // TODO: Add password strength validation
-    if (!newPassword || newPassword.length < 6) {
-        throw new BadRequestError('Yeni şifre en az 6 karakter olmalıdır');
-    }
     if (currentPassword === newPassword) {
         throw new BadRequestError('Yeni şifre mevcut şifre ile aynı olamaz');
     }
 
     user.passwordHash = simpleHash(newPassword);
-    // Invalidate refresh token on password change
-    user.refreshToken = undefined;
+    user.updatedAt = new Date();
+    // Invalidate all active sessions on password change
+    await endAllSessions(userId);
 
     logger.info(`User ${userId} changed their password successfully.`);
 };
@@ -335,55 +370,90 @@ const changePassword = async (userId: string, currentPassword: string, newPasswo
 /**
  * Update user roles.
  */
-const updateUserRoles = async (userId: string, roles: string[]): Promise<void> => {
+const updateUserRoles = async (userId: string, roles: string[]): Promise<Partial<User>> => {
     const user = users.get(userId);
     if (!user) {
         throw new NotFoundError('Kullanıcı bulunamadı');
     }
-    // TODO: Validate roles against a predefined list
+
+    // Validate roles against the available roles in authorizationService
+    const availableRoles = Object.keys(authorizationService.getRoles());
+    const invalidRoles = roles.filter(role => !availableRoles.includes(role));
+    if (invalidRoles.length > 0) {
+      throw new BadRequestError(`Geçersiz roller: ${invalidRoles.join(', ')}`);
+    }
+
     user.roles = roles;
+    user.updatedAt = new Date();
     logger.info(`User ${userId} roles updated to: ${roles.join(', ')}`);
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
 };
 
 /**
- * Get user permissions.
+ * Get user permissions (direct and from roles).
  */
 const getUserPermissions = async (userId: string): Promise<string[]> => {
     const user = users.get(userId);
     if (!user) {
         throw new NotFoundError('Kullanıcı bulunamadı');
     }
-    return user.permissions || [];
+    
+    let allPermissions = new Set<string>(user.permissions || []);
+    
+    // Add permissions from roles
+    user.roles.forEach(roleName => {
+        const role = authorizationService.getRole(roleName);
+        if (role && role.permissions) {
+            role.permissions.forEach(permission => allPermissions.add(permission));
+        }
+    });
+
+    return Array.from(allPermissions);
 };
 
 /**
- * Update user permissions.
+ * Update user's direct permissions.
  */
-const updateUserPermissions = async (userId: string, permissions: string[]): Promise<void> => {
+const updateUserPermissions = async (userId: string, permissions: string[]): Promise<Partial<User>> => {
     const user = users.get(userId);
     if (!user) {
         throw new NotFoundError('Kullanıcı bulunamadı');
     }
-    // TODO: Validate permissions against a predefined list
+
+    // Validate permissions against the available permissions in authorizationService
+    const availablePermissions = Object.keys(authorizationService.getPermissions());
+    const invalidPermissions = permissions.filter(permission => !availablePermissions.includes(permission));
+    if (invalidPermissions.length > 0) {
+      throw new BadRequestError(`Geçersiz izinler: ${invalidPermissions.join(', ')}`);
+    }
+
     user.permissions = permissions;
-    logger.info(`User ${userId} permissions updated.`);
+    user.updatedAt = new Date();
+    logger.info(`User ${userId} direct permissions updated.`);
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
 };
 
 /**
  * Update user profile information.
  */
-const updateUserProfile = async (userId: string, updateData: Partial<Pick<User, 'username' | 'email' | 'isActive'>>): Promise<Partial<User>> => {
+const updateUser = async (userId: string, updateData: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'isActive'>>): Promise<Partial<User>> => {
     const user = users.get(userId);
     if (!user) {
         throw new NotFoundError('Kullanıcı bulunamadı');
     }
 
+    let updated = false;
+
     // Validate and update fields
-    if (updateData.username && updateData.username !== user.username) {
-        if (Array.from(users.values()).some(u => u.username === updateData.username && u.id !== userId)) {
-            throw new BadRequestError('Kullanıcı adı zaten kullanılıyor');
-        }
-        user.username = updateData.username;
+    if (updateData.firstName !== undefined && updateData.firstName !== user.firstName) {
+        user.firstName = updateData.firstName;
+        updated = true;
+    }
+    if (updateData.lastName !== undefined && updateData.lastName !== user.lastName) {
+        user.lastName = updateData.lastName;
+        updated = true;
     }
     if (updateData.email && updateData.email !== user.email) {
          if (Array.from(users.values()).some(u => u.email === updateData.email && u.id !== userId)) {
@@ -391,13 +461,19 @@ const updateUserProfile = async (userId: string, updateData: Partial<Pick<User, 
         }
         // TODO: Add email format validation
         user.email = updateData.email;
+        updated = true;
     }
-    if (typeof updateData.isActive === 'boolean') {
+    if (typeof updateData.isActive === 'boolean' && updateData.isActive !== user.isActive) {
         user.isActive = updateData.isActive;
+        updated = true;
     }
     // Add other updatable fields here
 
-    logger.info(`User ${userId} profile updated.`);
+    if (updated) {
+        user.updatedAt = new Date();
+        logger.info(`User ${userId} profile updated.`);
+    }
+
     const { passwordHash: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
 };
@@ -411,31 +487,42 @@ const deleteUser = async (userId: string): Promise<void> => {
     }
     // TODO: Consider soft delete vs hard delete
     users.delete(userId);
-    // Clean up any related data (e.g., password reset tokens)
+    // Clean up any related data (e.g., password reset tokens, sessions)
     Array.from(passwordResetTokens.entries()).forEach(([token, info]) => {
         if (info.userId === userId) {
             passwordResetTokens.delete(token);
         }
     });
+    sessionService.invalidateAllUserSessions(userId);
     logger.info(`User ${userId} deleted.`);
 };
 
 
 export default {
-  register,
-  login,
-  refreshToken,
-  logout,
+  createUser,
+  validateUser,
+  saveRefreshToken, // Keep for potential direct use, though sessionService is primary
+  validateRefreshToken, // Keep for potential direct use
+  invalidateRefreshToken, // Keep for potential direct use
+  createSession,
+  endSession,
+  endAllSessions,
+  endAllSessionsExcept,
   getUserById,
+  getUserByEmail,
   getAllUsers,
   getUserDetailsForAuth, // Exported for authMiddleware
-  requestPasswordReset,  // Exported for authRoutes
-  resetPassword,         // Exported for authRoutes
-  changePassword,        // Exported for authRoutes
-  updateUserRoles,       // Exported for authRoutes
-  getUserPermissions,    // Exported for authRoutes
-  updateUserPermissions, // Exported for authRoutes
-  updateUserProfile,     // Exported for authRoutes
-  deleteUser             // Exported for authRoutes
+  getUserSessions,
+  savePasswordResetToken,
+  validatePasswordResetToken,
+  invalidatePasswordResetToken,
+  requestPasswordReset,  // Exported for passwordRoutes
+  resetPassword,         // Exported for passwordRoutes
+  changePassword,        // Exported for passwordRoutes
+  updateUserRoles,       // Exported for authRoutes (admin)
+  getUserPermissions,    // Exported for authRoutes (admin)
+  updateUserPermissions, // Exported for authRoutes (admin)
+  updateUser,            // Exported for authRoutes (profile & admin)
+  deleteUser             // Exported for authRoutes (admin)
 };
 

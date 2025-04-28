@@ -1,468 +1,404 @@
 import axios from 'axios';
-import { Request, Response, NextFunction } from 'express';
-import { ServiceUnavailableError, BadRequestError } from '../utils/errors';
-import logger from "../utils/logger";
-import serviceDiscovery from "./serviceDiscovery"; // Import service discovery
+import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
+import { ServiceError, NotFoundError } from '../utils/errors';
+import { CircuitBreaker } from '../utils/circuitBreaker';
 
-// Circuit breaker durumları
-type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+// Servis yapılandırması
+interface ServiceConfig {
+  baseUrl: string;
+  timeout: number;
+  retryCount: number;
+  retryDelay: number;
+  circuitBreakerOptions: {
+    failureThreshold: number;
+    resetTimeout: number;
+  };
+}
 
-// Circuit breaker yapılandırması
-interface CircuitBreakerConfig {
-  failureThreshold: number;      // Kaç hata sonrası devre açılacak
-  resetTimeout: number;          // Devre açıkken ne kadar süre sonra yarı açık duruma geçilecek (ms)
-  halfOpenSuccessThreshold: number; // Yarı açık durumda kaç başarılı istek sonrası devre kapanacak
-  requestTimeout: number;        // İstek zaman aşımı süresi (ms)
-  monitorInterval: number;       // Durum izleme aralığı (ms)
+// Servis keşif mekanizması için arayüz
+interface ServiceDiscovery {
+  getServiceUrl(serviceName: string): Promise<string>;
+  registerService(serviceName: string, url: string, metadata?: any): Promise<void>;
+  deregisterService(serviceId: string): Promise<void>;
+  getHealthStatus(serviceName: string): Promise<boolean>;
 }
 
 // Servis entegrasyonu için temel sınıf
-export class ServiceIntegration {
-  private baseUrl: string;
-  private serviceName: string;
-  private circuitState: CircuitState = 'CLOSED';
-  private failureCount: number = 0;
-  private successCount: number = 0;
-  private lastStateChange: number = Date.now();
-  private config: CircuitBreakerConfig;
+class ServiceIntegration {
+  protected config: ServiceConfig;
+  protected circuitBreaker: CircuitBreaker;
+  protected serviceDiscovery: ServiceDiscovery | null = null;
 
-  constructor(
-    serviceName: string,
-    // baseUrl: string, // Removed: Get dynamically from serviceDiscovery
-    config: Partial<CircuitBreakerConfig> = {}
-  ) {
-    this.serviceName = serviceName;
-    // this.baseUrl = baseUrl; // Removed
-    
-    // Varsayılan yapılandırma ile kullanıcı yapılandırmasını birleştir
-    this.config = {
-      failureThreshold: 5,
-      resetTimeout: 30000,        // 30 saniye
-      halfOpenSuccessThreshold: 2,
-      requestTimeout: 5000,       // 5 saniye
-      monitorInterval: 60000,     // 1 dakika
-      ...config
-    };
-
-    // Durum izleme başlat
-    setInterval(() => this.monitorCircuitState(), this.config.monitorInterval);
-    
-    // Log the service name, URL will be fetched dynamically
-    logger.info(`${this.serviceName} entegrasyonu başlatıldı (URL dinamik olarak alınacak)`);
+  constructor(config: ServiceConfig) {
+    this.config = config;
+    this.circuitBreaker = new CircuitBreaker({
+      failureThreshold: config.circuitBreakerOptions.failureThreshold,
+      resetTimeout: config.circuitBreakerOptions.resetTimeout,
+      onOpen: () => {
+        logger.warn(`Circuit breaker opened for service: ${this.constructor.name}`);
+      },
+      onClose: () => {
+        logger.info(`Circuit breaker closed for service: ${this.constructor.name}`);
+      },
+      onHalfOpen: () => {
+        logger.info(`Circuit breaker half-open for service: ${this.constructor.name}`);
+      }
+    });
   }
 
-  /**
-   * HTTP GET isteği gönderir
-   * @param path Endpoint yolu
-   * @param params Query parametreleri
-   * @param headers HTTP başlıkları
-   * @returns Yanıt verisi
-   */
-  async get<T = any>(
-    path: string, 
-    params: Record<string, any> = {}, 
-    headers: Record<string, string> = {}
-  ): Promise<T> {
-    return this.request<T>('GET', path, undefined, params, headers);
+  // Servis keşif mekanizmasını ayarla
+  setServiceDiscovery(serviceDiscovery: ServiceDiscovery): void {
+    this.serviceDiscovery = serviceDiscovery;
   }
 
-  /**
-   * HTTP POST isteği gönderir
-   * @param path Endpoint yolu
-   * @param data İstek gövdesi
-   * @param params Query parametreleri
-   * @param headers HTTP başlıkları
-   * @returns Yanıt verisi
-   */
-  async post<T = any>(
-    path: string, 
-    data: any, 
-    params: Record<string, any> = {}, 
-    headers: Record<string, string> = {}
-  ): Promise<T> {
-    return this.request<T>('POST', path, data, params, headers);
-  }
-
-  /**
-   * HTTP PUT isteği gönderir
-   * @param path Endpoint yolu
-   * @param data İstek gövdesi
-   * @param params Query parametreleri
-   * @param headers HTTP başlıkları
-   * @returns Yanıt verisi
-   */
-  async put<T = any>(
-    path: string, 
-    data: any, 
-    params: Record<string, any> = {}, 
-    headers: Record<string, string> = {}
-  ): Promise<T> {
-    return this.request<T>('PUT', path, data, params, headers);
-  }
-
-  /**
-   * HTTP DELETE isteği gönderir
-   * @param path Endpoint yolu
-   * @param params Query parametreleri
-   * @param headers HTTP başlıkları
-   * @returns Yanıt verisi
-   */
-  async delete<T = any>(
-    path: string, 
-    params: Record<string, any> = {}, 
-    headers: Record<string, string> = {}
-  ): Promise<T> {
-    return this.request<T>('DELETE', path, undefined, params, headers);
-  }
-
-  /**
-   * HTTP isteği gönderir (temel metod)
-   * @param method HTTP metodu
-   * @param path Endpoint yolu
-   * @param data İstek gövdesi
-   * @param params Query parametreleri
-   * @param headers HTTP başlıkları
-   * @returns Yanıt verisi
-   */
-  private async request<T = any>(
-    method: string, 
-    path: string, 
-    data?: any, 
-    params: Record<string, any> = {}, 
-    headers: Record<string, string> = {}
-  ): Promise<T> {
-    // Circuit breaker durumunu kontrol et
-    if (this.circuitState === 'OPEN') {
-      const timeSinceLastStateChange = Date.now() - this.lastStateChange;
-      
-      if (timeSinceLastStateChange < this.config.resetTimeout) {
-        logger.warn(`${this.serviceName} devresi açık, istek engellendi: ${method} ${path}`);
-        throw new ServiceUnavailableError(`${this.serviceName} servisine şu anda erişilemiyor`);
-      } else {
-        // Yarı açık duruma geç
-        this.transitionToState('HALF_OPEN');
+  // Servis URL'sini al (servis keşif mekanizması varsa kullan)
+  protected async getServiceUrl(): Promise<string> {
+    if (this.serviceDiscovery) {
+      try {
+        return await this.serviceDiscovery.getServiceUrl(this.constructor.name);
+      } catch (error) {
+        logger.warn(`Service discovery failed for ${this.constructor.name}, using default URL: ${error.message}`);
       }
     }
+    return this.config.baseUrl;
+  }
 
+  // HTTP isteği gönder (yeniden deneme ve devre kesici ile)
+  protected async sendRequest<T>(
+    method: string,
+    endpoint: string,
+    data?: any,
+    headers?: Record<string, string>
+  ): Promise<T> {
+    return this.circuitBreaker.execute(async () => {
+      const baseUrl = await this.getServiceUrl();
+      const url = `${baseUrl}${endpoint}`;
+      
+      let retries = 0;
+      let lastError: Error | null = null;
+
+      while (retries <= this.config.retryCount) {
+        try {
+          const response = await axios({
+            method,
+            url,
+            data,
+            headers: {
+              'Content-Type': 'application/json',
+              ...headers
+            },
+            timeout: this.config.timeout
+          });
+
+          return response.data;
+        } catch (error) {
+          lastError = error;
+          
+          // 4xx hataları için yeniden deneme yapma (istemci hatası)
+          if (error.response && error.response.status >= 400 && error.response.status < 500) {
+            throw error;
+          }
+
+          logger.warn(`Request to ${url} failed (attempt ${retries + 1}/${this.config.retryCount + 1}): ${error.message}`);
+          
+          if (retries < this.config.retryCount) {
+            // Yeniden denemeden önce bekle
+            await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
+            retries++;
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      // Bu noktaya ulaşılmamalı, ama TypeScript için gerekli
+      throw lastError || new Error('Unknown error');
+    });
+  }
+
+  // Servis sağlık kontrolü
+  async healthCheck(): Promise<boolean> {
     try {
-      // Get the current base URL from service discovery
-      const baseUrl = serviceDiscovery.getServiceUrl(this.serviceName);
-      const url = `${baseUrl}${path}`;
-      
-      logger.debug(`${this.serviceName} isteği: ${method} ${url}`);
-      
-      const response = await axios.request<T>({
-        method,
-        url,
-        data,
-        params,
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers
-        },
-        timeout: this.config.requestTimeout
-      });
-
-      // Başarılı istek
-      this.onSuccess();
-      
-      return response.data;
-    } catch (error: any) {
-      return this.handleRequestError<T>(error, method, path);
-    }
-  }
-
-  /**
-   * İstek hatasını işler
-   * @param error Hata nesnesi
-   * @param method HTTP metodu
-   * @param path Endpoint yolu
-   * @returns Hata fırlatır
-   */
-  private handleRequestError<T>(error: any, method: string, path: string): never {
-    // Başarısız istek
-    this.onFailure();
-
-    if (error.response) {
-      // Sunucu yanıtı ile hata (4xx, 5xx)
-      const status = error.response.status;
-      const data = error.response.data;
-      
-      logger.warn(`${this.serviceName} yanıt hatası: ${method} ${path} - ${status}`);
-      
-      if (status >= 400 && status < 500) {
-        throw new BadRequestError(data.message || `${this.serviceName} isteği geçersiz`);
-      } else {
-        throw new ServiceUnavailableError(data.message || `${this.serviceName} servisinde hata oluştu`);
+      if (this.serviceDiscovery) {
+        return await this.serviceDiscovery.getHealthStatus(this.constructor.name);
       }
-    } else if (error.request) {
-      // Yanıt alınamadı (timeout, network error)
-      logger.error(`${this.serviceName} yanıt alınamadı: ${method} ${path}`);
-      throw new ServiceUnavailableError(`${this.serviceName} servisine erişilemiyor`);
-    } else {
-      // İstek oluşturulurken hata
-      logger.error(`${this.serviceName} istek hatası: ${method} ${path} - ${error.message}`);
-      throw new ServiceUnavailableError(`${this.serviceName} servisine istek gönderilirken hata oluştu`);
-    }
-  }
 
-  /**
-   * Başarılı istek sonrası işlemler
-   */
-  private onSuccess(): void {
-    if (this.circuitState === 'HALF_OPEN') {
-      this.successCount++;
-      
-      if (this.successCount >= this.config.halfOpenSuccessThreshold) {
-        this.transitionToState('CLOSED');
-      }
-    } else if (this.circuitState === 'CLOSED') {
-      // Başarılı durumda hata sayacını sıfırla
-      this.failureCount = 0;
-    }
-  }
-
-  /**
-   * Başarısız istek sonrası işlemler
-   */
-  private onFailure(): void {
-    if (this.circuitState === 'CLOSED') {
-      this.failureCount++;
-      
-      if (this.failureCount >= this.config.failureThreshold) {
-        this.transitionToState('OPEN');
-      }
-    } else if (this.circuitState === 'HALF_OPEN') {
-      this.transitionToState('OPEN');
-    }
-  }
-
-  /**
-   * Circuit breaker durumunu değiştirir
-   * @param newState Yeni durum
-   */
-  private transitionToState(newState: CircuitState): void {
-    if (this.circuitState !== newState) {
-      logger.info(`${this.serviceName} devre durumu değişti: ${this.circuitState} -> ${newState}`);
-      
-      this.circuitState = newState;
-      this.lastStateChange = Date.now();
-      
-      if (newState === 'CLOSED') {
-        this.failureCount = 0;
-        this.successCount = 0;
-      } else if (newState === 'HALF_OPEN') {
-        this.successCount = 0;
-      }
-    }
-  }
-
-  /**
-   * Circuit breaker durumunu izler
-   */
-  private monitorCircuitState(): void {
-    const currentState = this.circuitState;
-    const timeSinceLastStateChange = Date.now() - this.lastStateChange;
-    
-    // OPEN durumunda belirli süre geçtiyse HALF_OPEN'a geç
-    if (currentState === 'OPEN' && timeSinceLastStateChange >= this.config.resetTimeout) {
-      this.transitionToState('HALF_OPEN');
-      logger.info(`${this.serviceName} devresi yarı açık duruma geçti (timeout)`);
-    }
-    
-    // Durum loglaması
-    logger.debug(`${this.serviceName} devre durumu: ${this.circuitState}, Hata sayısı: ${this.failureCount}, Başarı sayısı: ${this.successCount}`);
-  }
-
-  /**
-   * Servis sağlık kontrolü yapar
-   * @returns Servis sağlıklı mı
-   */
-  async checkHealth(): Promise<boolean> {
-    try {
-      // Servisin health endpoint'ine istek gönder
-      await this.get('/health', {}, { 'X-Health-Check': 'true' });
-      
-      // Servis keşif yöneticisine sağlık durumunu bildir
-      await serviceDiscovery.checkServiceHealth(this.serviceName);
-      
-      return true;
+      const result = await this.sendRequest<{ status: string }>('GET', '/health');
+      return result.status === 'ok';
     } catch (error) {
-      logger.warn(`${this.serviceName} sağlık kontrolü başarısız`);
+      logger.error(`Health check failed for ${this.constructor.name}: ${error.message}`);
       return false;
     }
-  }
-
-  /**
-   * Servis durumunu döndürür
-   * @returns Servis durumu
-   */
-  getStatus(): { 
-    serviceName: string; 
-    baseUrl: string; 
-    circuitState: CircuitState; 
-    failureCount: number;
-    successCount: number;
-    lastStateChange: number;
-  } {
-    return {
-      serviceName: this.serviceName,
-      baseUrl: this.baseUrl,
-      circuitState: this.circuitState,
-      failureCount: this.failureCount,
-      successCount: this.successCount,
-      lastStateChange: this.lastStateChange
-    };
   }
 }
 
 // Segmentation Service entegrasyonu
-export class SegmentationServiceIntegration extends ServiceIntegration {
+export class SegmentationService extends ServiceIntegration {
   constructor() {
-    super("SegmentationService");
+    super({
+      baseUrl: process.env.SEGMENTATION_SERVICE_URL || 'http://segmentation-service:3001',
+      timeout: 10000,
+      retryCount: 3,
+      retryDelay: 1000,
+      circuitBreakerOptions: {
+        failureThreshold: 5,
+        resetTimeout: 30000
+      }
+    });
   }
 
-  /**
-   * Komut segmentasyonu yapar
-   * @param command Komut metni
-   * @param options Segmentasyon seçenekleri
-   * @returns Segmentasyon sonucu
-   */
-  async segmentCommand(command: string, options: Record<string, any> = {}): Promise<any> {
-    return this.post('/api/segment', { command, options });
+  // Komut segmentasyonu
+  async segmentCommand(command: string, options: any = {}): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('POST', '/segment', {
+        command,
+        options
+      });
+
+      return result;
+    } catch (error) {
+      logger.error(`Segmentation failed: ${error.message}`);
+      throw new ServiceError(`Segmentation service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Alt dosyası oluşturur
-   * @param data Alt dosyası verisi
-   * @returns Oluşturulan dosya bilgisi
-   */
-  async createAltFile(data: any): Promise<any> {
-    return this.post('/api/files/alt', data);
+  // Segmentasyon durumu sorgulama
+  async getSegmentationStatus(segmentationId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('GET', `/segment/${segmentationId}`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`Segmentation process not found: ${segmentationId}`);
+      }
+      logger.error(`Failed to get segmentation status: ${error.message}`);
+      throw new ServiceError(`Segmentation service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Alt dosyasını getirir
-   * @param fileId Dosya ID
-   * @returns Dosya içeriği
-   */
-  async getAltFile(fileId: string): Promise<any> {
-    return this.get(`/api/files/alt/${fileId}`);
+  // ALT dosyası alma
+  async getAltFile(altFileId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('GET', `/files/alt/${altFileId}`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`ALT file not found: ${altFileId}`);
+      }
+      logger.error(`Failed to get ALT file: ${error.message}`);
+      throw new ServiceError(`Segmentation service error: ${error.message}`);
+    }
   }
 }
 
 // Runner Service entegrasyonu
-export class RunnerServiceIntegration extends ServiceIntegration {
+export class RunnerService extends ServiceIntegration {
   constructor() {
-    super("RunnerService");
+    super({
+      baseUrl: process.env.RUNNER_SERVICE_URL || 'http://runner-service:3002',
+      timeout: 15000,
+      retryCount: 2,
+      retryDelay: 2000,
+      circuitBreakerOptions: {
+        failureThreshold: 3,
+        resetTimeout: 60000
+      }
+    });
   }
 
-  /**
-   * Komut çalıştırır
-   * @param altFileId Alt dosyası ID
-   * @param options Çalıştırma seçenekleri
-   * @returns Çalıştırma sonucu
-   */
-  async runCommand(altFileId: string, options: Record<string, any> = {}): Promise<any> {
-    return this.post('/api/run', { altFileId, options });
+  // Görev çalıştırma
+  async runTask(altFileId: string, options: any = {}): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('POST', '/run', {
+        altFileId,
+        options
+      });
+
+      return result;
+    } catch (error) {
+      logger.error(`Task execution failed: ${error.message}`);
+      throw new ServiceError(`Runner service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Komut durumunu sorgular
-   * @param runId Çalıştırma ID
-   * @returns Komut durumu
-   */
-  async getCommandStatus(runId: string): Promise<any> {
-    return this.get(`/api/status/${runId}`);
+  // Görev durumu sorgulama
+  async getTaskStatus(taskId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('GET', `/tasks/${taskId}`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`Task not found: ${taskId}`);
+      }
+      logger.error(`Failed to get task status: ${error.message}`);
+      throw new ServiceError(`Runner service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Komutu iptal eder
-   * @param runId Çalıştırma ID
-   * @returns İptal sonucu
-   */
-  async cancelCommand(runId: string): Promise<any> {
-    return this.post(`/api/cancel/${runId}`, {});
+  // Görev iptal etme
+  async cancelTask(taskId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('POST', `/tasks/${taskId}/cancel`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`Task not found: ${taskId}`);
+      }
+      logger.error(`Failed to cancel task: ${error.message}`);
+      throw new ServiceError(`Runner service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Last dosyasını getirir
-   * @param fileId Dosya ID
-   * @returns Dosya içeriği
-   */
-  async getLastFile(fileId: string): Promise<any> {
-    return this.get(`/api/files/last/${fileId}`);
+  // LAST dosyası alma
+  async getLastFile(lastFileId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('GET', `/files/last/${lastFileId}`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`LAST file not found: ${lastFileId}`);
+      }
+      logger.error(`Failed to get LAST file: ${error.message}`);
+      throw new ServiceError(`Runner service error: ${error.message}`);
+    }
   }
 }
 
 // Archive Service entegrasyonu
-export class ArchiveServiceIntegration extends ServiceIntegration {
+export class ArchiveService extends ServiceIntegration {
   constructor() {
-    super("ArchiveService");
+    super({
+      baseUrl: process.env.ARCHIVE_SERVICE_URL || 'http://archive-service:3003',
+      timeout: 8000,
+      retryCount: 3,
+      retryDelay: 1000,
+      circuitBreakerOptions: {
+        failureThreshold: 4,
+        resetTimeout: 45000
+      }
+    });
   }
 
-  /**
-   * Last dosyasını arşivler
-   * @param lastFileId Last dosyası ID
-   * @param metadata Metadata
-   * @returns Arşivleme sonucu
-   */
-  async archiveLastFile(lastFileId: string, metadata: Record<string, any> = {}): Promise<any> {
-    return this.post('/api/archive', { lastFileId, metadata });
+  // Arşivleme
+  async archiveResult(lastFileId: string, metadata: any = {}): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('POST', '/archive', {
+        lastFileId,
+        metadata
+      });
+
+      return result;
+    } catch (error) {
+      logger.error(`Archiving failed: ${error.message}`);
+      throw new ServiceError(`Archive service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Atlas dosyasını getirir
-   * @param fileId Dosya ID
-   * @returns Dosya içeriği
-   */
-  async getAtlasFile(fileId: string): Promise<any> {
-    return this.get(`/api/files/atlas/${fileId}`);
+  // Arşiv arama
+  async searchArchive(query: any): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('POST', '/search', query);
+      return result;
+    } catch (error) {
+      logger.error(`Archive search failed: ${error.message}`);
+      throw new ServiceError(`Archive service error: ${error.message}`);
+    }
   }
 
-  /**
-   * Atlas dosyalarını arar
-   * @param query Arama sorgusu
-   * @returns Arama sonuçları
-   */
-  async searchAtlasFiles(query: Record<string, any>): Promise<any> {
-    return this.get('/api/search', query);
+  // Arşiv öğesi alma
+  async getArchiveItem(archiveId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('GET', `/items/${archiveId}`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`Archive item not found: ${archiveId}`);
+      }
+      logger.error(`Failed to get archive item: ${error.message}`);
+      throw new ServiceError(`Archive service error: ${error.message}`);
+    }
   }
-}
 
-// Singleton instances
-export const segmentationService = new SegmentationServiceIntegration();
-export const runnerService = new RunnerServiceIntegration();
-export const archiveService = new ArchiveServiceIntegration();
-
-// Servis entegrasyonu middleware'i
-export const withServiceIntegration = (req: Request, res: Response, next: NextFunction): void => {
-  // Servisleri request nesnesine ekle
-  req.services = {
-    segmentation: segmentationService,
-    runner: runnerService,
-    archive: archiveService
-  };
-  
-  next();
-};
-
-// Request nesnesine services özelliği eklemek için type extension
-declare global {
-  namespace Express {
-    interface Request {
-      services?: {
-        segmentation: SegmentationServiceIntegration;
-        runner: RunnerServiceIntegration;
-        archive: ArchiveServiceIntegration;
-      };
+  // ATLAS dosyası alma
+  async getAtlasFile(atlasFileId: string): Promise<any> {
+    try {
+      const result = await this.sendRequest<any>('GET', `/files/atlas/${atlasFileId}`);
+      return result;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        throw new NotFoundError(`ATLAS file not found: ${atlasFileId}`);
+      }
+      logger.error(`Failed to get ATLAS file: ${error.message}`);
+      throw new ServiceError(`Archive service error: ${error.message}`);
     }
   }
 }
+
+// Servis keşif mekanizması implementasyonu
+export class SimpleServiceDiscovery implements ServiceDiscovery {
+  private services: Map<string, { url: string, metadata?: any, healthy: boolean }> = new Map();
+
+  // Servis URL'sini al
+  async getServiceUrl(serviceName: string): Promise<string> {
+    const service = this.services.get(serviceName);
+    if (!service) {
+      throw new Error(`Service not found: ${serviceName}`);
+    }
+    if (!service.healthy) {
+      throw new Error(`Service is unhealthy: ${serviceName}`);
+    }
+    return service.url;
+  }
+
+  // Servis kaydet
+  async registerService(serviceName: string, url: string, metadata?: any): Promise<void> {
+    this.services.set(serviceName, { url, metadata, healthy: true });
+    logger.info(`Service registered: ${serviceName} at ${url}`);
+  }
+
+  // Servis kaydını sil
+  async deregisterService(serviceId: string): Promise<void> {
+    this.services.delete(serviceId);
+    logger.info(`Service deregistered: ${serviceId}`);
+  }
+
+  // Servis sağlık durumunu al
+  async getHealthStatus(serviceName: string): Promise<boolean> {
+    const service = this.services.get(serviceName);
+    return service ? service.healthy : false;
+  }
+
+  // Servis sağlık durumunu güncelle
+  updateHealthStatus(serviceName: string, healthy: boolean): void {
+    const service = this.services.get(serviceName);
+    if (service) {
+      service.healthy = healthy;
+      this.services.set(serviceName, service);
+      logger.info(`Service health status updated: ${serviceName} is ${healthy ? 'healthy' : 'unhealthy'}`);
+    }
+  }
+}
+
+// Servis örnekleri
+export const serviceDiscovery = new SimpleServiceDiscovery();
+export const segmentationService = new SegmentationService();
+export const runnerService = new RunnerService();
+export const archiveService = new ArchiveService();
+
+// Servis keşif mekanizmasını ayarla
+segmentationService.setServiceDiscovery(serviceDiscovery);
+runnerService.setServiceDiscovery(serviceDiscovery);
+archiveService.setServiceDiscovery(serviceDiscovery);
+
+// Varsayılan servis URL'lerini kaydet
+serviceDiscovery.registerService('SegmentationService', process.env.SEGMENTATION_SERVICE_URL || 'http://segmentation-service:3001');
+serviceDiscovery.registerService('RunnerService', process.env.RUNNER_SERVICE_URL || 'http://runner-service:3002');
+serviceDiscovery.registerService('ArchiveService', process.env.ARCHIVE_SERVICE_URL || 'http://archive-service:3003');
 
 export default {
   segmentationService,
   runnerService,
   archiveService,
-  withServiceIntegration
+  serviceDiscovery
 };

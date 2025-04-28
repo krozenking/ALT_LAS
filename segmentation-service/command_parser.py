@@ -68,13 +68,17 @@ class CommandParser:
         
         return alt_file
     
-    def segment_command(self, command: str, language: str) -> List[TaskSegment]:
+    def segment_command(self, command: str, language: str, mode: str = "Normal", 
+                       persona: str = "technical_expert", chaos_level: Optional[int] = None) -> List[TaskSegment]:
         """
         Segment a command into tasks
         
         Args:
             command: Command to segment
             language: Language of the command
+            mode: Processing mode (Normal, Dream, Explore, Chaos)
+            persona: Persona to use for processing
+            chaos_level: Chaos level (1-10) for Chaos mode
             
         Returns:
             List of task segments
@@ -114,6 +118,17 @@ class CommandParser:
         
         # Identify dependencies between segments
         self._identify_dependencies(segments, command, language, dependency_indicators)
+        
+        # Apply mode effects if not Normal mode
+        if mode != "Normal":
+            from mode_handler import get_mode_handler
+            mode_handler = get_mode_handler()
+            segments = mode_handler.apply_mode_effects(segments, mode, chaos_level, language)
+        
+        # Apply persona effects
+        from persona_handler import get_persona_handler
+        persona_handler = get_persona_handler()
+        segments = persona_handler.apply_persona_effects(segments, persona, language)
         
         return segments
     

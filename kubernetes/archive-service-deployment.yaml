@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archive-service
+  labels:
+    app: archive-service
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: archive-service
+  template:
+    metadata:
+      labels:
+        app: archive-service
+        app.kubernetes.io/component: backend
+    spec:
+      # Pod level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: archive-service
+        image: your-registry/alt-las-archive-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        # Container level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp-data
+          mountPath: /tmp
+        - name: archive-data
+          mountPath: /data/archives
+          readOnly: false
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: tmp-data
+        emptyDir: {}
+      - name: archive-data
+        persistentVolumeClaim:
+          claimName: archive-service-pvc

@@ -1,11 +1,11 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc; // Removed unused Mutex
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::task;
 use log::{info, error, warn}; // Removed unused debug
 use std::path::PathBuf; // Removed unused Path
 use std::time::Instant;
-use rayon::prelude::*; // Added rayon prelude
+// use rayon::prelude::*; // Removed unused import
 use num_cpus; // Added num_cpus import
 
 use crate::alt_file::models::AltFile; // Removed unused AltMode

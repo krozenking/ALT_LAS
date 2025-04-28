@@ -40,7 +40,7 @@ impl From<zip::result::ZipError> for LastWriteError {
 }
 
 impl std::fmt::Display for LastWriteError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<\'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LastWriteError::IoError(err) => write!(f, "IO Error: {}", err),
             LastWriteError::JsonError(err) => write!(f, "JSON Error: {}", err),
@@ -180,7 +180,7 @@ pub fn create_last_file_archive(last_file: &LastFile, output_dir: &Path) -> Resu
     let file = File::create(&archive_path)?;
     let mut zip = ZipWriter::new(file);
     
-    let options = FileOptions::default()
+    let options: FileOptions<'_, ()> = FileOptions::default()
         .compression_method(CompressionMethod::Deflated)
         .unix_permissions(0o755);
     

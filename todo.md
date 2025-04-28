@@ -1,24 +1,38 @@
-# ALT_LAS İşçi 5 (UI/UX Geliştirici) Görev Listesi
+# İşçi 8: Güvenlik ve DevOps Uzmanı - Görev Takip Listesi
 
-Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması gereken görevleri içermektedir.
+## Görevler
 
-## Hafta 1-2: Erişilebilirlik İyileştirmeleri
+### Tüm Ortamlarda Güvenli Dockerfile Uygulaması (Orta Öncelikli)
+- [x] Geliştirme ortamı yapılandırması
+- [x] Test ortamı yapılandırması
+- [x] Staging ortamı yapılandırması
+- [x] Üretim ortamı yapılandırması
+- [x] Ortam özelinde güvenlik ayarları
 
-### Görev 5.1: WCAG 2.1 AA Uyumluluğu
-- [x] **Görev 5.1.1:** Tüm bileşenlerin ARIA rolleri ve özelliklerinin eklenmesi
-- [x] **Görev 5.1.2:** Klavye navigasyonu ve odak yönetiminin iyileştirilmesi
-- [x] **Görev 5.1.3:** Renk kontrastı ve görsel ipuçlarının optimize edilmesi
-- [x] **Görev 5.1.4:** Ekran okuyucu uyumluluğunun test edilmesi ve iyileştirilmesi
-- [x] **Görev 5.1.5:** Erişilebilirlik dokümantasyonunun hazırlanması
+### Düzenli Docker Güvenlik Denetimleri (Düşük Öncelikli)
+- [x] Denetim planı oluşturma
+- [ ] Denetim araçları ve kontrol listeleri
+- [ ] Denetim raporlama şablonu
+- [ ] Denetim takip sistemi
+- [ ] Denetim otomasyonu
 
-### Görev 5.2: Yüksek Kontrast Tema
-- [x] **Görev 5.2.1:** Yüksek kontrast tema tasarımı
-- [x] **Görev 5.2.2:** Yüksek kontrast tema implementasyonu
-- [x] **Görev 5.2.3:** Tema geçiş mekanizmasının iyileştirilmesi
-- [x] **Görev 5.2.4:** Sistem teması algılama ve uyum
-- [ ] **Görev 5.2.5:** Tema testleri ve hata düzeltmeleri
+### Kubernetes Entegrasyonu
+- [x] Kubernetes güvenlik politikaları (PSA ile namespace labeling)
+- [x] Pod güvenlik bağlamları (Tüm servisler için deployment'lar güncellendi)
+- [x] Network policy yapılandırması (Default deny ve servis özelinde izinler)
+- [x] Secret yönetimi (Ortam özelinde secret'lar ve RBAC)
 
-## Hafta 3-4: Performans Optimizasyonu
+### CI/CD Güvenliği
+- [x] Pipeline güvenlik kontrolleri (enhanced-pipeline-security.yml)
+- [x] Kod analizi entegrasyonu (code-analysis-security.yml)
+- [ ] Güvenlik testleri otomasyonu
+- [x] Dağıtım güvenliği (Cosign imzalama, K8s manifest doğrulama)
+
+### Dokümantasyon ve Eğitim
+- [x] Güvenlik en iyi uygulamaları dokümantasyonu (Docker, K8s, CI/CD)
+- [ ] DevOps ekibi için güvenlik eğitim materyalleri
+
+## UI Geliştirme Görevleri (İşçi 5)
 
 ### Görev 5.3: Render Optimizasyonu
 - [x] **Görev 5.3.1:** Bileşen memoizasyonu ve gereksiz render'ların önlenmesi

@@ -1,0 +1,53 @@
+# Stage 1: Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Staging stage (similar to production but might have different env vars or minimal debugging tools)
+FROM node:18-alpine
+
+# Install minimal tools needed for staging environment
+RUN apk add --no-cache curl procps
+
+# Set working directory
+WORKDIR /app
+
+# Copy from builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/routes ./routes
+COPY --from=builder /app/swagger.yaml ./
+COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder --chown=appuser:appgroup /etc/passwd /etc/passwd
+COPY --from=builder --chown=appuser:appgroup /etc/group /etc/group
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app
+
+# Use non-root user
+USER appuser
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables for staging
+ENV NODE_ENV=staging
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Start application
+CMD ["npm", "start"]

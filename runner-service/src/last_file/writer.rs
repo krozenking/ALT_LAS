@@ -1,515 +1,520 @@
-use std::path::{Path, PathBuf};
-use std::fs;
+use std::fs::{self, File};
 use std::io::{self, Write, Read};
+use std::path::{Path, PathBuf};
 use log::{info, error, warn, debug};
 use serde_json;
+use flate2::write::GzEncoder;
+use flate2::read::GzDecoder;
+use flate2::Compression;
+use zip::write::{FileOptions, ZipWriter};
+use zip::CompressionMethod;
 use chrono::Utc;
-use std::collections::HashMap;
 
-use super::models::{LastFile, LastFileStatus, Artifact, ArtifactType};
+use super::models::{LastFile, LastFileStatus, ArtifactType};
 
-/// Writes a LAST file to disk
-pub fn write_last_file(last_file: &LastFile, output_dir: &Path) -> io::Result<PathBuf> {
-    info!("Writing LAST file to disk: {}", last_file.id);
-    
-    // Create output directory if it doesn't exist
-    if !output_dir.exists() {
-        fs::create_dir_all(output_dir)?;
+/// Error type for LAST file writing operations
+#[derive(Debug)]
+pub enum LastWriteError {
+    IoError(io::Error),
+    JsonError(serde_json::Error),
+    ZipError(zip::result::ZipError),
+    FormatError(String),
+}
+
+impl From<io::Error> for LastWriteError {
+    fn from(err: io::Error) -> Self {
+        LastWriteError::IoError(err)
     }
-    
-    // Generate file name
-    let file_name = format!("{}.last", last_file.id);
+}
+
+impl From<serde_json::Error> for LastWriteError {
+    fn from(err: serde_json::Error) -> Self {
+        LastWriteError::JsonError(err)
+    }
+}
+
+impl From<zip::result::ZipError> for LastWriteError {
+    fn from(err: zip::result::ZipError) -> Self {
+        LastWriteError::ZipError(err)
+    }
+}
+
+impl std::fmt::Display for LastWriteError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<\_>) -> std::fmt::Result {
+        match self {
+            LastWriteError::IoError(err) => write!(f, "IO Error: {}", err),
+            LastWriteError::JsonError(err) => write!(f, "JSON Error: {}", err),
+            LastWriteError::ZipError(err) => write!(f, "ZIP Error: {}", err),
+            LastWriteError::FormatError(err) => write!(f, "Format Error: {}", err),
+        }
+    }
+}
+
+impl std::error::Error for LastWriteError {}
+
+/// Writes a LAST file to a JSON file
+pub fn write_last_file(last_file: &LastFile, output_dir: &Path) -> Result<PathBuf, LastWriteError> {
+    let file_name = format!("last_{}.json", last_file.execution_id);
     let file_path = output_dir.join(file_name);
     
-    // Serialize LAST file to JSON
-    let json = match serde_json::to_string_pretty(last_file) {
-        Ok(json) => json,
-        Err(err) => {
-            error!("Failed to serialize LAST file: {}", err);
-            return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize LAST file: {}", err)));
-        }
-    };
+    info!("Writing LAST file to JSON: {:?}", file_path);
+    
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)?;
+    
+    // Serialize to JSON
+    let json = serde_json::to_string_pretty(last_file)?;
     
     // Write to file
-    let mut file = fs::File::create(&file_path)?;
-    file.write_all(json.as_bytes())?;
+    fs::write(&file_path, json)?;
     
-    info!("LAST file written to: {:?}", file_path);
+    info!("Successfully wrote LAST file to JSON: {:?}", file_path);
     Ok(file_path)
 }
 
-/// Reads a LAST file from disk
-pub fn read_last_file(file_path: &Path) -> io::Result<LastFile> {
-    info!("Reading LAST file from: {:?}", file_path);
+/// Reads a LAST file from a JSON file
+pub fn read_last_file(file_path: &Path) -> Result<LastFile, LastWriteError> {
+    info!("Reading LAST file from JSON: {:?}", file_path);
+    
+    // Check if file exists
+    if !file_path.exists() {
+        return Err(LastWriteError::IoError(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("File not found: {:?}", file_path),
+        )));
+    }
     
     // Read file content
     let content = fs::read_to_string(file_path)?;
     
-    // Deserialize JSON to LAST file
-    match serde_json::from_str(&content) {
-        Ok(last_file) => {
-            info!("LAST file read successfully: {}", file_path.display());
-            Ok(last_file)
-        },
-        Err(err) => {
-            error!("Failed to deserialize LAST file: {}", err);
-            Err(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to deserialize LAST file: {}", err)))
-        }
-    }
+    // Deserialize from JSON
+    let last_file: LastFile = serde_json::from_str(&content)?;
+    
+    info!("Successfully read LAST file from JSON: {:?}", file_path);
+    Ok(last_file)
 }
 
-/// Writes a summary of the LAST file to disk
-pub fn write_last_file_summary(last_file: &LastFile, output_dir: &Path) -> io::Result<PathBuf> {
-    info!("Writing LAST file summary to disk: {}", last_file.id);
-    
-    // Create output directory if it doesn't exist
-    if !output_dir.exists() {
-        fs::create_dir_all(output_dir)?;
-    }
-    
-    // Generate file name
-    let file_name = format!("{}_summary.txt", last_file.id);
+/// Writes a summary of the LAST file to a text file
+pub fn write_last_file_summary(last_file: &LastFile, output_dir: &Path) -> Result<PathBuf, LastWriteError> {
+    let file_name = format!("last_{}_summary.txt", last_file.execution_id);
     let file_path = output_dir.join(file_name);
     
-    // Get summary text
-    let summary = match &last_file.summary {
-        Some(summary) => summary.clone(),
-        None => "No summary available".to_string(),
-    };
+    info!("Writing LAST file summary to: {:?}", file_path);
+    
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)?;
+    
+    // Get summary content
+    let summary = last_file.summary.clone().unwrap_or_else(|| "No summary available".to_string());
     
     // Write to file
-    let mut file = fs::File::create(&file_path)?;
-    file.write_all(summary.as_bytes())?;
+    fs::write(&file_path, summary)?;
     
-    info!("LAST file summary written to: {:?}", file_path);
+    info!("Successfully wrote LAST file summary to: {:?}", file_path);
     Ok(file_path)
 }
 
-/// Writes a LAST file to disk in a compressed format
-pub fn write_compressed_last_file(last_file: &LastFile, output_dir: &Path) -> io::Result<PathBuf> {
-    info!("Writing compressed LAST file to disk: {}", last_file.id);
-    
-    // Create output directory if it doesn't exist
-    if !output_dir.exists() {
-        fs::create_dir_all(output_dir)?;
-    }
-    
-    // Generate file name
-    let file_name = format!("{}.last.gz", last_file.id);
+/// Writes a LAST file to a compressed Gzip file
+pub fn write_compressed_last_file(last_file: &LastFile, output_dir: &Path) -> Result<PathBuf, LastWriteError> {
+    let file_name = format!("last_{}.json.gz", last_file.execution_id);
     let file_path = output_dir.join(file_name);
     
-    // Serialize LAST file to JSON
-    let json = match serde_json::to_string(last_file) {
-        Ok(json) => json,
-        Err(err) => {
-            error!("Failed to serialize LAST file: {}", err);
-            return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize LAST file: {}", err)));
-        }
-    };
+    info!("Writing compressed LAST file to: {:?}", file_path);
     
-    // Create gzip encoder
-    let file = fs::File::create(&file_path)?;
-    let mut encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)?;
     
-    // Write to compressed file
-    encoder.write_all(json.as_bytes())?;
+    // Serialize to JSON
+    let json = serde_json::to_vec(last_file)?;
+    
+    // Create Gzip encoder
+    let file = File::create(&file_path)?;
+    let mut encoder = GzEncoder::new(file, Compression::default());
+    
+    // Write compressed data
+    encoder.write_all(&json)?;
     encoder.finish()?;
     
-    info!("Compressed LAST file written to: {:?}", file_path);
+    info!("Successfully wrote compressed LAST file to: {:?}", file_path);
     Ok(file_path)
 }
 
-/// Reads a compressed LAST file from disk
-pub fn read_compressed_last_file(file_path: &Path) -> io::Result<LastFile> {
+/// Reads a LAST file from a compressed Gzip file
+pub fn read_compressed_last_file(file_path: &Path) -> Result<LastFile, LastWriteError> {
     info!("Reading compressed LAST file from: {:?}", file_path);
     
-    // Open the compressed file
-    let file = fs::File::open(file_path)?;
-    let mut decoder = flate2::read::GzDecoder::new(file);
-    
-    // Read the decompressed content
-    let mut content = String::new();
-    decoder.read_to_string(&mut content)?;
-    
-    // Deserialize JSON to LAST file
-    match serde_json::from_str(&content) {
-        Ok(last_file) => {
-            info!("Compressed LAST file read successfully: {}", file_path.display());
-            Ok(last_file)
-        },
-        Err(err) => {
-            error!("Failed to deserialize compressed LAST file: {}", err);
-            Err(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to deserialize compressed LAST file: {}", err)))
-        }
+    // Check if file exists
+    if !file_path.exists() {
+        return Err(LastWriteError::IoError(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("File not found: {:?}", file_path),
+        )));
     }
+    
+    // Open file and create Gzip decoder
+    let file = File::open(file_path)?;
+    let mut decoder = GzDecoder::new(file);
+    
+    // Read decompressed data
+    let mut json = Vec::new();
+    decoder.read_to_end(&mut json)?;
+    
+    // Deserialize from JSON
+    let last_file: LastFile = serde_json::from_slice(&json)?;
+    
+    info!("Successfully read compressed LAST file from: {:?}", file_path);
+    Ok(last_file)
 }
 
-/// Creates an archive containing the LAST file and all its artifacts
-pub fn create_last_file_archive(last_file: &LastFile, output_dir: &Path) -> io::Result<PathBuf> {
-    info!("Creating archive for LAST file: {}", last_file.id);
-    
-    // Create output directory if it doesn't exist
-    if !output_dir.exists() {
-        fs::create_dir_all(output_dir)?;
-    }
-    
-    // Generate archive file name
-    let archive_name = format!("{}_archive.zip", last_file.id);
+/// Creates a ZIP archive containing the LAST file and its artifacts
+pub fn create_last_file_archive(last_file: &LastFile, output_dir: &Path) -> Result<PathBuf, LastWriteError> {
+    let archive_name = format!("last_{}.zip", last_file.execution_id);
     let archive_path = output_dir.join(archive_name);
     
-    // Create a temporary directory for archive contents
-    let temp_dir = tempfile::tempdir()?;
+    info!("Creating LAST file archive: {:?}", archive_path);
     
-    // Write LAST file to temporary directory
-    let last_file_path = temp_dir.path().join(format!("{}.last", last_file.id));
-    let json = serde_json::to_string_pretty(last_file)?;
-    fs::write(&last_file_path, json)?;
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)?;
     
-    // Write summary to temporary directory
-    if let Some(summary) = &last_file.summary {
-        let summary_path = temp_dir.path().join(format!("{}_summary.txt", last_file.id));
-        fs::write(&summary_path, summary)?;
-    }
+    // Create ZIP file
+    let file = File::create(&archive_path)?;
+    let mut zip = ZipWriter::new(file);
     
-    // Copy artifacts to temporary directory if available
+    let options = FileOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+    
+    // Add LAST file JSON to archive
+    let last_file_json = serde_json::to_string_pretty(last_file)?;
+    zip.start_file(format!("last_{}.json", last_file.execution_id), options)?;
+    zip.write_all(last_file_json.as_bytes())?;
+    
+    // Add artifacts to archive
     if let Some(artifacts) = &last_file.artifacts {
-        let artifacts_dir = temp_dir.path().join("artifacts");
-        fs::create_dir_all(&artifacts_dir)?;
-        
         for artifact in artifacts {
-            let source_path = Path::new(&artifact.path);
-            if source_path.exists() {
-                let file_name = source_path.file_name().unwrap_or_default();
-                let dest_path = artifacts_dir.join(file_name);
+            let artifact_path = Path::new(&artifact.path);
+            if artifact_path.exists() {
+                // Use relative path within the archive
+                let archive_entry_name = format!("artifacts/{}", artifact_path.file_name().unwrap_or_default().to_string_lossy());
                 
-                if let Err(e) = fs::copy(source_path, &dest_path) {
-                    warn!("Failed to copy artifact to archive: {}", e);
-                }
+                zip.start_file(&archive_entry_name, options)?;
+                let mut artifact_file = File::open(artifact_path)?;
+                io::copy(&mut artifact_file, &mut zip)?;
+            } else {
+                warn!("Artifact file not found, skipping: {:?}", artifact_path);
             }
         }
     }
     
-    // Create zip file
-    let file = fs::File::create(&archive_path)?;
-    let mut zip = zip::ZipWriter::new(file);
-    
-    // Add files to zip
-    let options = zip::write::FileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated)
-        .unix_permissions(0o644);
-    
-    // Walk the temporary directory and add all files
-    let walker = walkdir::WalkDir::new(temp_dir.path()).into_iter();
-    let temp_path = temp_dir.path();
-    
-    for entry in walker.filter_map(|e| e.ok()) {
-        let path = entry.path();
-        
-        if path.is_file() {
-            // Create relative path for zip entry
-            let rel_path = path.strip_prefix(temp_path).unwrap();
-            let zip_path = rel_path.to_string_lossy();
-            
-            // Add file to zip
-            zip.start_file(zip_path, options)?;
-            let mut file = fs::File::open(path)?;
-            let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer)?;
-            zip.write_all(&buffer)?;
-        }
-    }
-    
-    // Finalize zip file
+    // Finish writing the archive
     zip.finish()?;
     
-    info!("LAST file archive created: {:?}", archive_path);
+    info!("Successfully created LAST file archive: {:?}", archive_path);
     Ok(archive_path)
 }
 
-/// Exports a LAST file to HTML format for better visualization
-pub fn export_last_file_to_html(last_file: &LastFile, output_dir: &Path) -> io::Result<PathBuf> {
-    info!("Exporting LAST file to HTML: {}", last_file.id);
+/// Exports the LAST file to an HTML report
+pub fn export_last_file_to_html(last_file: &LastFile, output_dir: &Path) -> Result<PathBuf, LastWriteError> {
+    let file_name = format!("last_{}_report.html", last_file.execution_id);
+    let file_path = output_dir.join(file_name);
     
-    // Create output directory if it doesn't exist
-    if !output_dir.exists() {
-        fs::create_dir_all(output_dir)?;
-    }
+    info!("Exporting LAST file to HTML report: {:?}", file_path);
     
-    // Generate HTML file name
-    let html_name = format!("{}_report.html", last_file.id);
-    let html_path = output_dir.join(html_name);
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)?;
     
-    // Start building HTML content
+    // Generate HTML content
+    let html = generate_html_report(last_file);
+    
+    // Write to file
+    fs::write(&file_path, html)?;
+    
+    info!("Successfully exported LAST file to HTML: {:?}", file_path);
+    Ok(file_path)
+}
+
+/// Generates HTML content for the LAST file report
+fn generate_html_report(last_file: &LastFile) -> String {
     let mut html = String::new();
     
-    // HTML header
+    // HTML Header
     html.push_str("<!DOCTYPE html>\n");
     html.push_str("<html lang=\"en\">\n");
     html.push_str("<head>\n");
     html.push_str("  <meta charset=\"UTF-8\">\n");
     html.push_str("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-    html.push_str(&format!("  <title>LAST File Report: {}</title>\n", last_file.id));
+    html.push_str(&format!("  <title>ALT_LAS Execution Report - {}</title>\n", last_file.title));
     html.push_str("  <style>\n");
-    html.push_str("    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }\n");
+    html.push_str("    body { font-family: sans-serif; margin: 20px; }\n");
     html.push_str("    h1, h2, h3 { color: #333; }\n");
-    html.push_str("    .container { max-width: 1200px; margin: 0 auto; }\n");
-    html.push_str("    .header { background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }\n");
-    html.push_str("    .section { margin-bottom: 30px; }\n");
-    html.push_str("    .task { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; }\n");
-    html.push_str("    .task-completed { border-left: 5px solid #4CAF50; }\n");
-    html.push_str("    .task-failed { border-left: 5px solid #F44336; }\n");
-    html.push_str("    .task-timeout { border-left: 5px solid #FF9800; }\n");
-    html.push_str("    .task-cancelled { border-left: 5px solid #9E9E9E; }\n");
-    html.push_str("    .artifact { background-color: #f9f9f9; padding: 10px; margin: 5px 0; border-radius: 3px; }\n");
-    html.push_str("    .metadata { font-family: monospace; white-space: pre-wrap; background-color: #f5f5f5; padding: 10px; border-radius: 3px; }\n");
-    html.push_str("    .summary { white-space: pre-wrap; background-color: #f5f5f5; padding: 15px; border-radius: 5px; }\n");
-    html.push_str("    .status-success { color: #4CAF50; }\n");
-    html.push_str("    .status-partial { color: #FF9800; }\n");
-    html.push_str("    .status-failure { color: #F44336; }\n");
+    html.push_str("    .summary { background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; }\n");
+    html.push_str("    .task { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px; }\n");
+    html.push_str("    .task-header { font-weight: bold; margin-bottom: 5px; }\n");
+    html.push_str("    .status-completed { border-left: 5px solid green; }\n");
+    html.push_str("    .status-failed { border-left: 5px solid red; }\n");
+    html.push_str("    .status-timeout { border-left: 5px solid orange; }\n");
+    html.push_str("    .status-cancelled { border-left: 5px solid gray; }\n");
+    html.push_str("    .status-pending { border-left: 5px solid lightblue; }\n");
+    html.push_str("    pre { background-color: #eee; padding: 10px; border-radius: 3px; white-space: pre-wrap; word-wrap: break-word; }\n");
+    html.push_str("    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }\n");
+    html.push_str("    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n");
+    html.push_str("    th { background-color: #f2f2f2; }\n");
     html.push_str("  </style>\n");
     html.push_str("</head>\n");
     html.push_str("<body>\n");
-    html.push_str("  <div class=\"container\">\n");
     
-    // Header section
-    html.push_str("    <div class=\"header\">\n");
-    html.push_str(&format!("      <h1>LAST File Report: {}</h1>\n", last_file.id));
-    html.push_str(&format!("      <p><strong>ALT File:</strong> {} ({})</p>\n", last_file.alt_file_title, last_file.alt_file_id));
-    html.push_str(&format!("      <p><strong>Execution ID:</strong> {}</p>\n", last_file.execution_id));
-    html.push_str(&format!("      <p><strong>Created:</strong> {}</p>\n", last_file.created_at.to_rfc3339()));
-    html.push_str(&format!("      <p><strong>Mode:</strong> {:?}</p>\n", last_file.mode));
+    // Report Title
+    html.push_str(&format!("<h1>ALT_LAS Execution Report: {}</h1>\n", last_file.title));
     
-    // Status with color coding
-    let status_class = match last_file.status {
-        LastFileStatus::Success => "status-success",
-        LastFileStatus::PartialSuccess => "status-partial",
-        LastFileStatus::Failure => "status-failure",
-    };
-    html.push_str(&format!("      <p><strong>Status:</strong> <span class=\"{}\">{:?}</span></p>\n", status_class, last_file.status));
-    
-    html.push_str(&format!("      <p><strong>Success Rate:</strong> {:.2}%</p>\n", last_file.success_rate * 100.0));
-    html.push_str(&format!("      <p><strong>Execution Time:</strong> {}ms</p>\n", last_file.execution_time_ms));
-    
+    // Summary Section
+    html.push_str("<div class=\"summary\">\n");
+    html.push_str("  <h2>Execution Summary</h2>\n");
+    html.push_str(&format!("  <p><strong>Execution ID:</strong> {}</p>\n", last_file.execution_id));
+    html.push_str(&format!("  <p><strong>ALT File ID:</strong> {}</p>\n", last_file.alt_file_id));
+    html.push_str(&format!("  <p><strong>Status:</strong> {:?}</p>\n", last_file.status));
+    html.push_str(&format!("  <p><strong>Success Rate:</strong> {:.2}%</p>\n", last_file.success_rate * 100.0));
+    html.push_str(&format!("  <p><strong>Total Execution Time:</strong> {} ms</p>\n", last_file.execution_time_ms));
+    html.push_str(&format!("  <p><strong>Mode:</strong> {:?}</p>\n", last_file.mode));
     if let Some(persona) = &last_file.persona {
-        html.push_str(&format!("      <p><strong>Persona:</strong> {}</p>\n", persona));
+        html.push_str(&format!("  <p><strong>Persona:</strong> {}</p>\n", persona));
     }
-    
-    if let Some(priority) = &last_file.priority {
-        html.push_str(&format!("      <p><strong>Priority:</strong> {:?}</p>\n", priority));
+    if let Some(summary_text) = &last_file.summary {
+        html.push_str("  <h3>Summary Text:</h3>\n");
+        html.push_str(&format!("  <pre>{}</pre>\n", summary_text));
     }
+    html.push_str("</div>\n");
     
-    if let Some(tags) = &last_file.tags {
-        if !tags.is_empty() {
-            html.push_str(&format!("      <p><strong>Tags:</strong> {}</p>\n", tags.join(", ")));
-        }
-    }
-    
-    html.push_str("    </div>\n");
-    
-    // Summary section
-    if let Some(summary) = &last_file.summary {
-        html.push_str("    <div class=\"section\">\n");
-        html.push_str("      <h2>Summary</h2>\n");
-        html.push_str(&format!("      <div class=\"summary\">{}</div>\n", summary));
-        html.push_str("    </div>\n");
-    }
-    
-    // Tasks section
-    html.push_str("    <div class=\"section\">\n");
-    html.push_str(&format!("      <h2>Tasks ({})</h2>\n", last_file.task_results.len()));
-    
-    for (task_id, result) in &last_file.task_results {
-        let task_class = match result.status {
-            TaskStatus::Completed => "task task-completed",
-            TaskStatus::Failed => "task task-failed",
-            TaskStatus::Timeout => "task task-timeout",
-            TaskStatus::Cancelled => "task task-cancelled",
-            _ => "task",
-        };
-        
-        html.push_str(&format!("      <div class=\"{}\">\n", task_class));
-        html.push_str(&format!("        <h3>{}</h3>\n", task_id));
-        html.push_str(&format!("        <p><strong>Status:</strong> {:?}</p>\n", result.status));
-        
-        if let Some(duration) = result.duration_ms {
-            html.push_str(&format!("        <p><strong>Duration:</strong> {}ms</p>\n", duration));
-        }
-        
-        if let Some(output) = &result.output {
-            html.push_str("        <p><strong>Output:</strong></p>\n");
-            html.push_str(&format!("        <div class=\"metadata\">{}</div>\n", serde_json::to_string_pretty(output).unwrap_or_default()));
-        }
-        
-        if let Some(error) = &result.error {
-            html.push_str(&format!("        <p><strong>Error:</strong> {}</p>\n", error));
-        }
-        
-        html.push_str("      </div>\n");
-    }
-    
-    html.push_str("    </div>\n");
-    
-    // Artifacts section
-    if let Some(artifacts) = &last_file.artifacts {
-        if !artifacts.is_empty() {
-            html.push_str("    <div class=\"section\">\n");
-            html.push_str(&format!("      <h2>Artifacts ({})</h2>\n", artifacts.len()));
-            
-            for artifact in artifacts {
-                html.push_str("      <div class=\"artifact\">\n");
-                html.push_str(&format!("        <p><strong>Name:</strong> {}</p>\n", artifact.name));
-                html.push_str(&format!("        <p><strong>Type:</strong> {:?}</p>\n", artifact.artifact_type));
-                html.push_str(&format!("        <p><strong>Task:</strong> {}</p>\n", artifact.task_id));
-                html.push_str(&format!("        <p><strong>Path:</strong> {}</p>\n", artifact.path));
-                
-                if let Some(size) = artifact.size_bytes {
-                    let size_str = if size < 1024 {
-                        format!("{} bytes", size)
-                    } else if size < 1024 * 1024 {
-                        format!("{:.2} KB", size as f64 / 1024.0)
-                    } else {
-                        format!("{:.2} MB", size as f64 / (1024.0 * 1024.0))
-                    };
-                    html.push_str(&format!("        <p><strong>Size:</strong> {}</p>\n", size_str));
-                }
-                
-                if let Some(mime) = &artifact.mime_type {
-                    html.push_str(&format!("        <p><strong>MIME Type:</strong> {}</p>\n", mime));
-                }
-                
-                html.push_str("      </div>\n");
+    // Task Results Section
+    html.push_str("<h2>Task Results</h2>\n");
+    if last_file.task_results.is_empty() {
+        html.push_str("<p>No task results available.</p>\n");
+    } else {
+        for (task_id, result) in &last_file.task_results {
+            let status_class = match result.status {
+                TaskStatus::Completed => "status-completed",
+                TaskStatus::Failed => "status-failed",
+                TaskStatus::Timeout => "status-timeout",
+                TaskStatus::Cancelled => "status-cancelled",
+                _ => "status-pending",
+            };
+            html.push_str(&format!("<div class=\"task {}\">\n", status_class));
+            html.push_str(&format!("  <div class=\"task-header\">Task ID: {}</div>\n", task_id));
+            html.push_str(&format!("  <p><strong>Status:</strong> {:?}</p>\n", result.status));
+            if let Some(duration) = result.duration_ms {
+                html.push_str(&format!("  <p><strong>Duration:</strong> {} ms</p>\n", duration));
             }
-            
-            html.push_str("    </div>\n");
+            if let Some(output) = &result.output {
+                html.push_str("  <h3>Output:</h3>\n");
+                html.push_str(&format!("  <pre>{}</pre>\n", serde_json::to_string_pretty(output).unwrap_or_default()));
+            }
+            if let Some(error) = &result.error {
+                html.push_str("  <h3>Error:</h3>\n");
+                html.push_str(&format!("  <pre>{}</pre>\n", error));
+            }
+            html.push_str("</div>\n");
         }
     }
     
-    // Metadata section
+    // Artifacts Section
+    html.push_str("<h2>Artifacts</h2>\n");
+    if let Some(artifacts) = &last_file.artifacts {
+        if artifacts.is_empty() {
+            html.push_str("<p>No artifacts generated.</p>\n");
+        } else {
+            html.push_str("<table>\n");
+            html.push_str("  <thead>\n");
+            html.push_str("    <tr><th>Name</th><th>Type</th><th>Task ID</th><th>Path</th><th>Size (Bytes)</th><th>MIME Type</th></tr>\n");
+            html.push_str("  </thead>\n");
+            html.push_str("  <tbody>\n");
+            for artifact in artifacts {
+                let size_str = artifact.size_bytes.map_or("N/A".to_string(), |s| s.to_string());
+                let mime_str = artifact.mime_type.clone().unwrap_or_else(|| "N/A".to_string());
+                // Make artifact path relative for display
+                let display_path = Path::new(&artifact.path)
+                    .file_name()
+                    .map(|name| format!("artifacts/{}", name.to_string_lossy()))
+                    .unwrap_or_else(|| artifact.path.clone());
+                    
+                html.push_str(&format!("    <tr><td>{}</td><td>{:?}</td><td>{}</td><td><a href=\"{}\">{}</a></td><td>{}</td><td>{}</td></tr>\n", 
+                                    artifact.name, artifact.artifact_type, artifact.task_id, display_path, display_path, size_str, mime_str));
+            }
+            html.push_str("  </tbody>\n");
+            html.push_str("</table>\n");
+        }
+    } else {
+        html.push_str("<p>No artifacts generated.</p>\n");
+    }
+    
+    // Metadata Section
+    html.push_str("<h2>Metadata</h2>\n");
     if let Some(metadata) = &last_file.metadata {
-        if !metadata.is_empty() {
-            html.push_str("    <div class=\"section\">\n");
-            html.push_str("      <h2>Metadata</h2>\n");
-            html.push_str(&format!("      <div class=\"metadata\">{}</div>\n", serde_json::to_string_pretty(metadata).unwrap_or_default()));
-            html.push_str("    </div>\n");
+        if metadata.is_empty() {
+            html.push_str("<p>No metadata available.</p>\n");
+        } else {
+            html.push_str("<table>\n");
+            html.push_str("  <thead>\n");
+            html.push_str("    <tr><th>Key</th><th>Value</th></tr>\n");
+            html.push_str("  </thead>\n");
+            html.push_str("  <tbody>\n");
+            for (key, value) in metadata {
+                html.push_str(&format!("    <tr><td>{}</td><td><pre>{}</pre></td></tr>\n", 
+                                    key, serde_json::to_string_pretty(value).unwrap_or_default()));
+            }
+            html.push_str("  </tbody>\n");
+            html.push_str("</table>\n");
+        }
+    } else {
+        html.push_str("<p>No metadata available.</p>\n");
+    }
+    
+    // Execution Graph Section (if available)
+    if let Some(graph) = &last_file.execution_graph {
+        html.push_str("<h2>Execution Graph</h2>\n");
+        // Try to embed SVG if generated
+        let svg_path = output_dir.join(format!("{}_graph.svg", last_file.id));
+        if svg_path.exists() {
+            html.push_str(&format!("<img src=\"{}_graph.svg\" alt=\"Execution Graph\" style=\"max-width: 100%;\">\n", last_file.id));
+        } else {
+            html.push_str("<p>Graph visualization (SVG) not generated or GraphViz not found.</p>\n");
         }
     }
     
-    // Close HTML
-    html.push_str("  </div>\n");
+    // HTML Footer
     html.push_str("</body>\n");
     html.push_str("</html>\n");
     
-    // Write HTML to file
-    fs::write(&html_path, html)?;
-    
-    info!("LAST file exported to HTML: {:?}", html_path);
-    Ok(html_path)
+    html
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alt_file::models::{AltFile, AltMode};
-    use crate::last_file::generator::generate_last_file;
-    use crate::task_manager::models::{TaskResult, TaskStatus};
-    use std::collections::HashMap;
-    use tempfile::TempDir;
-    
-    #[test]
-    fn test_write_and_read_last_file() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
+    use crate::last_file::models::{LastFile, LastFileStatus, TaskResult, TaskStatus, Artifact, ArtifactType};
+    use crate::alt_file::models::{AltMode, Priority};
+    use tempfile::tempdir;
+    use std::fs;
+    use std::io::Read;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn create_test_last_file() -> LastFile {
+        let mut last_file = LastFile::new(
+            "test_alt_id".to_string(),
+            "Test Execution".to_string(),
+            AltMode::Normal,
+            Some("tester".to_string()),
+        );
+        last_file.execution_id = Uuid::new_v4().to_string();
+        last_file.status = LastFileStatus::Success;
+        last_file.success_rate = 1.0;
+        last_file.execution_time_ms = 1234;
+        last_file.add_metadata("test_key", serde_json::json!("test_value"));
+        last_file.add_tag("test_tag");
+        last_file.set_priority(Priority::High);
         
-        // Create a simple ALT file
-        let mut alt_file = AltFile::new("Test ALT File".to_string());
-        alt_file.mode = Some(AltMode::Normal);
+        let mut task1_result = TaskResult::new("task1".to_string());
+        task1_result.status = TaskStatus::Completed;
+        task1_result.output = Some(serde_json::json!({ "result": "ok" }));
+        task1_result.duration_ms = Some(500);
         
-        // Create a task result
-        let mut task_result = TaskResult::new("task1".to_string());
-        task_result.mark_completed(serde_json::json!({
-            "output": "Task completed successfully"
-        }));
+        let mut task2_result = TaskResult::new("task2".to_string());
+        task2_result.status = TaskStatus::Failed;
+        task2_result.error = Some("Something went wrong".to_string());
+        task2_result.duration_ms = Some(734);
         
-        let mut task_results = HashMap::new();
-        task_results.insert("task1".to_string(), task_result);
+        let mut results = std::collections::HashMap::new();
+        results.insert("task1".to_string(), task1_result);
+        results.insert("task2".to_string(), task2_result);
+        last_file.add_task_results(results);
         
-        // Generate a LAST file
-        let last_file = generate_last_file(&alt_file, task_results);
+        last_file.generate_summary();
         
-        // Write LAST file to disk
-        let file_path = write_last_file(&last_file, temp_dir.path()).unwrap();
-        
-        // Read LAST file from disk
-        let read_last_file = read_last_file(&file_path).unwrap();
-        
-        // Verify the read LAST file matches the original
-        assert_eq!(read_last_file.id, last_file.id);
-        assert_eq!(read_last_file.alt_file_id, last_file.alt_file_id);
-        assert_eq!(read_last_file.status, last_file.status);
+        last_file
     }
-    
+
     #[test]
-    fn test_write_last_file_summary() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
+    fn test_write_and_read_last_file() -> Result<(), Box<dyn std::error::Error>> {
+        let last_file = create_test_last_file();
+        let temp_dir = tempdir()?;
         
-        // Create a simple ALT file
-        let mut alt_file = AltFile::new("Test ALT File".to_string());
-        alt_file.mode = Some(AltMode::Normal);
+        let file_path = write_last_file(&last_file, temp_dir.path())?;
+        assert!(file_path.exists());
         
-        // Create a task result
-        let mut task_result = TaskResult::new("task1".to_string());
-        task_result.mark_completed(serde_json::json!({
-            "output": "Task completed successfully"
-        }));
+        let loaded_last_file = read_last_file(&file_path)?;
+        assert_eq!(last_file.id, loaded_last_file.id);
+        assert_eq!(last_file.title, loaded_last_file.title);
+        assert_eq!(last_file.task_results.len(), loaded_last_file.task_results.len());
         
-        let mut task_results = HashMap::new();
-        task_results.insert("task1".to_string(), task_result);
-        
-        // Generate a LAST file
-        let last_file = generate_last_file(&alt_file, task_results);
-        
-        // Write LAST file summary to disk
-        let summary_path = write_last_file_summary(&last_file, temp_dir.path()).unwrap();
-        
-        // Read summary file
-        let summary_content = fs::read_to_string(summary_path).unwrap();
-        
-        // Verify the summary content
-        assert!(summary_content.contains("Execution Summary"));
-        assert!(summary_content.contains(&last_file.alt_file_title));
+        Ok(())
     }
-    
+
     #[test]
-    fn test_export_last_file_to_html() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
+    fn test_write_and_read_compressed_last_file() -> Result<(), Box<dyn std::error::Error>> {
+        let last_file = create_test_last_file();
+        let temp_dir = tempdir()?;
         
-        // Create a simple ALT file
-        let mut alt_file = AltFile::new("Test ALT File".to_string());
-        alt_file.mode = Some(AltMode::Normal);
+        let file_path = write_compressed_last_file(&last_file, temp_dir.path())?;
+        assert!(file_path.exists());
         
-        // Create a task result
-        let mut task_result = TaskResult::new("task1".to_string());
-        task_result.mark_completed(serde_json::json!({
-            "output": "Task completed successfully"
-        }));
+        let loaded_last_file = read_compressed_last_file(&file_path)?;
+        assert_eq!(last_file.id, loaded_last_file.id);
+        assert_eq!(last_file.title, loaded_last_file.title);
+        assert_eq!(last_file.task_results.len(), loaded_last_file.task_results.len());
         
-        let mut task_results = HashMap::new();
-        task_results.insert("task1".to_string(), task_result);
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_last_file_archive() -> Result<(), Box<dyn std::error::Error>> {
+        let mut last_file = create_test_last_file();
+        let temp_dir = tempdir()?;
+        let artifacts_dir = temp_dir.path().join("artifacts").join(&last_file.id);
+        fs::create_dir_all(&artifacts_dir)?;
         
-        // Generate a LAST file
-        let last_file = generate_last_file(&alt_file, task_results);
+        // Create a dummy artifact file
+        let artifact_file_path = artifacts_dir.join("output.txt");
+        fs::write(&artifact_file_path, "This is artifact content")?;
         
-        // Export LAST file to HTML
-        let html_path = export_last_file_to_html(&last_file, temp_dir.path()).unwrap();
+        let artifact = Artifact {
+            id: Uuid::new_v4().to_string(),
+            name: "output.txt".to_string(),
+            artifact_type: ArtifactType::Text,
+            task_id: "task1".to_string(),
+            path: artifact_file_path.to_string_lossy().to_string(),
+            created_at: Utc::now(),
+            size_bytes: Some(fs::metadata(&artifact_file_path)?.len()),
+            mime_type: Some("text/plain".to_string()),
+            metadata: None,
+        };
+        last_file.add_artifact(artifact);
         
-        // Read HTML file
-        let html_content = fs::read_to_string(html_path).unwrap();
+        let archive_path = create_last_file_archive(&last_file, temp_dir.path())?;
+        assert!(archive_path.exists());
         
-        // Verify the HTML content
-        assert!(html_content.contains("<!DOCTYPE html>"));
-        assert!(html_content.contains(&last_file.id));
-        assert!(html_content.contains(&last_file.alt_file_title));
+        // Verify archive content (basic check)
+        let file = File::open(&archive_path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        assert!(archive.by_name(&format!("last_{}.json", last_file.execution_id)).is_ok());
+        assert!(archive.by_name("artifacts/output.txt").is_ok());
+        
+        Ok(())
+    }
+
+    #[test]
+    fn test_export_last_file_to_html() -> Result<(), Box<dyn std::error::Error>> {
+        let last_file = create_test_last_file();
+        let temp_dir = tempdir()?;
+        
+        let html_path = export_last_file_to_html(&last_file, temp_dir.path())?;
+        assert!(html_path.exists());
+        
+        let html_content = fs::read_to_string(&html_path)?;
+        assert!(html_content.contains(&last_file.title));
+        assert!(html_content.contains("task1"));
+        assert!(html_content.contains("task2"));
+        assert!(html_content.contains("status-completed"));
+        assert!(html_content.contains("status-failed"));
+        
+        Ok(())
     }
 }

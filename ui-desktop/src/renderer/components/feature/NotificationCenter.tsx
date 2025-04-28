@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef, useTransition, useDeferredValue } from 'react';
 import {
   Box,
   Flex,
@@ -31,7 +31,8 @@ import {
   HStack,
   Tooltip,
   VisuallyHidden,
-  useToast
+  useToast,
+  Spinner
 } from '@chakra-ui/react';
 import { NotificationItem, Notification, NotificationType } from './NotificationItem';
 import { animations } from '@/styles/animations';
@@ -70,6 +71,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [unreadCount, setUnreadCount] = useState<number>(0);
   
+  // Add useTransition for state updates that might cause UI to feel sluggish
+  const [isPending, startTransition] = useTransition();
+  
+  // Use useDeferredValue for search query to prevent UI freezing during typing
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  
   // Update unread count when notifications change
   useEffect(() => {
     const count = notifications.filter(notification => !notification.read).length;
@@ -77,6 +84,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   }, [notifications]);
   
   // Filter notifications based on active filter and search query
+  // Use deferredSearchQuery instead of searchQuery for filtering
   const filteredNotifications = useMemo(() => {
     return notifications.filter(notification => {
       // Skip high priority notifications in focus mode
@@ -90,15 +98,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
         (activeFilter === 'unread' && !notification.read) ||
         notification.type === activeFilter;
       
-      // Apply search filter
+      // Apply search filter using deferred search query
       const matchesSearch = 
-        searchQuery === '' ||
-        notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        notification.message.toLowerCase().includes(searchQuery.toLowerCase());
+        deferredSearchQuery === '' ||
+        notification.title.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
+        notification.message.toLowerCase().includes(deferredSearchQuery.toLowerCase());
       
       return matchesFilter && matchesSearch;
     });
-  }, [notifications, activeFilter, searchQuery, isFocusModeActive]);
+  }, [notifications, activeFilter, deferredSearchQuery, isFocusModeActive]);
   
   // Group notifications by date
   const groupedNotifications = useMemo(() => {
@@ -139,7 +147,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   
   // Handle notification dismissal
   const handleDismiss = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+    });
     
     if (onNotificationDismiss) {
       onNotificationDismiss(id);
@@ -152,33 +163,39 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
       isClosable: true,
       position: "bottom-right"
     });
-  }, [onNotificationDismiss, toast]);
+  }, [onNotificationDismiss, toast, startTransition]);
   
   // Handle marking notification as read
   const handleMarkAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true } 
+            : notification
+        )
+      );
+    });
     
     if (onNotificationRead) {
       onNotificationRead(id);
     }
-  }, [onNotificationRead]);
+  }, [onNotificationRead, startTransition]);
   
   // Handle notification snooze
   const handleSnooze = useCallback((id: string, duration: number) => {
-    // Hide notification temporarily
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, snoozedUntil: new Date(Date.now() + duration * 1000) } 
-          : notification
-      )
-    );
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      // Hide notification temporarily
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, snoozedUntil: new Date(Date.now() + duration * 1000) } 
+            : notification
+        )
+      );
+    });
     
     toast({
       title: `Bildirim ${Math.floor(duration / 60)} dakika ertelendi`,
@@ -190,13 +207,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
     
     // Set timeout to "unsnooze" after duration
     setTimeout(() => {
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === id 
-            ? { ...notification, snoozedUntil: undefined } 
-            : notification
-        )
-      );
+      startTransition(() => {
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === id 
+              ? { ...notification, snoozedUntil: undefined } 
+              : notification
+          )
+        );
+      });
       
       toast({
         title: "Ertelenen bildirim geri döndü",
@@ -206,7 +225,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
         position: "bottom-right"
       });
     }, duration * 1000);
-  }, [toast]);
+  }, [toast, startTransition]);
   
   // Handle notification action click
   const handleActionClick = useCallback((id: string, actionIndex: number) => {
@@ -227,7 +246,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   
   // Handle clear all notifications
   const handleClearAll = useCallback(() => {
-    setNotifications([]);
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      setNotifications([]);
+    });
     
     if (onClearAll) {
       onClearAll();
@@ -240,11 +262,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
       isClosable: true,
       position: "bottom-right"
     });
-  }, [onClearAll, toast]);
+  }, [onClearAll, toast, startTransition]);
   
   // Handle clear read notifications
   const handleClearRead = useCallback(() => {
-    setNotifications(prev => prev.filter(notification => !notification.read));
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      setNotifications(prev => prev.filter(notification => !notification.read));
+    });
     
     if (onClearRead) {
       onClearRead();
@@ -257,23 +282,31 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
       isClosable: true,
       position: "bottom-right"
     });
-  }, [onClearRead, toast]);
+  }, [onClearRead, toast, startTransition]);
   
   // Handle filter change
   const handleFilterChange = useCallback((filter: NotificationFilter) => {
-    setActiveFilter(filter);
-  }, []);
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      setActiveFilter(filter);
+    });
+  }, [startTransition]);
   
   // Handle search change
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    // This update is not wrapped in startTransition because we want the input to be responsive
+    // The actual filtering is deferred using useDeferredValue
     setSearchQuery(e.target.value);
   }, []);
   
   // Mark all as read
   const handleMarkAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+    // Use startTransition to mark this state update as non-urgent
+    startTransition(() => {
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+    });
     
     if (onNotificationRead) {
       notifications.forEach(notification => {
@@ -290,7 +323,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
       isClosable: true,
       position: "bottom-right"
     });
-  }, [notifications, onNotificationRead, toast]);
+  }, [notifications, onNotificationRead, toast, startTransition]);
   
   // Get notification type counts
   const typeCounts = useMemo(() => {
@@ -493,44 +526,66 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
                 </HStack>
               </Box>
               
-              <Divider />
-              
-              {/* Notification List */}
-              {filteredNotifications.length > 0 ? (
-                <Box role="list" aria-label="Bildirimler">
-                  {groupedNotifications.map(([groupName, groupNotifications]) => (
-                    <Box key={groupName} mb={4}>
-                      <Text fontWeight="medium" mb={2} color="gray.500">{groupName}</Text>                      {groupNotifications.map(notification => (
-                        <NotificationItem
-                          key={notification.id}
-                          notification={notification}
-                          onDismiss={handleDismiss}
-                          onMarkAsRead={handleMarkAsRead}
-                          onActionClick={handleActionClick}
-                          onSnooze={handleSnooze} // Pass snooze handler
-                        />
-                      ))}
-                    </Box>
-                  ))}
-                </Box>
-              ) : (
-                <Flex 
-                  height="200px" 
-                  alignItems="center" 
-                  justifyContent="center" 
-                  flexDirection="column"
-                  p={8}
-                >
-                  <Box fontSize="4xl" mb={4} aria-hidden="true">📭</Box>
-                  <Text color="gray.500">
-                    {searchQuery 
-                      ? 'Arama kriterlerine uygun bildirim bulunamadı' 
-                      : activeFilter !== 'all' 
-                        ? `${activeFilter === 'unread' ? 'Okunmamış' : activeFilter} bildirim bulunamadı` 
-                        : 'Bildirim bulunmuyor'}
-                  </Text>
+              {/* Show loading indicator when transitions are pending */}
+              {isPending && (
+                <Flex justify="center" py={4}>
+                  <Spinner size="md" color="blue.500" thickness="3px" speed="0.65s" />
                 </Flex>
               )}
+              
+              {/* Notification List */}
+              <Box flex="1" overflowY="auto">
+                {groupedNotifications.length === 0 ? (
+                  <Flex 
+                    direction="column" 
+                    align="center" 
+                    justify="center" 
+                    py={10}
+                    color="gray.500"
+                  >
+                    <Box fontSize="4xl" mb={4} aria-hidden="true">📭</Box>
+                    <Text>Bildirim bulunamadı</Text>
+                    {searchQuery && (
+                      <Text fontSize="sm" mt={2}>
+                        "{searchQuery}" için sonuç yok
+                      </Text>
+                    )}
+                  </Flex>
+                ) : (
+                  <VStack spacing={6} align="stretch">
+                    {groupedNotifications.map(([groupName, groupItems]) => (
+                      <Box key={groupName}>
+                        <Text 
+                          fontWeight="medium" 
+                          fontSize="sm" 
+                          color="gray.500" 
+                          mb={2}
+                          id={`group-${groupName}`}
+                        >
+                          {groupName}
+                        </Text>
+                        <VStack 
+                          spacing={2} 
+                          align="stretch"
+                          role="region"
+                          aria-labelledby={`group-${groupName}`}
+                        >
+                          {groupItems.map(notification => (
+                            <NotificationItem
+                              key={notification.id}
+                              notification={notification}
+                              onDismiss={handleDismiss}
+                              onMarkAsRead={handleMarkAsRead}
+                              onSnooze={handleSnooze}
+                              onActionClick={handleActionClick}
+                            />
+                          ))}
+                        </VStack>
+                      </Box>
+                    ))}
+                  </VStack>
+                )}
+              </Box>
             </VStack>
           </DrawerBody>
         </DrawerContent>
@@ -539,6 +594,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   );
 });
 
+// Display name for debugging
 NotificationCenter.displayName = 'NotificationCenter';
 
 export default NotificationCenter;

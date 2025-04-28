@@ -24,7 +24,7 @@ Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması 
 - [x] **Görev 5.3.1:** Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
 - [x] **Görev 5.3.2:** Büyük listeler için sanal listeleme implementasyonu
 - [x] **Görev 5.3.3:** React.lazy ve Suspense ile kod bölme
-- [ ] **Görev 5.3.4:** useTransition ve useDeferredValue ile render önceliklendirme
+- [x] **Görev 5.3.4:** useTransition ve useDeferredValue ile render önceliklendirme
 - [ ] **Görev 5.3.5:** Performans profilleme ve darboğaz analizi
 
 ### Görev 5.4: Animasyon Optimizasyonu

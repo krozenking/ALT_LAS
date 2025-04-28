@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { Box, BoxProps, useColorMode, IconButton as ChakraIconButton } from '@chakra-ui/react';
+import React, { memo, useMemo, useEffect } from 'react';
+import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 import { animations } from '@/styles/animations'; // Import animations
 
@@ -8,12 +8,12 @@ export interface IconButtonProps extends BoxProps {
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
   isLoading?: boolean;
-  icon: React.ReactElement;
+  icon: React.ReactElement; // Use React.ReactElement for icon (from HEAD)
   onClick?: (e: React.MouseEvent) => void;
-  'aria-label': string; // Required for accessibility
+  'aria-label': string; // Required for accessibility (from HEAD)
 }
 
-// Custom comparison function for memoization
+// Custom comparison function for memoization to optimize performance
 const areEqual = (prevProps: IconButtonProps, nextProps: IconButtonProps) => {
   // Compare primitive props
   if (
@@ -22,7 +22,7 @@ const areEqual = (prevProps: IconButtonProps, nextProps: IconButtonProps) => {
     prevProps.isDisabled !== nextProps.isDisabled ||
     prevProps.isLoading !== nextProps.isLoading ||
     prevProps.onClick !== nextProps.onClick ||
-    prevProps['aria-label'] !== nextProps['aria-label']
+    prevProps['aria-label'] !== nextProps['aria-label'] // Compare 'aria-label'
   ) {
     return false;
   }
@@ -35,7 +35,7 @@ const areEqual = (prevProps: IconButtonProps, nextProps: IconButtonProps) => {
     }
   }
 
-  // Shallow compare icon element type
+  // Shallow compare icon element type (from HEAD)
   if (prevProps.icon?.type !== nextProps.icon?.type) {
     return false;
   }
@@ -51,13 +51,20 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
   isLoading = false,
   icon,
   onClick,
-  'aria-label': ariaLabel,
+  'aria-label': ariaLabel, // Destructure 'aria-label'
   ...rest
 }) => {
   const { colorMode } = useColorMode();
   const prefersReducedMotion = animations.performanceUtils.prefersReducedMotion();
 
-  // Apply glassmorphism effect based on color mode and variant
+  // Validate ariaLabel in development (from 4d81c5c)
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && (!ariaLabel || ariaLabel.trim() === '')) {
+      console.error('IconButton requires a non-empty aria-label prop for accessibility');
+    }
+  }, [ariaLabel]);
+
+  // Apply glassmorphism effect based on color mode and variant (from HEAD/4d81c5c - they are similar)
   const getGlassStyle = () => {
     if (variant === 'glass') {
       return colorMode === 'light'
@@ -100,21 +107,21 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     return {};
   };
 
-  // Size styles - memoized to prevent recalculation
-  const getSizeStyle = React.useMemo(() => {
+  // Size styles - memoized (from HEAD, using boxSize)
+  const sizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
-        return { boxSize: 8, fontSize: 'md' }; // Adjusted size for icon button
+        return { boxSize: 8, fontSize: 'md' };
       case 'lg':
-        return { boxSize: 12, fontSize: 'xl' }; // Adjusted size for icon button
+        return { boxSize: 12, fontSize: 'xl' };
       case 'md':
       default:
-        return { boxSize: 10, fontSize: 'lg' }; // Adjusted size for icon button
+        return { boxSize: 10, fontSize: 'lg' };
     }
   }, [size]);
 
-  // Disabled styles - memoized to prevent recalculation
-  const disabledStyle = React.useMemo(() => isDisabled ? {
+  // Disabled styles - memoized (from HEAD/4d81c5c - identical)
+  const disabledStyle = useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
@@ -122,8 +129,8 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
   } : {}, [isDisabled]);
 
-  // Loading styles with GPU-accelerated animation - memoized to prevent recalculation
-  const loadingStyle = React.useMemo(() => isLoading ? {
+  // Loading styles with GPU-accelerated animation - memoized (from HEAD)
+  const loadingStyle = useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
     _before: {
@@ -144,18 +151,18 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {}, [isLoading]);
 
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
-  const focusStyles = React.useMemo(() => !isDisabled && !isLoading ? {
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized (from 4d81c5c)
+  const focusStyles = useMemo(() => !isDisabled && !isLoading ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
     zIndex: 1, // Ensure focus style is visible
   } : {}, [isDisabled, isLoading, colorMode]);
 
-  // Memoize glass style to prevent recalculation on every render
-  const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
+  // Memoize glass style
+  const glassStyle = useMemo(() => getGlassStyle(), [variant, colorMode]);
 
-  // Memoize hover and active styles with GPU acceleration
-  const interactionStyles = React.useMemo(() => {
+  // Memoize hover and active styles with GPU acceleration (from HEAD)
+  const interactionStyles = useMemo(() => {
     // If user prefers reduced motion, use simpler animations or none
     if (prefersReducedMotion) {
       return {
@@ -167,7 +174,7 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
         } : {},
       };
     }
-    
+
     // Use GPU-accelerated animations for standard experience
     return {
       _hover: !isDisabled && !isLoading ? {
@@ -182,7 +189,7 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
     };
   }, [isDisabled, isLoading, prefersReducedMotion]);
 
-  // Apply GPU acceleration utilities
+  // Apply GPU acceleration utilities (from HEAD)
   const gpuAcceleration = animations.performanceUtils.forceGPU;
 
   return (
@@ -197,27 +204,37 @@ export const IconButton: React.FC<IconButtonProps> = memo(({
       fontWeight="medium"
       transition={animations.createAdaptiveTransition(['transform', 'box-shadow', 'background', 'opacity'], 'normal', animations.easings.easeOut)}
       position="relative" // Ensure position context for focus styles
-      _focus={{
-        ...focusStyles
-      }}
+      aria-label={ariaLabel} // Use the mandatory aria-label prop
+      // Apply focus styles using _focusVisible for better keyboard navigation experience (from 4d81c5c)
       _focusVisible={{
         ...focusStyles
       }}
-      {...interactionStyles}
-      {...glassStyle}
-      {...getSizeStyle}
-      {...disabledStyle}
-      {...loadingStyle}
-      {...gpuAcceleration} // Apply GPU acceleration
+      {...interactionStyles} // From HEAD
+      {...glassStyle} // Merged
+      {...sizeStyle} // From HEAD
+      {...disabledStyle} // Merged
+      {...loadingStyle} // From HEAD
+      {...gpuAcceleration} // Apply GPU acceleration (from HEAD)
       onClick={!isDisabled && !isLoading ? onClick : undefined}
+      // ARIA attributes for accessibility (merged)
       aria-disabled={isDisabled}
       aria-busy={isLoading}
-      aria-label={ariaLabel} // Use required aria-label
-      data-focus-visible-added // Support for focus-visible polyfill
-      tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order
+      tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order: disabled buttons are not focusable (from 4d81c5c)
       {...rest}
     >
-      {isLoading ? <Box opacity={0}>{icon}</Box> : icon}
+      {/* Wrap icon in a span for better accessibility structure (from 4d81c5c) */}
+      {isLoading ? (
+        <Box opacity={0} aria-hidden="true">{icon}</Box>
+      ) : (
+        <Box
+          aria-hidden="true" // Hide icon from screen readers as the button itself has an aria-label
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          {icon}
+        </Box>
+      )}
     </Box>
   );
 }, areEqual);

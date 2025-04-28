@@ -53,7 +53,7 @@ impl Default for TaskStatus {
 }
 
 /// Represents a task to be executed
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Task {
     pub id: String,
     pub description: String,
@@ -67,7 +67,7 @@ pub struct Task {
 }
 
 /// Represents the main ALT file structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AltFile {
     pub id: String,
     pub version: String,

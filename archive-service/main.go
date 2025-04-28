@@ -16,7 +16,7 @@ import (
 	"github.com/krozenking/ALT_LAS/archive-service/internal/logging"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/middleware"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/models"
-	"github.com/krozenking/ALT_LAS/archive-service/internal/repository"
+	"github.com/krozenking/ALT_LAS/archive-service/internal/repository_optimized" // Use optimized version
 	"github.com/krozenking/ALT_LAS/archive-service/internal/service"
 )
 

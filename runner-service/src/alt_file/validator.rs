@@ -209,8 +209,14 @@ pub fn validate_execution_sequence(alt_file: &AltFile, sequence: &[String]) -> R
 
     // Check if all tasks from ALT file are in the sequence
     if sequence_set.len() != task_id_set.len() {
-         let missing_tasks: Vec<String> = task_id_set.difference(&sequence_set.iter().map(|s| (*s).clone()).collect()).cloned().collect();
-         let extra_tasks: Vec<String> = sequence_set.difference(&task_id_set.iter().cloned().collect()).map(|s| (*s).clone()).collect();
+         let missing_tasks: Vec<String> = task_id_set.iter()
+             .filter(|id| !sequence_set.contains(id))
+             .cloned()
+             .collect();
+         let extra_tasks: Vec<String> = sequence.iter()
+             .filter(|id| !task_id_set.contains(&**id))
+             .cloned()
+             .collect();
          return Err(format!(
              "Sequence task count mismatch. Missing from sequence: {:?}. Extra in sequence: {:?}",
              missing_tasks, extra_tasks

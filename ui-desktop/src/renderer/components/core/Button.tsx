@@ -11,10 +11,10 @@ export interface ButtonProps extends BoxProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
-  'aria-label'?: string; // Add aria-label prop for accessibility
+  'aria-label'?: string; // Explicit aria-label for accessibility, especially for icon-only buttons
 }
 
-// Custom comparison function for memoization
+// Custom comparison function for memoization to optimize performance
 const areEqual = (prevProps: ButtonProps, nextProps: ButtonProps) => {
   // Compare primitive props
   if (
@@ -37,8 +37,7 @@ const areEqual = (prevProps: ButtonProps, nextProps: ButtonProps) => {
     }
   }
 
-  // Deep comparison is expensive, so we'll assume icons changed if they're provided
-  // This is a trade-off between performance and correctness
+  // Shallow compare icons - assumes change if presence changes
   if (
     (prevProps.leftIcon && !nextProps.leftIcon) ||
     (!prevProps.leftIcon && nextProps.leftIcon) ||
@@ -48,7 +47,6 @@ const areEqual = (prevProps: ButtonProps, nextProps: ButtonProps) => {
     return false;
   }
 
-  // If we got here, props are considered equal
   return true;
 };
 
@@ -154,17 +152,34 @@ export const Button: React.FC<ButtonProps> = memo(({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {}, [isLoading]);
 
-  // Determine aria-label: Use provided label, or children if it's a string, otherwise undefined
-  const finalAriaLabel = React.useMemo(() => 
-    ariaLabel || (typeof children === 'string' ? children : 'Button'), // Always provide a label for screen readers
-    [ariaLabel, children]
-  );
+  // Determine aria-label: Use provided label, or children if it's a string.
+  // Warn in development if an icon-only button lacks an explicit aria-label.
+  const finalAriaLabel = React.useMemo(() => {
+    if (ariaLabel) {
+      return ariaLabel;
+    }
+    if (typeof children === 'string') {
+      return children;
+    }
+    // For icon-only buttons, an explicit aria-label is crucial.
+    if ((leftIcon || rightIcon) && !children) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          'Warning: Icon-only button should have an explicit `aria-label` prop for accessibility.'
+        );
+      }
+      return 'Button'; // Provide a fallback, but warn.
+    }
+    return undefined; // Let the browser handle it if there's text content
+  }, [ariaLabel, children, leftIcon, rightIcon]);
 
   // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
+  // Ensure focus ring color has sufficient contrast against button backgrounds (WCAG 1.4.11)
+  // This might need adjustment based on the specific theme colors.
   const focusStyles = React.useMemo(() => !isDisabled && !isLoading ? {
     outline: 'none', // Remove default outline
-    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
-    zIndex: 1, // Ensure focus style is visible
+    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // High-contrast focus ring
+    zIndex: 1, // Ensure focus style is visible above other elements
   } : {}, [isDisabled, isLoading, colorMode]);
 
   // Memoize glass style to prevent recalculation on every render
@@ -213,9 +228,7 @@ export const Button: React.FC<ButtonProps> = memo(({
       fontWeight="medium"
       transition={animations.createAdaptiveTransition(['transform', 'box-shadow', 'background', 'opacity'], 'normal', animations.easings.easeOut)}
       position="relative" // Ensure position context for focus styles
-      _focus={{
-        ...focusStyles
-      }}
+      // Apply focus styles using _focusVisible for better keyboard navigation experience
       _focusVisible={{
         ...focusStyles
       }}
@@ -226,19 +239,22 @@ export const Button: React.FC<ButtonProps> = memo(({
       {...loadingStyle}
       {...gpuAcceleration} // Apply GPU acceleration
       onClick={!isDisabled && !isLoading ? onClick : undefined}
+      // ARIA attributes for accessibility
       aria-disabled={isDisabled}
       aria-busy={isLoading}
-      aria-label={finalAriaLabel} // Add computed aria-label
-      data-focus-visible-added // Support for focus-visible polyfill
-      tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order
+      aria-label={finalAriaLabel} // Computed aria-label
+      tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order: disabled buttons are not focusable
       {...rest}
     >
+      {/* Hide icons from screen readers as the button itself should have a label */}
       {leftIcon && (
         <Box mr={children ? 2 : 0} display="inline-flex" alignItems="center" aria-hidden="true">
           {leftIcon}
         </Box>
       )}
-      {isLoading ? <Box opacity={0}>{children}</Box> : children}
+      {/* Render children, but make them invisible during loading state */}
+      {isLoading ? <Box as="span" opacity={0}>{children}</Box> : children}
+      {/* Hide icons from screen readers */}
       {rightIcon && (
         <Box ml={children ? 2 : 0} display="inline-flex" alignItems="center" aria-hidden="true">
           {rightIcon}
@@ -252,3 +268,4 @@ export const Button: React.FC<ButtonProps> = memo(({
 Button.displayName = 'Button';
 
 export default Button;
+

@@ -166,7 +166,7 @@ impl AltParser {
         debug!("Validating ALT file against schema");
         
         // Convert ALT file to JSON for schema validation
-        let alt_file_json = serde_json::to_value(alt_file)
+        let _alt_file_json = serde_json::to_value(alt_file)
             .map_err(|e| AltParseError::JsonError(e))?;
         
         // Use jsonschema crate for validation

@@ -15,6 +15,8 @@ import uuid
 from dsl_schema import AltFile, TaskSegment, TaskParameter
 from enhanced_dsl_schema import Variable, ConditionalBranch, Condition, ConditionOperator
 from enhanced_language_processor import get_enhanced_language_processor
+from mode_handler import ModeHandler
+from persona_handler import PersonaHandler
 
 # Configure logging
 logger = logging.getLogger('enhanced_command_parser')
@@ -25,6 +27,8 @@ class EnhancedCommandParser:
     def __init__(self):
         """Initialize the enhanced command parser."""
         self.language_processor = get_enhanced_language_processor()
+        self.mode_handler = ModeHandler()
+        self.persona_handler = PersonaHandler()
     
     def parse_command(self, command: str, mode: str = "Normal", persona: str = "technical_expert", 
                      metadata: Optional[Dict[str, Any]] = None) -> AltFile:
@@ -63,6 +67,15 @@ class EnhancedCommandParser:
         chaos_level = None
         if mode == "Chaos":
             chaos_level = metadata.get("chaos_level", 5)  # Default to 5 if not specified
+        
+        # Apply mode effects to segments
+        if mode != "Normal":
+            logger.info(f"Applying {mode} mode effects to segments")
+            segments = self.mode_handler.apply_mode_effects(segments, mode, chaos_level, language)
+        
+        # Apply persona effects to segments
+        logger.info(f"Applying {persona} persona effects to segments")
+        segments = self.persona_handler.apply_persona_effects(segments, persona, language)
         
         # Create ALT file
         alt_file = AltFile(

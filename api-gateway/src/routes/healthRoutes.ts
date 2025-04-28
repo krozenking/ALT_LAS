@@ -3,6 +3,7 @@ import { authenticateJWT } from '../middleware/authMiddleware';
 import { authorizeRoute } from '../middleware/routeAuthMiddleware';
 import logger from '../utils/logger';
 import { segmentationService, runnerService, archiveService, serviceDiscovery } from '../services/serviceIntegration';
+import notificationService from '../services/notificationService';
 
 const router = Router();
 
@@ -260,20 +261,42 @@ router.get(
  * @param service Kontrol edilecek servis
  * @returns Sağlık durumu
  */
-async function checkServiceHealth(service: any): Promise<{ status: string, lastCheck: string, details?: any }> {
+async function checkServiceHealth(service: any, serviceName?: string): Promise<{ status: string, lastCheck: string, details?: any }> {
   try {
     const isHealthy = await service.healthCheck();
+    const status = isHealthy ? 'ok' : 'critical';
+    const timestamp = new Date().toISOString();
+    
+    // Send notification if service is not healthy
+    if (!isHealthy) {
+      notificationService.sendAlert('error', {
+        serviceName,
+        status,
+        message: `Servis sağlık kontrolü başarısız`,
+        timestamp
+      });
+    }
     
     return {
-      status: isHealthy ? 'ok' : 'critical',
-      lastCheck: new Date().toISOString()
+      status,
+      lastCheck: timestamp
     };
   } catch (error) {
+    const timestamp = new Date().toISOString();
     logger.error(`Servis sağlık kontrolü başarısız: ${error.message}`);
+    
+    // Send notification for service check error
+    notificationService.sendAlert('error', {
+      serviceName,
+      status: 'critical',
+      message: `Servis sağlık kontrolü hatası: ${error.message}`,
+      timestamp,
+      details: { error: error.message }
+    });
     
     return {
       status: 'critical',
-      lastCheck: new Date().toISOString(),
+      lastCheck: timestamp,
       details: {
         error: error.message
       }

@@ -1,4 +1,4 @@
-import React, { useId, memo } from 'react';
+import React, { useId, memo, useMemo, useEffect } from 'react';
 import { Box, BoxProps, useColorMode, Input as ChakraInput, FormLabel, FormHelperText, FormErrorMessage, FormControl } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 import { animations } from '@/styles/animations'; // Import animations
@@ -61,7 +61,6 @@ const areEqual = (prevProps: InputProps, nextProps: InputProps) => {
   }
 
   // Deep comparison is expensive, so we'll assume elements changed if they're provided
-  // This is a trade-off between performance and correctness
   if (
     (prevProps.leftElement && !nextProps.leftElement) ||
     (!prevProps.leftElement && nextProps.leftElement) ||
@@ -101,14 +100,29 @@ export const Input: React.FC<InputProps> = memo(({
   const { colorMode } = useColorMode();
   const generatedId = useId();
   const id = propId || `input-${generatedId}`;
+  const errorId = isInvalid && errorMessage ? `${id}-error` : undefined;
+  const helperId = helperText ? `${id}-helper` : undefined;
+  const labelId = label ? `${id}-label` : undefined;
   const prefersReducedMotion = animations.performanceUtils.prefersReducedMotion();
+
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
+  const focusStyles = useMemo(() => !isDisabled ? {
+    outline: 'none', // Remove default outline
+    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
+    borderColor: colorMode === 'light' ? 'blue.500' : 'blue.300',
+    zIndex: 1, // Ensure focus style is visible
+  } : {}, [isDisabled, colorMode]);
 
   // Apply glassmorphism effect based on color mode and variant
   const getGlassStyle = () => {
+    const baseFocusVisible = { _focusVisible: { ...focusStyles } }; // Use _focusVisible for keyboard focus
     if (variant === 'glass') {
-      return colorMode === 'light'
-        ? glassmorphism.create(0.7, 8, 1)
-        : glassmorphism.createDark(0.7, 8, 1);
+      return {
+        ...(colorMode === 'light'
+          ? glassmorphism.create(0.7, 8, 1)
+          : glassmorphism.createDark(0.7, 8, 1)),
+        ...baseFocusVisible,
+      };
     } else if (variant === 'glass-primary') {
       return {
         ...(colorMode === 'light'
@@ -118,6 +132,7 @@ export const Input: React.FC<InputProps> = memo(({
           ? 'rgba(62, 92, 118, 0.8)'
           : 'rgba(62, 92, 118, 0.6)',
         color: 'white',
+        ...baseFocusVisible,
       };
     } else if (variant === 'glass-secondary') {
       return {
@@ -128,20 +143,23 @@ export const Input: React.FC<InputProps> = memo(({
           ? 'rgba(199, 144, 96, 0.8)'
           : 'rgba(199, 144, 96, 0.6)',
         color: 'white',
+        ...baseFocusVisible,
       };
     } else if (variant === 'solid') {
       return {
         bg: colorMode === 'light' ? 'white' : 'gray.700',
         color: colorMode === 'light' ? 'gray.800' : 'white',
         border: '1px solid',
-        borderColor: colorMode === 'light' ? 'gray.200' : 'gray.600',
+        borderColor: colorMode === 'light' ? 'gray.200' : 'gray.700',
+        ...baseFocusVisible,
       };
     } else if (variant === 'outline') {
       return {
         bg: 'transparent',
         border: '1px solid',
-        borderColor: colorMode === 'light' ? 'gray.300' : 'gray.500',
+        borderColor: colorMode === 'light' ? 'gray.300' : 'gray.600',
         color: colorMode === 'light' ? 'gray.800' : 'white',
+        ...baseFocusVisible,
       };
     }
 
@@ -149,7 +167,7 @@ export const Input: React.FC<InputProps> = memo(({
   };
 
   // Size styles - memoized to prevent recalculation
-  const getSizeStyle = React.useMemo(() => {
+  const sizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
         return { px: 3, py: 1, fontSize: 'sm' };
@@ -162,16 +180,19 @@ export const Input: React.FC<InputProps> = memo(({
   }, [size]);
 
   // Disabled styles - memoized to prevent recalculation
-  const disabledStyle = React.useMemo(() => isDisabled ? {
+  const disabledStyle = useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
+    bg: colorMode === 'light' ? 'gray.100' : 'gray.700',
+    borderColor: colorMode === 'light' ? 'gray.200' : 'gray.600',
     _hover: {},
     _active: {},
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
-  } : {}, [isDisabled]);
+    _focusVisible: { boxShadow: 'none' },
+  } : {}, [isDisabled, colorMode]);
 
   // Invalid styles - memoized to prevent recalculation
-  const invalidStyle = React.useMemo(() => isInvalid ? {
+  const invalidStyle = useMemo(() => isInvalid ? {
     borderColor: 'red.500',
     boxShadow: `0 0 0 1px var(--chakra-colors-red-500)`,
     _hover: {
@@ -181,21 +202,17 @@ export const Input: React.FC<InputProps> = memo(({
       borderColor: 'red.500',
       boxShadow: `0 0 0 1px var(--chakra-colors-red-500)`,
     },
-  } : {}, [isInvalid]);
-
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
-  const focusStyles = React.useMemo(() => !isDisabled ? {
-    outline: 'none', // Remove default outline
-    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
-    borderColor: colorMode === 'light' ? 'blue.500' : 'blue.300',
-    zIndex: 1, // Ensure focus style is visible
-  } : {}, [isDisabled, colorMode]);
+    _focusVisible: {
+      borderColor: 'red.500',
+      boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(229, 62, 62, 0.6)' : 'rgba(252, 129, 129, 0.6)'}`, // Error focus ring
+    }
+  } : {}, [isInvalid, colorMode]);
 
   // Memoize glass style to prevent recalculation on every render
-  const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
+  const glassStyle = useMemo(() => getGlassStyle(), [variant, colorMode]);
 
   // Memoize hover and active styles with GPU acceleration
-  const interactionStyles = React.useMemo(() => {
+  const interactionStyles = useMemo(() => {
     // If user prefers reduced motion, use simpler animations or none
     if (prefersReducedMotion) {
       return {
@@ -207,7 +224,7 @@ export const Input: React.FC<InputProps> = memo(({
         } : {},
       };
     }
-    
+
     // Use GPU-accelerated animations for standard experience
     return {
       _hover: !isDisabled ? {
@@ -227,11 +244,11 @@ export const Input: React.FC<InputProps> = memo(({
   const gpuAcceleration = animations.performanceUtils.forceGPU;
 
   // Label animation styles
-  const labelAnimationStyles = React.useMemo(() => {
+  const labelAnimationStyles = useMemo(() => {
     if (prefersReducedMotion) {
       return {}; // No animation for reduced motion
     }
-    
+
     return {
       transition: animations.createAdaptiveTransition(['transform', 'color', 'font-size'], 'normal', animations.easings.easeOut),
       _focusWithin: {
@@ -241,6 +258,9 @@ export const Input: React.FC<InputProps> = memo(({
     };
   }, [prefersReducedMotion, colorMode]);
 
+  // Determine aria-describedby value
+  const describedBy = [errorId, helperId].filter(Boolean).join(' ') || undefined;
+
   return (
     <FormControl
       isDisabled={isDisabled}
@@ -249,8 +269,9 @@ export const Input: React.FC<InputProps> = memo(({
       {...rest}
     >
       {label && (
-        <FormLabel 
+        <FormLabel
           htmlFor={id}
+          id={labelId}
           position="relative"
           {...labelAnimationStyles}
           {...gpuAcceleration} // Apply GPU acceleration to label animations
@@ -258,13 +279,13 @@ export const Input: React.FC<InputProps> = memo(({
           {label}
         </FormLabel>
       )}
-      
+
       <Box position="relative">
         {leftElement && (
-          <Box 
-            position="absolute" 
-            left={2} 
-            top="50%" 
+          <Box
+            position="absolute"
+            left={2}
+            top="50%"
             transform="translate3d(0, -50%, 0)" // GPU-accelerated transform
             zIndex={2}
             {...gpuAcceleration} // Apply GPU acceleration
@@ -272,7 +293,7 @@ export const Input: React.FC<InputProps> = memo(({
             {leftElement}
           </Box>
         )}
-        
+
         <Box
           as="input"
           id={id}
@@ -290,27 +311,26 @@ export const Input: React.FC<InputProps> = memo(({
           borderRadius="md"
           width="100%"
           transition={animations.createAdaptiveTransition(['border-color', 'box-shadow', 'transform'], 'normal', animations.easings.easeOut)}
-          _focus={{
-            ...focusStyles
-          }}
-          _focusVisible={{
-            ...focusStyles
-          }}
           {...interactionStyles}
-          {...glassStyle}
-          {...getSizeStyle}
+          {...glassStyle} // Includes _focusVisible
+          {...sizeStyle}
           {...disabledStyle}
-          {...invalidStyle}
+          {...invalidStyle} // Includes invalid focus/focusVisible
           {...gpuAcceleration} // Apply GPU acceleration
           paddingLeft={leftElement ? 10 : undefined}
           paddingRight={rightElement ? 10 : undefined}
+          // ARIA attributes for accessibility
+          aria-invalid={isInvalid}
+          aria-required={isRequired} // Explicitly set aria-required
+          aria-describedby={describedBy} // Link to error/helper message if present
+          aria-labelledby={labelId} // Associate label if exists
         />
-        
+
         {rightElement && (
-          <Box 
-            position="absolute" 
-            right={2} 
-            top="50%" 
+          <Box
+            position="absolute"
+            right={2}
+            top="50%"
             transform="translate3d(0, -50%, 0)" // GPU-accelerated transform
             zIndex={2}
             {...gpuAcceleration} // Apply GPU acceleration
@@ -319,13 +339,13 @@ export const Input: React.FC<InputProps> = memo(({
           </Box>
         )}
       </Box>
-      
+
       {helperText && !isInvalid && (
-        <FormHelperText>{helperText}</FormHelperText>
+        <FormHelperText id={helperId}>{helperText}</FormHelperText>
       )}
-      
+
       {isInvalid && errorMessage && (
-        <FormErrorMessage>{errorMessage}</FormErrorMessage>
+        <FormErrorMessage id={errorId}>{errorMessage}</FormErrorMessage>
       )}
     </FormControl>
   );
@@ -335,3 +355,4 @@ export const Input: React.FC<InputProps> = memo(({
 Input.displayName = 'Input';
 
 export default Input;
+

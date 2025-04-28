@@ -12,15 +12,15 @@ Bu liste, İşçi 2 (Segmentation Uzmanı) için `updated_worker_tasks.md` ve `d
 - [x] **Görev 2.6:** DSL şemasını (`dsl_schema.py`, `enhanced_dsl_schema.py`) gözden geçir ve belgelendir (`dsl_documentation.md` oluşturuldu).
 - [x] **Görev 2.7:** Komut ayrıştırma algoritmasını (`command_parser.py`) incele, doğruluğunu test et ve iyileştir (`enhanced_command_parser.py` oluşturuldu).
 - [x] **Görev 2.8:** NLP entegrasyonunu (`language_processor.py`, `enhanced_language_processor.py`) kontrol et (spaCy/NLTK kullanımı, NER, dependency parsing vb.). Gerekirse modelleri güncelle/eğit (`enhanced_language_processor.py` oluşturuldu ve `enhanced_command_parser.py` içine entegre edildi).
-- [ ] **Görev 2.9:** `*.alt` dosya formatı işleme (`alt_file_handler.py`?) mekanizmasını doğrula. (Not: Bu işlevsellik `dsl_schema.py` ve `enhanced_dsl_schema.py` içinde görünüyor).
-- [ ] **Görev 2.10:** Ayrıştırma testlerinin (`test_command_parser.py`?, `test_dsl_schema.py`?) kapsamını ve doğruluğunu artır.
+- [x] **Görev 2.9:** `*.alt` dosya formatı işleme (`alt_file_handler.py`) mekanizmasını doğrula. (Not: Bu işlevsellik `dsl_schema.py` ve `enhanced_dsl_schema.py` içinde görünüyor).
+- [x] **Görev 2.10:** Ayrıştırma testlerinin (`test_command_parser.py`, `test_dsl_schema.py`) kapsamını ve doğruluğunu artır.
 
 **3. Mod & Persona Sistemi Tamamlama (Hafta 5-6)**
-- [ ] **Görev 2.11:** Çalışma modlarının (Normal, Dream, Explore, Chaos) ayrıştırma ve segmentasyon üzerindeki etkisini kodda (`enhanced_command_parser.py`?) doğrula ve/veya implemente et.
-- [ ] **Görev 2.12:** Chaos level parametresinin işlenmesini doğrula/implemente et.
-- [ ] **Görev 2.13:** Persona sisteminin etkisini doğrula/implemente et.
-- [ ] **Görev 2.14:** Mod ve persona ile ilgili metadata'nın `*.alt` dosyasına doğru şekilde eklendiğini kontrol et.
-- [ ] **Görev 2.15:** Mod ve persona davranışlarını test eden yeni test senaryoları ekle.
+- [x] **Görev 2.11:** Çalışma modlarının (Normal, Dream, Explore, Chaos) ayrıştırma ve segmentasyon üzerindeki etkisini kodda (`enhanced_command_parser.py`) doğrula ve/veya implemente et.
+- [x] **Görev 2.12:** Chaos level parametresinin işlenmesini doğrula/implemente et.
+- [x] **Görev 2.13:** Persona sisteminin etkisini doğrula/implemente et.
+- [x] **Görev 2.14:** Mod ve persona ile ilgili metadata'nın `*.alt` dosyasına doğru şekilde eklendiğini kontrol et.
+- [x] **Görev 2.15:** Mod ve persona davranışlarını test eden yeni test senaryoları ekle.
 
 **4. Segmentasyon & Metadata Geliştirme (Hafta 7-8)**
 - [ ] **Görev 2.16:** Ana komut segmentasyon algoritmasını (atomik görevlere ayırma, bağımlılık belirleme) incele, test et ve iyileştir (`enhanced_command_parser.py` içinde kısmen yapıldı, daha fazla iyileştirme gerekebilir).

@@ -19,4 +19,4 @@
   - [x] Write authentication and authorization tests
   - [x] Write token management tests
   - [x] Perform security vulnerability scanning
-- [ ] Commit and push changes to GitHub
+- [x] Commit and push changes to GitHub

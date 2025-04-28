@@ -1,4 +1,5 @@
 # Test Dockerfile for OS Integration Service
+# Based on secure template
 # Created by Worker 8 (Security and DevOps Specialist)
 
 # Build stage
@@ -27,47 +28,17 @@ RUN cargo build --release
 
 # Copy application code
 COPY os-integration-service/src ./src
+COPY os-integration-service/tests ./tests # Copy tests
 
-# Build the application
+# Build the application and tests
 RUN cargo build --release
+RUN cargo test --release --no-run # Build test executable
 
-# Install test tools
-RUN cargo install cargo-tarpaulin
-
-# Runtime stage
-FROM debian:bullseye-slim
+# Runtime stage (can use builder directly if only running tests)
+FROM builder AS tester
 
 # Set working directory
 WORKDIR /app
-
-# Install runtime dependencies (e.g., OpenSSL)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libssl1.1 \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r appgroup && \
-    useradd -r -g appgroup -d /app -s /sbin/nologin -c "Docker image user" appuser
-
-# Copy the compiled binary and tests from the builder stage
-COPY --from=builder /app/target/release/os-integration-service .
-COPY --from=builder /app/target/release/deps /app/deps
-
-# Set proper permissions
-RUN chown -R appuser:appgroup /app && \
-    chmod 755 os-integration-service
-
-# Switch to non-root user
-USER appuser
-
-# Expose port
-EXPOSE 8083
-
-# Environment variables for testing
-ENV RUST_BACKTRACE=1
-ENV ENVIRONMENT=test
 
 # Command to run tests
 CMD ["cargo", "test", "--release"]

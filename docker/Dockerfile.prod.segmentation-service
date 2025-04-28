@@ -1,4 +1,4 @@
-# Production Dockerfile for AI Orchestrator Service
+# Production Dockerfile for Segmentation Service
 # Based on secure template
 # Created by Worker 8 (Security and DevOps Specialist)
 
@@ -16,7 +16,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
-COPY ai-orchestrator/requirements.txt .
+COPY segmentation-service/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -36,7 +36,7 @@ COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY ai-orchestrator /app/
+COPY segmentation-service /app/
 
 # Set proper permissions
 RUN chown -R appuser:appuser /app && \
@@ -46,16 +46,16 @@ RUN chown -R appuser:appuser /app && \
 USER appuser
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8080
 
 # Add health check (standard production interval)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Environment variables for production
 ENV PYTHONPATH=/app
 ENV ENVIRONMENT=production
 
 # Command to run the application
-CMD ["python", "src/main.py"]
+CMD ["python", "app.py"]
 

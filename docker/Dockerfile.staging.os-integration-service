@@ -1,4 +1,5 @@
 # Staging Dockerfile for OS Integration Service
+# Based on secure template
 # Created by Worker 8 (Security and DevOps Specialist)
 
 # Build stage
@@ -13,6 +14,7 @@ RUN apt-get update && \
     build-essential \
     pkg-config \
     libssl-dev \
+    # Add any other OS-specific build dependencies needed
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Cargo files
@@ -37,11 +39,12 @@ FROM debian:bullseye-slim
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies (e.g., OpenSSL)
+# Install runtime dependencies (e.g., OpenSSL, specific OS libs)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libssl1.1 \
     ca-certificates \
+    # Add any other OS-specific runtime dependencies needed
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -70,3 +73,4 @@ ENV ENVIRONMENT=staging
 
 # Command to run the application
 CMD ["./os-integration-service"]
+

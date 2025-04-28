@@ -1,6 +1,7 @@
 # Development Dockerfile for OS Integration Service
 # Created by Worker 8 (Security and DevOps Specialist)
 
+# Assuming Rust similar to runner-service
 FROM rust:1.65-slim
 
 # Set working directory
@@ -14,11 +15,8 @@ RUN apt-get update && \
     libssl-dev \
     git \
     curl \
-    vim \
+    # Add any other OS-specific dev dependencies needed for integration
     && rm -rf /var/lib/apt/lists/*
-
-# Install cargo-watch for hot reloading
-RUN cargo install cargo-watch
 
 # Copy Cargo files
 COPY os-integration-service/Cargo.toml os-integration-service/Cargo.lock ./
@@ -27,12 +25,15 @@ COPY os-integration-service/Cargo.toml os-integration-service/Cargo.lock ./
 RUN mkdir src && \
     echo "fn main() {}" > src/main.rs
 
-# Build dependencies (debug build for development)
+# Build dependencies
 RUN cargo build
+
+# Copy application code (will be mounted via volume in dev)
+# COPY os-integration-service/src ./src
 
 # Create non-root user but allow write access for development
 RUN groupadd -r appgroup && \
-    useradd -r -g appgroup -d /app -s /bin/bash -c "Docker image user" appuser && \
+    useradd -r -g appgroup -d /app -s /sbin/nologin -c "Docker image user" appuser && \
     chown -R appuser:appgroup /app
 
 # Switch to non-root user
@@ -41,10 +42,13 @@ USER appuser
 # Expose port
 EXPOSE 8083
 
-# Add health check (Assuming a /health endpoint exists, adjust if needed)
+# Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost:8083/health || exit 1
 
-# Command to run the application with hot reloading
-# Note: Source code will be mounted at runtime via volume
-CMD ["cargo", "watch", "-x", "run"]
+# Command to run the application with hot reloading (using cargo-watch or similar)
+# Assuming cargo-watch is installed or added as a dependency
+# CMD ["cargo", "watch", "-x", "run"]
+# Fallback: build and run (less ideal for dev)
+CMD cargo build && ./target/debug/os-integration-service
+

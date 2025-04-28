@@ -1,4 +1,5 @@
 # Production Dockerfile for Archive Service
+# Based on secure template
 # Created by Worker 8 (Security and DevOps Specialist)
 
 # Build stage
@@ -56,3 +57,4 @@ ENV ENVIRONMENT=production
 
 # Command to run the application
 CMD ["./archive-service"]
+

@@ -1,4 +1,4 @@
-# Production Dockerfile for AI Orchestrator Service
+# Test Dockerfile for Segmentation Service
 # Based on secure template
 # Created by Worker 8 (Security and DevOps Specialist)
 
@@ -16,10 +16,11 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
-COPY ai-orchestrator/requirements.txt .
+COPY segmentation-service/requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies including test packages
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir pytest pytest-cov pytest-asyncio
 
 # Runtime stage
 FROM python:3.9-slim
@@ -36,7 +37,7 @@ COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY ai-orchestrator /app/
+COPY segmentation-service /app/
 
 # Set proper permissions
 RUN chown -R appuser:appuser /app && \
@@ -45,17 +46,12 @@ RUN chown -R appuser:appuser /app && \
 # Switch to non-root user
 USER appuser
 
-# Expose port
-EXPOSE 8000
+# Expose port (optional for testing)
+EXPOSE 8080
 
-# Add health check (standard production interval)
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Environment variables for production
+# Environment variables for testing
 ENV PYTHONPATH=/app
-ENV ENVIRONMENT=production
+ENV ENVIRONMENT=test
 
-# Command to run the application
-CMD ["python", "src/main.py"]
-
+# Command to run tests
+CMD ["pytest", "-xvs", "tests/"]

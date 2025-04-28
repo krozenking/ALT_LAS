@@ -1,4 +1,5 @@
 # Test Dockerfile for Archive Service
+# Based on secure template
 # Created by Worker 8 (Security and DevOps Specialist)
 
 # Build stage
@@ -13,48 +14,26 @@ RUN apk add --no-cache git build-base
 # Copy Go module files
 COPY archive-service/go.mod archive-service/go.sum ./
 
-# Download dependencies
+# Download dependencies (including test dependencies if any)
 RUN go mod download
+RUN go get -t ./...
 
-# Copy application code and tests
+# Copy application code
 COPY archive-service /app/
 
-# Build the application and test binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/archive-service ./cmd/server && \
-    CGO_ENABLED=0 GOOS=linux go test -c -o /app/archive-service_test
+# Build the test binary (optional, depends on test strategy)
+# RUN CGO_ENABLED=0 GOOS=linux go test -c -o /app/archive-service_test ./...
 
-# Runtime stage
-FROM alpine:latest
+# Runtime stage (can use builder directly if only running tests)
+FROM builder AS tester
 
 # Set working directory
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create non-root user (optional for test stage if not needed)
+# RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# USER appuser
 
-# Copy the statically linked binary and test binary from the builder stage
-COPY --from=builder /app/archive-service .
-COPY --from=builder /app/archive-service_test .
+# Command to run tests
+CMD ["go", "test", "-v", "./..."]
 
-# Copy migrations and config (if needed at runtime)
-COPY archive-service/migrations ./migrations
-COPY archive-service/config/config.yaml ./config/config.yaml
-
-# Set proper permissions
-RUN chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
-
-# Expose port
-EXPOSE 8081
-
-# Add health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:8081/health || exit 1
-
-# Environment variables for testing
-ENV ENVIRONMENT=test
-
-# Command to run tests (adjust as needed)
-CMD ["./archive-service_test", "-test.v"]

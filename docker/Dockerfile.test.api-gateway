@@ -45,13 +45,13 @@ RUN chown -R appuser:appgroup /app
 # Switch to non-root user
 USER appuser
 
-# Expose port
+# Expose port (optional for testing, but keep for consistency)
 EXPOSE 3000
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1
+# Add health check (optional for testing, can be removed if tests don't start a server)
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+#     CMD wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1
 
-# Command to run the application (or test runner)
-# Adjust CMD as needed for testing environment
-CMD ["node", "server.js"]
+# Command to run the tests using the script defined in package.json
+CMD ["npm", "test"]
+

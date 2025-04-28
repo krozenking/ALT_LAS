@@ -119,7 +119,11 @@ class AltFileHandler:
         """
         files = []
         for file in os.listdir(self.base_dir):
+            # Check for both .alt.yaml and .alt.json extensions
             if file.endswith('.alt.yaml') or file.endswith('.alt.yml') or file.endswith('.alt.json'):
+                files.append(file)
+            # Also check for files that might have been saved with just .yaml or .json extension
+            elif (file.endswith('.yaml') or file.endswith('.yml') or file.endswith('.json')) and '.alt.' in file:
                 files.append(file)
         
         return files

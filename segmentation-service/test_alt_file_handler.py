@@ -134,7 +134,9 @@ class TestAltFileHandler(unittest.TestCase):
     def test_save_alt_file_default_filename(self):
         """Test saving an ALT file with default filename"""
         # Save the ALT file with default filename
-        file_path = self.handler.save_alt_file(self.alt_file)
+        # Create a handler instance directly here
+        local_handler = AltFileHandler(self.test_dir)
+        file_path = local_handler.save_alt_file(self.alt_file)
         
         # Verify that the file was saved
         self.assertTrue(os.path.exists(file_path))
@@ -200,9 +202,9 @@ class TestAltFileHandler(unittest.TestCase):
     def test_list_alt_files(self):
         """Test listing ALT files"""
         # Save multiple ALT files
-        self.handler.save_alt_file(self.alt_file, "test1.alt.yaml")
-        self.handler.save_alt_file(self.alt_file, "test2.alt.json")
-        self.handler.save_alt_file(self.alt_file, "test3.alt.yaml")
+        self.handler.save_alt_file(self.alt_file, "test1.alt.yaml", format="yaml")
+        self.handler.save_alt_file(self.alt_file, "test2.alt.json", format="json")
+        self.handler.save_alt_file(self.alt_file, "test3.alt.yaml", format="yaml")
         
         # Create a non-ALT file
         with open(os.path.join(self.test_dir, "not_alt.txt"), "w") as f:

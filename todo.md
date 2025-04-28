@@ -1,126 +1,37 @@
-## İşçi 1: Kalan Görevler
+# ALT_LAS Worker 2 (Segmentation Uzmanı) Görev Listesi
 
-## Kimlik Doğrulama ve Yetkilendirme (Hafta 3-4)
-- [x] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
-  - [x] Route bazlı yetkilendirme
-  - [x] Dinamik izin kontrolü
-- [x] **Görev 1.8:** Kullanıcı yönetimi API'leri
-  - [x] Şifre sıfırlama ve değiştirme
-  - [x] Kullanıcı rolleri ve izinleri yönetimi
-- [x] **Görev 1.9:** Oturum yönetimi ve token yenileme
-  - [x] Oturum zaman aşımı yönetimi (Not: Blacklist iyileştirilmeli)
-  - [x] Çoklu cihaz oturum yönetimi
-- [ ] **Görev 1.10:** Güvenlik testleri
-  - [ ] Kimlik doğrulama testleri
-  - [ ] Yetkilendirme testleri
-  - [ ] Token yönetimi testleri
-  - [ ] Güvenlik açığı taraması
+## Temel Altyapı Doğrulama
+- [x] Proje kurulumu ve bağımlılıkların yüklenmesi
+- [x] Temel birim testlerinin mevcut durumunu kontrol etme ve eksikleri tamamlama
 
-## Servis Entegrasyonu (Hafta 5-6)
-- [x] **Görev 1.11:** Segmentation Service ile entegrasyon
-  - [x] Servis iletişim protokolü (HTTP/Axios)
-  - [x] Request/response şemaları (Swagger/Kodda tanımlı)
-  - [x] Hata işleme ve yeniden deneme stratejisi (Circuit Breaker)
-  - [x] Timeout ve circuit breaker yapılandırması (serviceIntegration.ts)
-- [x] **Görev 1.12:** Runner Service ile entegrasyon
-  - [x] Servis iletişim protokolü (HTTP/Axios)
-  - [x] Request/response şemaları (Swagger/Kodda tanımlı)
-  - [x] Hata işleme ve yeniden deneme stratejisi (Circuit Breaker)
-  - [x] Timeout ve circuit breaker yapılandırması (serviceIntegration.ts)
-- [x] **Görev 1.13:** Archive Service ile entegrasyon
-  - [x] Servis iletişim protokolü (HTTP/Axios)
-  - [x] Request/response şemaları (Swagger/Kodda tanımlı)
-  - [x] Hata işleme ve yeniden deneme stratejisi (Circuit Breaker)
-  - [x] Timeout ve circuit breaker yapılandırması (serviceIntegration.ts)
-- [x] **Görev 1.14:** Servis keşif mekanizması
-  - [x] Servis kayıt ve keşif sistemi (serviceDiscovery.ts)
-  - [x] Dinamik servis URL yapılandırması (serviceIntegration.ts)
-  - [x] Servis sağlık kontrolü (serviceDiscovery.ts & serviceIntegration.ts)
-  - [x] Servis yük dengeleme (Round-Robin in serviceDiscovery.ts)
-- [x] **Görev 1.15:** Servis sağlık kontrolü ve izleme
-  - [x] Sağlık kontrolü endpoint'leri (/health in healthRoutes.ts)
-  - [x] Servis durumu izleme (/health & /health/services in healthRoutes.ts)
-  - [x] Metrik toplama (Basic metrics in /health)
-  - [-] Alarm ve bildirim mekanizması (Atlandı)
+## DSL & Ayrıştırma İyileştirme
+- [x] `*.alt` dosya formatı işleme mekanizmasını doğrulama
+- [ ] Ayrıştırma testlerinin kapsamını ve doğruluğunu artırma
 
-## API Geliştirme ve Optimizasyon (Hafta 7-8)
-- [ ] **Görev 1.16:** Komut işleme API'leri
-  - [ ] Komut gönderme endpoint'i
-  - [ ] Komut durumu sorgulama
-  - [ ] Komut iptal etme
-  - [ ] Komut geçmişi
-- [ ] **Görev 1.17:** Dosya yönetimi API'leri (*.alt, *.last, *.atlas)
-  - [ ] Dosya yükleme endpoint'i
-  - [ ] Dosya indirme endpoint'i
-  - [ ] Dosya listeleme ve arama
-  - [ ] Dosya metadata yönetimi
-- [ ] **Görev 1.18:** Performans optimizasyonu ve caching
-  - [ ] Response caching stratejisi
-  - [ ] Redis cache entegrasyonu
-  - [ ] Query optimizasyonu
-  - [ ] Payload sıkıştırma
-- [ ] **Görev 1.19:** API versiyonlama stratejisi
-  - [ ] URL/header tabanlı versiyonlama
-  - [ ] Versiyon geçiş stratejisi
-  - [ ] Geriye dönük uyumluluk
-  - [ ] Versiyon dokümantasyonu
-- [ ] **Görev 1.20:** Kapsamlı API testleri
-  - [ ] Birim testleri
-  - [ ] Entegrasyon testleri
-  - [ ] Performans testleri
-  - [ ] Yük testleri
+## Mod & Persona Sistemi Tamamlama
+- [ ] Çalışma modlarının (Normal, Dream, Explore, Chaos) ayrıştırma ve segmentasyon üzerindeki etkisini kodda doğrulama/implemente etme
+- [ ] Chaos level parametresinin işlenmesini doğrulama/implemente etme
+- [ ] Persona sisteminin etkisini doğrulama/implemente etme
+- [ ] Mod ve persona ile ilgili metadata'nın `*.alt` dosyasına doğru şekilde eklendiğini kontrol etme
+- [ ] Mod ve persona davranışlarını test eden yeni test senaryoları ekleme
 
-## İleri Özellikler (Hafta 9-10)
-- [ ] **Görev 1.21:** WebSocket desteği
-  - [ ] WebSocket sunucu yapılandırması
-  - [ ] Bağlantı yönetimi
-  - [ ] Mesaj formatları ve protokol
-  - [ ] Oda ve kanal yönetimi
-- [ ] **Görev 1.22:** Gerçek zamanlı bildirim sistemi
-  - [ ] Bildirim modeli ve tipleri
-  - [ ] Bildirim gönderme mekanizması
-  - [ ] Bildirim aboneliği
-  - [ ] Okunmamış bildirim yönetimi
-- [ ] **Görev 1.23:** API kullanım analitikleri
-  - [ ] Kullanım metriklerinin toplanması
-  - [ ] Analitik raporlama
-  - [ ] Kullanım trendleri ve istatistikler
-  - [ ] Performans izleme
-- [ ] **Görev 1.24:** API dokümantasyonunun genişletilmesi
-  - [ ] Detaylı endpoint açıklamaları
-  - [ ] Örnek istek ve yanıtlar
-  - [ ] Hata kodları ve açıklamaları
-  - [ ] Kullanım senaryoları
-- [ ] **Görev 1.25:** Yük testi ve ölçeklendirme
-  - [ ] Yük testi senaryoları
-  - [ ] Performans darboğazlarının tespiti
-  - [ ] Ölçeklendirme stratejisi
-  - [ ] Otomatik ölçeklendirme yapılandırması
+## Segmentasyon & Metadata Geliştirme
+- [ ] Ana komut segmentasyon algoritmasını inceleme, test etme ve iyileştirme
+- [ ] Otomatik metadata ekleme ve etiketleme sistemini gözden geçirme/geliştirme
+- [ ] Bağlam analizi ve referans çözümleme yeteneklerini ekleme/iyileştirme
+- [ ] Komut içindeki değişkenlerin çıkarılması ve işlenmesini sağlama
+- [ ] Kapsamlı segmentasyon testleri ekleme
 
-## Entegrasyon ve Stabilizasyon (Hafta 11-12)
-- [ ] **Görev 1.26:** UI entegrasyonu
-  - [ ] UI gereksinimlerine göre API uyarlamaları
-  - [ ] UI-spesifik endpoint'ler
-  - [ ] UI performans optimizasyonu
-  - [ ] CORS ve güvenlik yapılandırması
-- [ ] **Görev 1.27:** E2E testleri
-  - [ ] E2E test senaryoları
-  - [ ] Test otomasyonu
-  - [ ] Test raporlama
-  - [ ] Hata ayıklama ve düzeltme
-- [ ] **Görev 1.28:** Hata ayıklama ve performans iyileştirmeleri
-  - [ ] Profiling ve darboğaz analizi
-  - [ ] Bellek sızıntısı tespiti ve düzeltme
-  - [ ] CPU kullanımı optimizasyonu
-  - [ ] I/O optimizasyonu
-- [ ] **Görev 1.29:** Dokümantasyon güncellemesi
-  - [ ] API dokümantasyonu güncellemesi
-  - [ ] Deployment dokümantasyonu
-  - [ ] Geliştirici kılavuzu
-  - [ ] Sorun giderme kılavuzu
-- [ ] **Görev 1.30:** Dağıtım ve CI/CD entegrasyonu
-  - [ ] Docker yapılandırması
-  - [ ] CI/CD pipeline entegrasyonu
-  - [ ] Deployment scriptleri
-  - [ ] Ortam yapılandırması (dev, test, prod)
+## API & Entegrasyon Doğrulama
+- [ ] API Gateway ile entegrasyonu doğrulama
+- [ ] Runner Service ile entegrasyonu kontrol etme ve test etme
+- [ ] API dokümantasyonunu gözden geçirme ve güncelleme
+- [ ] Entegrasyon testlerini gözden geçirme ve genişletme
+- [ ] Performans optimizasyonu yapma
 
+## İleri Özellikler & Stabilizasyon
+- [ ] Çoklu dil desteğini test etme ve iyileştirme
+- [ ] Task Prioritization Modülü işlevselliğini doğrulama
+- [ ] Hata ayıklama ve genel performans iyileştirmeleri yapma
+- [ ] Kod içi dokümantasyonu ve README dosyasını güncelleme
+- [ ] CI/CD pipeline'ının servis ile uyumlu çalıştığından emin olma

@@ -5,10 +5,11 @@ use std::io::{self, Write};
 use log::{info, error, debug, warn};
 use serde_json;
 use chrono::Utc;
+use uuid::Uuid;
 
-use crate::alt_file::models::{AltFile, AltMode};
+use crate::alt_file::models::{AltFile, AltMode, Task as AltTask};
 use crate::task_manager::models::{TaskResult, TaskStatus};
-use super::models::{LastFile, LastFileStatus, Artifact, ArtifactType, create_artifact};
+use super::models::{LastFile, LastFileStatus, Artifact, ArtifactType, create_artifact, ExecutionGraph, ExecutionNode, ExecutionEdge, DependencyType};
 
 /// Generates a LAST file from an ALT file and task results
 pub fn generate_last_file(alt_file: &AltFile, task_results: HashMap<String, TaskResult>) -> LastFile {
@@ -53,8 +54,8 @@ pub fn generate_last_file(alt_file: &AltFile, task_results: HashMap<String, Task
         last_file.set_priority(priority.clone());
     }
     
-    // Create execution graph
-    last_file.create_execution_graph();
+    // Create execution graph using the original ALT file tasks
+    last_file.create_execution_graph_from_alt(alt_file);
     
     // Generate summary
     last_file.generate_summary();
@@ -188,7 +189,7 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
     info!("Extracting artifacts from task results for LAST file: {}", last_file.id);
     
     // Create artifacts directory if it doesn't exist
-    let artifacts_dir = output_dir.join("artifacts").join(&last_file.id);
+    let artifacts_dir = output_dir.join("artifacts").join(&last_file.execution_id);
     if !artifacts_dir.exists() {
         if let Err(e) = fs::create_dir_all(&artifacts_dir) {
             warn!("Failed to create artifacts directory: {}", e);
@@ -203,34 +204,39 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
             // Check if output contains file paths
             if let Some(files) = output.get("files").and_then(|f| f.as_array()) {
                 for (i, file) in files.iter().enumerate() {
-                    if let Some(file_path) = file.as_str() {
+                    if let Some(file_path_str) = file.as_str() {
+                        let file_path = Path::new(file_path_str);
+                        
                         // Determine artifact type based on file extension
-                        let path = Path::new(file_path);
-                        let artifact_type = match path.extension().and_then(|e| e.to_str()) {
+                        let artifact_type = match file_path.extension().and_then(|e| e.to_str()) {
                             Some("jpg") | Some("jpeg") | Some("png") | Some("gif") | Some("webp") => ArtifactType::Image,
                             Some("json") => ArtifactType::Json,
                             Some("txt") | Some("md") | Some("html") | Some("css") | Some("js") => ArtifactType::Text,
+                            Some("log") => ArtifactType::Log,
                             _ => ArtifactType::File,
                         };
                         
                         // Create artifact name from filename or index
-                        let name = path.file_name()
+                        let name = file_path.file_name()
                             .and_then(|n| n.to_str())
                             .unwrap_or(&format!("artifact_{}", i))
                             .to_string();
                         
                         // Copy file to artifacts directory if it exists
-                        if Path::new(file_path).exists() {
+                        if file_path.exists() {
                             let dest_path = artifacts_dir.join(&name);
                             if let Err(e) = fs::copy(file_path, &dest_path) {
-                                warn!("Failed to copy artifact file: {}", e);
+                                warn!("Failed to copy artifact file 	{}: {}", file_path.display(), e);
                                 continue;
                             }
                             
                             // Get file size
                             let size = match fs::metadata(file_path) {
                                 Ok(metadata) => Some(metadata.len()),
-                                Err(_) => None,
+                                Err(e) => {
+                                    warn!("Failed to get metadata for artifact file {}: {}", file_path.display(), e);
+                                    None
+                                }
                             };
                             
                             // Create and add artifact
@@ -244,7 +250,7 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
                             artifact.size_bytes = size;
                             
                             // Add MIME type based on extension
-                            artifact.mime_type = match path.extension().and_then(|e| e.to_str()) {
+                            artifact.mime_type = match file_path.extension().and_then(|e| e.to_str()) {
                                 Some("jpg") | Some("jpeg") => Some("image/jpeg".to_string()),
                                 Some("png") => Some("image/png".to_string()),
                                 Some("gif") => Some("image/gif".to_string()),
@@ -255,10 +261,13 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
                                 Some("html") => Some("text/html".to_string()),
                                 Some("css") => Some("text/css".to_string()),
                                 Some("js") => Some("application/javascript".to_string()),
+                                Some("log") => Some("text/plain".to_string()),
                                 _ => Some("application/octet-stream".to_string()),
                             };
                             
                             last_file.add_artifact(artifact);
+                        } else {
+                            warn!("Artifact source file not found, skipping: {}", file_path.display());
                         }
                     }
                 }
@@ -277,7 +286,10 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
                         // Get file size
                         let size = match fs::metadata(&artifact_path) {
                             Ok(metadata) => Some(metadata.len()),
-                            Err(_) => None,
+                            Err(e) => {
+                                warn!("Failed to get metadata for text artifact {}: {}", artifact_path.display(), e);
+                                None
+                            }
                         };
                         
                         // Create and add artifact
@@ -368,14 +380,14 @@ pub fn generate_execution_graph_visualization(last_file: &LastFile, output_dir: 
     }
     
     // Write DOT file
-    let dot_path = output_dir.join(format!("{}_graph.dot", last_file.id));
+    let dot_path = output_dir.join(format!("{}_graph.dot", last_file.execution_id));
     if let Err(e) = fs::write(&dot_path, &dot) {
         error!("Failed to write DOT file: {}", e);
         return None;
     }
     
     // Try to generate SVG using GraphViz if available
-    let svg_path = output_dir.join(format!("{}_graph.svg", last_file.id));
+    let svg_path = output_dir.join(format!("{}_graph.svg", last_file.execution_id));
     let result = std::process::Command::new("dot")
         .args(["-Tsvg", "-o", svg_path.to_str().unwrap_or("")])
         .arg(dot_path.to_str().unwrap_or(""))
@@ -407,117 +419,157 @@ mod tests {
     use uuid::Uuid;
     use tempfile::TempDir;
     
-    fn create_test_alt_file() -> AltFile {
-        let mut alt_file = AltFile::new("Test ALT File".to_string());
-        alt_file.mode = Some(AltMode::Normal);
+    fn create_test_alt_file_for_graph() -> AltFile {
+        let mut alt_file = AltFile::new("Graph Test ALT".to_string());
         
-        let task1 = Task {
+        let task1 = AltTask {
             id: "task1".to_string(),
-            description: "First task".to_string(),
+            description: "Task 1".to_string(),
             dependencies: None,
-            parameters: None,
-            timeout_seconds: None,
-            retry_count: None,
-            status: None,
-            priority: None,
-            tags: None,
+            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
         };
-        
-        let task2 = Task {
+        let task2 = AltTask {
             id: "task2".to_string(),
-            description: "Second task".to_string(),
+            description: "Task 2".to_string(),
             dependencies: Some(vec!["task1".to_string()]),
-            parameters: None,
-            timeout_seconds: None,
-            retry_count: None,
-            status: None,
-            priority: None,
-            tags: None,
+            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
+        };
+        let task3 = AltTask {
+            id: "task3".to_string(),
+            description: "Task 3".to_string(),
+            dependencies: Some(vec!["task1".to_string()]),
+            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
+        };
+        let task4 = AltTask {
+            id: "task4".to_string(),
+            description: "Task 4".to_string(),
+            dependencies: Some(vec!["task2".to_string(), "task3".to_string()]),
+            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
         };
         
         alt_file.add_task(task1);
         alt_file.add_task(task2);
+        alt_file.add_task(task3);
+        alt_file.add_task(task4);
         
         alt_file
     }
-    
-    fn create_test_task_results() -> HashMap<String, TaskResult> {
+
+    fn create_test_results_for_graph() -> HashMap<String, TaskResult> {
         let mut results = HashMap::new();
         
-        // Create successful task result
-        let mut result1 = TaskResult::new("task1".to_string());
-        result1.mark_running();
-        result1.mark_completed(serde_json::json!({
-            "output": "Task 1 completed successfully",
-            "text": "This is the output text from task 1"
-        }));
+        let mut res1 = TaskResult::new("task1".to_string());
+        res1.status = TaskStatus::Completed;
+        res1.duration_ms = Some(100);
+        results.insert("task1".to_string(), res1);
         
-        // Create failed task result
-        let mut result2 = TaskResult::new("task2".to_string());
-        result2.mark_running();
-        result2.mark_failed("Task 2 failed".to_string());
+        let mut res2 = TaskResult::new("task2".to_string());
+        res2.status = TaskStatus::Completed;
+        res2.duration_ms = Some(200);
+        results.insert("task2".to_string(), res2);
         
-        results.insert("task1".to_string(), result1);
-        results.insert("task2".to_string(), result2);
+        let mut res3 = TaskResult::new("task3".to_string());
+        res3.status = TaskStatus::Failed;
+        res3.duration_ms = Some(150);
+        results.insert("task3".to_string(), res3);
+        
+        let mut res4 = TaskResult::new("task4".to_string());
+        res4.status = TaskStatus::Cancelled; // Cancelled because task3 failed
+        results.insert("task4".to_string(), res4);
         
         results
     }
-    
+
     #[test]
     fn test_generate_last_file() {
-        let alt_file = create_test_alt_file();
-        let task_results = create_test_task_results();
+        let alt_file = create_test_alt_file_for_graph();
+        let results = create_test_results_for_graph();
         
-        let last_file = generate_last_file(&alt_file, task_results);
+        let last_file = generate_last_file(&alt_file, results);
         
         assert_eq!(last_file.alt_file_id, alt_file.id);
-        assert_eq!(last_file.alt_file_title, "Test ALT File");
+        assert_eq!(last_file.task_results.len(), 4);
         assert_eq!(last_file.status, LastFileStatus::PartialSuccess);
-        assert_eq!(last_file.task_results.len(), 2);
-        assert!(last_file.success_rate > 0.0 && last_file.success_rate < 1.0);
-        assert!(last_file.execution_time_ms > 0);
+        assert_eq!(last_file.success_rate, 0.5); // 2 out of 4 completed
         assert!(last_file.summary.is_some());
         assert!(last_file.execution_graph.is_some());
+        
+        let graph = last_file.execution_graph.unwrap();
+        assert_eq!(graph.nodes.len(), 4);
+        assert_eq!(graph.edges.len(), 4); // task1->task2, task1->task3, task2->task4, task3->task4
     }
-    
+
     #[test]
     fn test_generate_failure_last_file() {
-        let alt_file = create_test_alt_file();
-        let error_message = "Failed to process ALT file";
+        let alt_file = create_test_alt_file_for_graph();
+        let error_msg = "Critical failure during setup";
         
-        let last_file = generate_failure_last_file(&alt_file, error_message);
+        let last_file = generate_failure_last_file(&alt_file, error_msg);
         
         assert_eq!(last_file.alt_file_id, alt_file.id);
         assert_eq!(last_file.status, LastFileStatus::Failure);
         assert_eq!(last_file.success_rate, 0.0);
         assert!(last_file.summary.is_some());
-        assert!(last_file.summary.unwrap().contains(error_message));
+        assert!(last_file.summary.unwrap().contains(error_msg));
+        assert!(last_file.metadata.unwrap().contains_key("error"));
     }
-    
+
     #[test]
-    fn test_extract_artifacts_from_results() {
-        let alt_file = create_test_alt_file();
-        let mut task_results = create_test_task_results();
-        
-        // Add a file path to the task result
-        let temp_dir = TempDir::new().unwrap();
-        let test_file_path = temp_dir.path().join("test_file.txt");
-        fs::write(&test_file_path, "Test file content").unwrap();
-        
-        if let Some(result) = task_results.get_mut("task1") {
-            if let Some(output) = result.output.as_mut() {
-                let files = vec![test_file_path.to_string_lossy().to_string()];
-                output["files"] = serde_json::json!(files);
-            }
-        }
-        
-        let last_file = generate_last_file(&alt_file, task_results);
+    fn test_extract_artifacts() -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = TempDir::new()?;
         let output_dir = temp_dir.path();
         
-        let enhanced_last_file = extract_artifacts_from_results(last_file, output_dir);
+        // Create dummy source files
+        let source_file1_path = output_dir.join("source1.txt");
+        fs::write(&source_file1_path, "Source file 1 content")?;
+        let source_file2_path = output_dir.join("image.png");
+        fs::write(&source_file2_path, "PNG data")?;
         
-        // Check that artifacts were extracted
-        assert!(enhanced_last_file.artifacts.is_some());
-        assert!(enhanced_last_file.artifacts.as_ref().unwrap().len() > 0);
+        // Create task results with file paths
+        let mut results = HashMap::new();
+        let mut res1 = TaskResult::new("task1".to_string());
+        res1.status = TaskStatus::Completed;
+        res1.output = Some(serde_json::json!({
+            "files": [source_file1_path.to_str().unwrap(), source_file2_path.to_str().unwrap()]
+        }));
+        results.insert("task1".to_string(), res1);
+        
+        let mut res2 = TaskResult::new("task2".to_string());
+        res2.status = TaskStatus::Completed;
+        res2.output = Some(serde_json::json!({
+            "text": "This is text output from task 2"
+        }));
+        results.insert("task2".to_string(), res2);
+        
+        let alt_file = AltFile::new("Artifact Test".to_string());
+        let mut last_file = generate_last_file(&alt_file, results);
+        
+        // Extract artifacts
+        last_file = extract_artifacts_from_results(last_file, output_dir);
+        
+        assert!(last_file.artifacts.is_some());
+        let artifacts = last_file.artifacts.unwrap();
+        assert_eq!(artifacts.len(), 3); // source1.txt, image.png, task2_output.txt
+        
+        // Check artifact details
+        let txt_artifact = artifacts.iter().find(|a| a.name == "source1.txt").unwrap();
+        assert_eq!(txt_artifact.artifact_type, ArtifactType::Text);
+        assert!(txt_artifact.path.contains(&last_file.execution_id));
+        assert!(Path::new(&txt_artifact.path).exists());
+        
+        let img_artifact = artifacts.iter().find(|a| a.name == "image.png").unwrap();
+        assert_eq!(img_artifact.artifact_type, ArtifactType::Image);
+        assert!(img_artifact.path.contains(&last_file.execution_id));
+        assert!(Path::new(&img_artifact.path).exists());
+        
+        let text_output_artifact = artifacts.iter().find(|a| a.name == "task2_output.txt").unwrap();
+        assert_eq!(text_output_artifact.artifact_type, ArtifactType::Text);
+        assert!(text_output_artifact.path.contains(&last_file.execution_id));
+        assert!(Path::new(&text_output_artifact.path).exists());
+        
+        Ok(())
     }
+    
+    // Note: generate_execution_graph_visualization test requires GraphViz installed
+    // It might fail in environments without it.
 }

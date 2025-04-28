@@ -68,6 +68,7 @@ pub fn generate_last_file(alt_file: &AltFile, task_results: HashMap<String, Task
 }
 
 /// Generates a failure LAST file for an ALT file
+#[allow(dead_code)]
 pub fn generate_failure_last_file(alt_file: &AltFile, error_message: &str) -> LastFile {
     info!("Generating failure LAST file for ALT file: {}", alt_file.id);
     
@@ -394,24 +395,27 @@ pub fn generate_execution_graph_visualization(last_file: &LastFile, output_dir: 
         return None;
     }
     
-    // Try to generate SVG using GraphViz if `dot` command is available
-    match std::process::Command::new("dot")
-        .arg("-Tsvg")
-        .arg(&dot_path)
+    // Use GraphViz (dot command) to generate PNG image
+    let png_path = output_dir.join(format!("{}_graph.png", last_file.execution_id));
+    let output = std::process::Command::new("dot")
+        .arg("-Tpng")
+        .arg(dot_path.to_str().unwrap())
         .arg("-o")
-        .arg(output_dir.join(format!("{}_graph.svg", last_file.execution_id)))
-        .output() {
+        .arg(png_path.to_str().unwrap())
+        .output();
+        
+    match output {
         Ok(output) => {
             if output.status.success() {
-                info!("Execution graph SVG generated successfully");
-                Some(output_dir.join(format!("{}_graph.svg", last_file.execution_id)))
+                info!("Execution graph visualization generated: {}", png_path.display());
+                Some(png_path)
             } else {
-                warn!("Failed to generate SVG: {}. Is GraphViz installed?", String::from_utf8_lossy(&output.stderr));
+                error!("Failed to generate graph visualization: {}", String::from_utf8_lossy(&output.stderr));
                 None
             }
         },
         Err(e) => {
-            warn!("Failed to execute dot command: {}. Is GraphViz installed?", e);
+            error!("Failed to execute dot command: {}. Is GraphViz installed?", e);
             None
         }
     }

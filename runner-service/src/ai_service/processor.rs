@@ -19,6 +19,7 @@ pub struct AiTaskProcessor {
     semaphore: Arc<Semaphore>,
 }
 
+#[allow(dead_code)] // Allow dead code for the entire impl block
 impl AiTaskProcessor {
     /// Creates a new AI task processor
     pub fn new(base_url: String, timeout_seconds: u64, concurrency_limit: usize) -> Self { // Changed base_url to String

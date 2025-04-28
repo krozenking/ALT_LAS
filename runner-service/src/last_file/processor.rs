@@ -16,6 +16,7 @@ use super::generator::{generate_last_file, extract_artifacts_from_results, gener
 use super::writer::{write_last_file, write_last_file_summary, export_last_file_to_html};
 
 /// Configuration for the LAST file processor
+#[allow(dead_code)]
 pub struct LastFileProcessorConfig {
     pub output_dir: PathBuf,
     pub enable_compression: bool,
@@ -43,11 +44,13 @@ impl Default for LastFileProcessorConfig {
 }
 
 /// Processor for optimized LAST file generation and processing
+#[allow(dead_code)]
 pub struct LastFileProcessor {
     config: LastFileProcessorConfig,
     ai_client: Option<Arc<crate::ai_service::AiServiceClient>>,
 }
 
+#[allow(dead_code)]
 impl LastFileProcessor {
     /// Creates a new LAST file processor with default configuration
     pub fn new() -> Self {
@@ -378,7 +381,7 @@ impl LastFileProcessor {
                     }
                 },
                 Err(e) => {
-                    warn!("Failed to enhance LAST file with AI: {}", e);
+                    warn!("Failed to enhance with AI: {}", e);
                 }
             }
         }
@@ -414,4 +417,3 @@ impl LastFileProcessor {
         Ok(())
     }
 }
-

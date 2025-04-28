@@ -134,6 +134,7 @@ impl LastFile {
     }
 
     /// Adds a task result to the LAST file
+    #[allow(dead_code)]
     pub fn add_task_result(&mut self, task_id: String, result: TaskResult) {
         self.task_results.insert(task_id, result);
     }
@@ -363,5 +364,4 @@ pub fn create_artifact(name: String, artifact_type: ArtifactType, task_id: Strin
         metadata: None,
     }
 }
-
 

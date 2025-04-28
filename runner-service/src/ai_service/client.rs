@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 // use std::sync::Arc; // Removed unused import
 use log::{info, error, warn}; // Removed unused debug
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use serde_json::{json, Value};
 use tokio::time::{timeout, Duration};
 // use serde::{Serialize, Deserialize}; // Removed unused imports

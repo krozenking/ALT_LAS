@@ -4,7 +4,8 @@ use log::{info, error, warn, debug};
 use tokio::sync::Semaphore;
 use std::sync::Arc;
 
-use crate::alt_file::models::{AltMode, Task};
+// Removed unused AltMode, Task
+use crate::alt_file::models::{}; // Keep empty if nothing else needed from here
 use crate::task_manager::models::{TaskExecution, TaskResult};
 use super::client::{AiServiceClient};
 // Removed MockAiServiceClient import as it's not defined in client.rs
@@ -217,7 +218,7 @@ impl Clone for AiTaskProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alt_file::models::{Task, Priority};
+    use crate::alt_file::models::{Task, Priority}; // Corrected import path
     use crate::task_manager::models::TaskStatus; // Corrected import
     use mockito::{mock, server_url};
     
@@ -241,13 +242,16 @@ mod tests {
         
         let alt_task = Task {
             id: "ai_task".to_string(),
+            name: "AI Task".to_string(), // Added name field
             description: "AI processing task".to_string(),
+            task_type: "ai".to_string(), // Added task_type field
             dependencies: None,
             parameters: Some(params),
             timeout_seconds: None,
             retry_count: None,
-            status: None, // Use Option<TaskStatus> as defined in alt_file::models
-            priority: Some(Priority::Medium),
+            retry_delay_seconds: None, // Added retry_delay_seconds field
+            // status: None, // Removed status field, not part of AltTask
+            priority: Priority::Medium, // Changed to Priority enum
             tags: None,
         };
         
@@ -276,13 +280,16 @@ mod tests {
         
         let alt_task = Task {
             id: "ai_task_no_prompt".to_string(),
+            name: "AI Task No Prompt".to_string(), // Added name field
             description: "AI processing task without prompt".to_string(),
+            task_type: "ai".to_string(), // Added task_type field
             dependencies: None,
             parameters: Some(params),
             timeout_seconds: None,
             retry_count: None,
-            status: None,
-            priority: Some(Priority::Medium),
+            retry_delay_seconds: None, // Added retry_delay_seconds field
+            // status: None,
+            priority: Priority::Medium,
             tags: None,
         };
         
@@ -318,13 +325,16 @@ mod tests {
             
             let alt_task = Task {
                 id: format!("batch_task_{}", i),
+                name: format!("Batch Task {}", i), // Added name field
                 description: format!("Batch task {}", i),
+                task_type: "ai".to_string(), // Added task_type field
                 dependencies: None,
                 parameters: Some(params),
                 timeout_seconds: None,
                 retry_count: None,
-                status: None,
-                priority: Some(Priority::Medium),
+                retry_delay_seconds: None, // Added retry_delay_seconds field
+                // status: None,
+                priority: Priority::Medium,
                 tags: None,
             };
             
@@ -345,3 +355,4 @@ mod tests {
         }
     }
 }
+

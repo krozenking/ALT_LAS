@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::sync::Arc;
-use log::{info, error, warn, debug};
+// use std::sync::Arc; // Removed unused import
+use log::{info, error, warn}; // Removed unused debug
 use reqwest::{Client, StatusCode};
 use serde_json::{json, Value};
 use tokio::time::{timeout, Duration};
-use serde::{Serialize, Deserialize};
+// use serde::{Serialize, Deserialize}; // Removed unused imports
 
 /// AI Service client for interacting with the AI Orchestrator
 #[derive(Clone)] // Added Clone trait
@@ -327,3 +327,4 @@ mod tests {
         assert!(models.contains(&"model3".to_string()));
     }
 }
+

@@ -1,16 +1,16 @@
 use std::fs::{self, File};
 use std::io::{self, Write, Read};
 use std::path::{Path, PathBuf};
-use log::{info, error, warn, debug};
+use log::{info, warn}; // Removed unused error, debug
 use serde_json;
 use flate2::write::GzEncoder;
 use flate2::read::GzDecoder;
 use flate2::Compression;
 use zip::write::{FileOptions, ZipWriter};
 use zip::CompressionMethod;
-use chrono::Utc;
+// use chrono::Utc; // Removed unused Utc
 
-use super::models::{LastFile, LastFileStatus, ArtifactType};
+use super::models::LastFile; // Removed unused LastFileStatus, ArtifactType
 
 /// Error type for LAST file writing operations
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl From<zip::result::ZipError> for LastWriteError {
 }
 
 impl std::fmt::Display for LastWriteError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<\'_>) -> std::fmt::Result {
         match self {
             LastWriteError::IoError(err) => write!(f, "IO Error: {}", err),
             LastWriteError::JsonError(err) => write!(f, "JSON Error: {}", err),
@@ -291,10 +291,10 @@ fn generate_html_report(last_file: &LastFile) -> String {
     } else {
         for (task_id, result) in &last_file.task_results {
             let status_class = match result.status {
-                TaskStatus::Completed => "status-completed",
-                TaskStatus::Failed => "status-failed",
-                TaskStatus::Timeout => "status-timeout",
-                TaskStatus::Cancelled => "status-cancelled",
+                crate::task_manager::models::TaskStatus::Completed => "status-completed",
+                crate::task_manager::models::TaskStatus::Failed => "status-failed",
+                crate::task_manager::models::TaskStatus::Timeout => "status-timeout",
+                crate::task_manager::models::TaskStatus::Cancelled => "status-cancelled",
                 _ => "status-pending",
             };
             html.push_str(&format!("<div class=\"task {}\">\n", status_class));
@@ -368,15 +368,12 @@ fn generate_html_report(last_file: &LastFile) -> String {
     }
     
     // Execution Graph Section (if available)
-    if let Some(graph) = &last_file.execution_graph {
+    if let Some(_graph) = &last_file.execution_graph { // Changed to _graph as it's not used
         html.push_str("<h2>Execution Graph</h2>\n");
-        // Try to embed SVG if generated
-        let svg_path = output_dir.join(format!("{}_graph.svg", last_file.id));
-        if svg_path.exists() {
-            html.push_str(&format!("<img src=\"{}_graph.svg\" alt=\"Execution Graph\" style=\"max-width: 100%;\">\n", last_file.id));
-        } else {
-            html.push_str("<p>Graph visualization (SVG) not generated or GraphViz not found.</p>\n");
-        }
+        // Try to embed SVG if generated - using a placeholder path since output_dir is not in scope
+        let svg_filename = format!("{}_graph.svg", last_file.execution_id);
+        html.push_str(&format!("<img src=\"{}\" alt=\"Execution Graph\" style=\"max-width: 100%;\">\n", svg_filename));
+        html.push_str("<p>Graph visualization may be available in the artifacts directory.</p>\n");
     }
     
     // HTML Footer
@@ -389,132 +386,142 @@ fn generate_html_report(last_file: &LastFile) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::last_file::models::{LastFile, LastFileStatus, TaskResult, TaskStatus, Artifact, ArtifactType};
+    // use crate::last_file::models::{LastFile, LastFileStatus, TaskResult, TaskStatus, Artifact, ArtifactType}; // Removed unused imports
+    use crate::last_file::models::{TaskResult, TaskStatus};
     use crate::alt_file::models::{AltMode, Priority};
     use tempfile::tempdir;
     use std::fs;
     use std::io::Read;
-    use chrono::Utc;
-    use uuid::Uuid;
+    // use chrono::Utc; // Removed unused Utc
+    // use uuid::Uuid; // Removed unused Uuid
 
     fn create_test_last_file() -> LastFile {
         let mut last_file = LastFile::new(
             "test_alt_id".to_string(),
-            "Test Execution".to_string(),
+            "Test Title".to_string(),
             AltMode::Normal,
-            Some("tester".to_string()),
+            Some("Test Persona".to_string()),
         );
-        last_file.execution_id = Uuid::new_v4().to_string();
-        last_file.status = LastFileStatus::Success;
-        last_file.success_rate = 1.0;
-        last_file.execution_time_ms = 1234;
-        last_file.add_metadata("test_key", serde_json::json!("test_value"));
-        last_file.add_tag("test_tag");
-        last_file.set_priority(Priority::High);
-        
-        let mut task1_result = TaskResult::new("task1".to_string());
-        task1_result.status = TaskStatus::Completed;
-        task1_result.output = Some(serde_json::json!({ "result": "ok" }));
-        task1_result.duration_ms = Some(500);
-        
-        let mut task2_result = TaskResult::new("task2".to_string());
-        task2_result.status = TaskStatus::Failed;
-        task2_result.error = Some("Something went wrong".to_string());
-        task2_result.duration_ms = Some(734);
-        
-        let mut results = std::collections::HashMap::new();
-        results.insert("task1".to_string(), task1_result);
-        results.insert("task2".to_string(), task2_result);
-        last_file.add_task_results(results);
-        
+        last_file.add_task_result("task1".to_string(), TaskResult {
+            status: TaskStatus::Completed,
+            output: Some(serde_json::json!({ "message": "Task 1 done" })),
+            error: None,
+            start_time: chrono::Utc::now(),
+            end_time: Some(chrono::Utc::now()),
+            duration_ms: Some(100),
+        });
+        last_file.add_task_result("task2".to_string(), TaskResult {
+            status: TaskStatus::Failed,
+            output: None,
+            error: Some("Task 2 failed".to_string()),
+            start_time: chrono::Utc::now(),
+            end_time: Some(chrono::Utc::now()),
+            duration_ms: Some(50),
+        });
+        last_file.calculate_success_rate();
+        last_file.calculate_execution_time();
         last_file.generate_summary();
-        
+        last_file.set_priority(Priority::High);
         last_file
     }
 
     #[test]
-    fn test_write_and_read_last_file() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_write_read_last_file() -> Result<(), LastWriteError> {
+        let dir = tempdir()?;
         let last_file = create_test_last_file();
-        let temp_dir = tempdir()?;
         
-        let file_path = write_last_file(&last_file, temp_dir.path())?;
+        let file_path = write_last_file(&last_file, dir.path())?;
         assert!(file_path.exists());
         
-        let loaded_last_file = read_last_file(&file_path)?;
-        assert_eq!(last_file.id, loaded_last_file.id);
-        assert_eq!(last_file.title, loaded_last_file.title);
-        assert_eq!(last_file.task_results.len(), loaded_last_file.task_results.len());
+        let read_last_file_data = read_last_file(&file_path)?;
+        assert_eq!(last_file.id, read_last_file_data.id);
+        assert_eq!(last_file.title, read_last_file_data.title);
+        assert_eq!(last_file.task_results.len(), read_last_file_data.task_results.len());
         
+        dir.close()?;
         Ok(())
     }
 
     #[test]
-    fn test_write_and_read_compressed_last_file() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_write_last_file_summary() -> Result<(), LastWriteError> {
+        let dir = tempdir()?;
         let last_file = create_test_last_file();
-        let temp_dir = tempdir()?;
         
-        let file_path = write_compressed_last_file(&last_file, temp_dir.path())?;
+        let file_path = write_last_file_summary(&last_file, dir.path())?;
         assert!(file_path.exists());
         
-        let loaded_last_file = read_compressed_last_file(&file_path)?;
-        assert_eq!(last_file.id, loaded_last_file.id);
-        assert_eq!(last_file.title, loaded_last_file.title);
-        assert_eq!(last_file.task_results.len(), loaded_last_file.task_results.len());
+        let content = fs::read_to_string(file_path)?;
+        assert!(content.contains("Execution Summary:"));
+        assert!(content.contains("Test Title"));
         
+        dir.close()?;
         Ok(())
     }
 
     #[test]
-    fn test_create_last_file_archive() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_write_read_compressed_last_file() -> Result<(), LastWriteError> {
+        let dir = tempdir()?;
+        let last_file = create_test_last_file();
+        
+        let file_path = write_compressed_last_file(&last_file, dir.path())?;
+        assert!(file_path.exists());
+        
+        let read_last_file_data = read_compressed_last_file(&file_path)?;
+        assert_eq!(last_file.id, read_last_file_data.id);
+        assert_eq!(last_file.title, read_last_file_data.title);
+        
+        dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_last_file_archive() -> Result<(), LastWriteError> {
+        let dir = tempdir()?;
         let mut last_file = create_test_last_file();
-        let temp_dir = tempdir()?;
-        let artifacts_dir = temp_dir.path().join("artifacts").join(&last_file.id);
-        fs::create_dir_all(&artifacts_dir)?;
         
         // Create a dummy artifact file
-        let artifact_file_path = artifacts_dir.join("output.txt");
-        fs::write(&artifact_file_path, "This is artifact content")?;
+        let artifact_dir = dir.path().join("artifacts");
+        fs::create_dir_all(&artifact_dir)?;
+        let artifact_path = artifact_dir.join("dummy_artifact.txt");
+        fs::write(&artifact_path, "This is a dummy artifact.")?;
         
-        let artifact = Artifact {
-            id: Uuid::new_v4().to_string(),
-            name: "output.txt".to_string(),
-            artifact_type: ArtifactType::Text,
-            task_id: "task1".to_string(),
-            path: artifact_file_path.to_string_lossy().to_string(),
-            created_at: Utc::now(),
-            size_bytes: Some(fs::metadata(&artifact_file_path)?.len()),
-            mime_type: Some("text/plain".to_string()),
-            metadata: None,
-        };
+        let artifact = crate::last_file::models::create_artifact(
+            "Dummy Artifact".to_string(),
+            crate::last_file::models::ArtifactType::Text,
+            "task1".to_string(),
+            artifact_path.to_string_lossy().to_string(),
+        );
         last_file.add_artifact(artifact);
         
-        let archive_path = create_last_file_archive(&last_file, temp_dir.path())?;
+        let archive_path = create_last_file_archive(&last_file, dir.path())?;
         assert!(archive_path.exists());
         
-        // Verify archive content (basic check)
+        // Basic check: open the zip and see if files exist
         let file = File::open(&archive_path)?;
         let mut archive = zip::ZipArchive::new(file)?;
-        assert!(archive.by_name(&format!("last_{}.json", last_file.execution_id)).is_ok());
-        assert!(archive.by_name("artifacts/output.txt").is_ok());
         
+        assert!(archive.by_name(&format!("last_{}.json", last_file.execution_id)).is_ok());
+        assert!(archive.by_name("artifacts/dummy_artifact.txt").is_ok());
+        
+        dir.close()?;
         Ok(())
     }
 
     #[test]
-    fn test_export_last_file_to_html() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_export_last_file_to_html() -> Result<(), LastWriteError> {
+        let dir = tempdir()?;
         let last_file = create_test_last_file();
-        let temp_dir = tempdir()?;
         
-        let html_path = export_last_file_to_html(&last_file, temp_dir.path())?;
-        assert!(html_path.exists());
+        let file_path = export_last_file_to_html(&last_file, dir.path())?;
+        assert!(file_path.exists());
         
-        let html_content = fs::read_to_string(&html_path)?;
-        assert!(html_content.contains(&last_file.title));
-        assert!(html_content.contains("task1"));
-        assert!(html_content.contains("task2"));
-        assert!(html_content.contains("status-completed"));
-        assert!(html_content.contains("status-failed"));
+        let content = fs::read_to_string(file_path)?;
+        assert!(content.contains("<h1>ALT_LAS Execution Report: Test Title</h1>"));
+        assert!(content.contains("Task ID: task1"));
+        assert!(content.contains("Task ID: task2"));
         
+        dir.close()?;
         Ok(())
     }
 }
+

@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use actix_web::{web, App, HttpServer, middleware, HttpResponse, Responder};
-use actix_web::web::Data;
 use tokio::sync::Mutex;
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};

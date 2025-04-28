@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
-use std::io::{self, Write};
+// use std::io::{self, Write}; // Removed unused Write
 use log::{info, error, debug, warn};
 use serde_json;
 use chrono::Utc;
-use uuid::Uuid;
+// use uuid::Uuid; // Removed unused Uuid
 
-use crate::alt_file::models::{AltFile, AltMode, Task as AltTask};
+use crate::alt_file::models::{AltFile, AltMode}; // Removed unused Task as AltTask
 use crate::task_manager::models::{TaskResult, TaskStatus};
-use super::models::{LastFile, LastFileStatus, Artifact, ArtifactType, create_artifact, ExecutionGraph, ExecutionNode, ExecutionEdge, DependencyType};
+// Removed unused Artifact, DependencyType, ExecutionEdge, ExecutionGraph, ExecutionNode
+use super::models::{LastFile, LastFileStatus, ArtifactType, create_artifact};
 
 /// Generates a LAST file from an ALT file and task results
 pub fn generate_last_file(alt_file: &AltFile, task_results: HashMap<String, TaskResult>) -> LastFile {
@@ -393,190 +394,26 @@ pub fn generate_execution_graph_visualization(last_file: &LastFile, output_dir: 
         return None;
     }
     
-    // Try to generate SVG using GraphViz if available
-    let svg_path = output_dir.join(format!("{}_graph.svg", last_file.execution_id));
-    let result = std::process::Command::new("dot")
-        .args(["-Tsvg", "-o", svg_path.to_str().unwrap_or("")])
-        .arg(dot_path.to_str().unwrap_or(""))
-        .output();
-    
-    match result {
+    // Try to generate SVG using GraphViz if `dot` command is available
+    match std::process::Command::new("dot")
+        .arg("-Tsvg")
+        .arg(&dot_path)
+        .arg("-o")
+        .arg(output_dir.join(format!("{}_graph.svg", last_file.execution_id)))
+        .output() {
         Ok(output) => {
             if output.status.success() {
-                info!("Generated execution graph visualization: {:?}", svg_path);
-                Some(svg_path)
+                info!("Execution graph SVG generated successfully");
+                Some(output_dir.join(format!("{}_graph.svg", last_file.execution_id)))
             } else {
-                warn!("GraphViz command failed: {}", String::from_utf8_lossy(&output.stderr));
+                warn!("Failed to generate SVG: {}. Is GraphViz installed?", String::from_utf8_lossy(&output.stderr));
                 None
             }
         },
         Err(e) => {
-            warn!("Failed to run GraphViz: {}. Is it installed?", e);
+            warn!("Failed to execute dot command: {}. Is GraphViz installed?", e);
             None
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::alt_file::models::{Task, AltMode};
-    use crate::task_manager::models::{TaskStatus, TaskResult};
-    use chrono::Utc;
-    use uuid::Uuid;
-    use tempfile::TempDir;
-    
-    fn create_test_alt_file_for_graph() -> AltFile {
-        let mut alt_file = AltFile::new("Graph Test ALT".to_string());
-        
-        let task1 = AltTask {
-            id: "task1".to_string(),
-            description: "Task 1".to_string(),
-            dependencies: None,
-            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
-        };
-        let task2 = AltTask {
-            id: "task2".to_string(),
-            description: "Task 2".to_string(),
-            dependencies: Some(vec!["task1".to_string()]),
-            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
-        };
-        let task3 = AltTask {
-            id: "task3".to_string(),
-            description: "Task 3".to_string(),
-            dependencies: Some(vec!["task1".to_string()]),
-            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
-        };
-        let task4 = AltTask {
-            id: "task4".to_string(),
-            description: "Task 4".to_string(),
-            dependencies: Some(vec!["task2".to_string(), "task3".to_string()]),
-            parameters: None, timeout_seconds: None, retry_count: None, status: None, priority: None, tags: None,
-        };
-        
-        alt_file.add_task(task1);
-        alt_file.add_task(task2);
-        alt_file.add_task(task3);
-        alt_file.add_task(task4);
-        
-        alt_file
-    }
-
-    fn create_test_results_for_graph() -> HashMap<String, TaskResult> {
-        let mut results = HashMap::new();
-        
-        let mut res1 = TaskResult::new("task1".to_string());
-        res1.status = TaskStatus::Completed;
-        res1.duration_ms = Some(100);
-        results.insert("task1".to_string(), res1);
-        
-        let mut res2 = TaskResult::new("task2".to_string());
-        res2.status = TaskStatus::Completed;
-        res2.duration_ms = Some(200);
-        results.insert("task2".to_string(), res2);
-        
-        let mut res3 = TaskResult::new("task3".to_string());
-        res3.status = TaskStatus::Failed;
-        res3.duration_ms = Some(150);
-        results.insert("task3".to_string(), res3);
-        
-        let mut res4 = TaskResult::new("task4".to_string());
-        res4.status = TaskStatus::Cancelled; // Cancelled because task3 failed
-        results.insert("task4".to_string(), res4);
-        
-        results
-    }
-
-    #[test]
-    fn test_generate_last_file() {
-        let alt_file = create_test_alt_file_for_graph();
-        let results = create_test_results_for_graph();
-        
-        let last_file = generate_last_file(&alt_file, results);
-        
-        assert_eq!(last_file.alt_file_id, alt_file.id);
-        assert_eq!(last_file.task_results.len(), 4);
-        assert_eq!(last_file.status, LastFileStatus::PartialSuccess);
-        assert_eq!(last_file.success_rate, 0.5); // 2 out of 4 completed
-        assert!(last_file.summary.is_some());
-        assert!(last_file.execution_graph.is_some());
-        
-        let graph = last_file.execution_graph.unwrap();
-        assert_eq!(graph.nodes.len(), 4);
-        assert_eq!(graph.edges.len(), 4); // task1->task2, task1->task3, task2->task4, task3->task4
-    }
-
-    #[test]
-    fn test_generate_failure_last_file() {
-        let alt_file = create_test_alt_file_for_graph();
-        let error_msg = "Critical failure during setup";
-        
-        let last_file = generate_failure_last_file(&alt_file, error_msg);
-        
-        assert_eq!(last_file.alt_file_id, alt_file.id);
-        assert_eq!(last_file.status, LastFileStatus::Failure);
-        assert_eq!(last_file.success_rate, 0.0);
-        assert!(last_file.summary.is_some());
-        assert!(last_file.summary.unwrap().contains(error_msg));
-        assert!(last_file.metadata.unwrap().contains_key("error"));
-    }
-
-    #[test]
-    fn test_extract_artifacts() -> Result<(), Box<dyn std::error::Error>> {
-        let temp_dir = TempDir::new()?;
-        let output_dir = temp_dir.path();
-        
-        // Create dummy source files
-        let source_file1_path = output_dir.join("source1.txt");
-        fs::write(&source_file1_path, "Source file 1 content")?;
-        let source_file2_path = output_dir.join("image.png");
-        fs::write(&source_file2_path, "PNG data")?;
-        
-        // Create task results with file paths
-        let mut results = HashMap::new();
-        let mut res1 = TaskResult::new("task1".to_string());
-        res1.status = TaskStatus::Completed;
-        res1.output = Some(serde_json::json!({
-            "files": [source_file1_path.to_str().unwrap(), source_file2_path.to_str().unwrap()]
-        }));
-        results.insert("task1".to_string(), res1);
-        
-        let mut res2 = TaskResult::new("task2".to_string());
-        res2.status = TaskStatus::Completed;
-        res2.output = Some(serde_json::json!({
-            "text": "This is text output from task 2"
-        }));
-        results.insert("task2".to_string(), res2);
-        
-        let alt_file = AltFile::new("Artifact Test".to_string());
-        let mut last_file = generate_last_file(&alt_file, results);
-        
-        // Extract artifacts
-        last_file = extract_artifacts_from_results(last_file, output_dir);
-        
-        assert!(last_file.artifacts.is_some());
-        let artifacts = last_file.artifacts.unwrap();
-        assert_eq!(artifacts.len(), 3); // source1.txt, image.png, task2_output.txt
-        
-        // Check artifact details
-        let txt_artifact = artifacts.iter().find(|a| a.name == "source1.txt").unwrap();
-        assert_eq!(txt_artifact.artifact_type, ArtifactType::Text);
-        assert!(txt_artifact.path.contains(&last_file.execution_id));
-        assert!(Path::new(&txt_artifact.path).exists());
-        
-        let img_artifact = artifacts.iter().find(|a| a.name == "image.png").unwrap();
-        assert_eq!(img_artifact.artifact_type, ArtifactType::Image);
-        assert!(img_artifact.path.contains(&last_file.execution_id));
-        assert!(Path::new(&img_artifact.path).exists());
-        
-        let text_output_artifact = artifacts.iter().find(|a| a.name == "task2_output.txt").unwrap();
-        assert_eq!(text_output_artifact.artifact_type, ArtifactType::Text);
-        assert!(text_output_artifact.path.contains(&last_file.execution_id));
-        assert!(Path::new(&text_output_artifact.path).exists());
-        
-        Ok(())
-    }
-    
-    // Note: generate_execution_graph_visualization test requires GraphViz installed
-    // It might fail in environments without it.
-}

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::alt_file::models::{AltFile, AltMode, Priority, Task as AltTask}; // Added AltFile, AltTask
+use crate::alt_file::models::{AltFile, AltMode, Priority}; // Removed unused Task as AltTask
 use crate::task_manager::models::{TaskResult, TaskStatus};
 
 /// Represents the overall status of the LAST file execution

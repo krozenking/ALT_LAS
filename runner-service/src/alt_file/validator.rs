@@ -1,5 +1,5 @@
-use log::{info, error, warn, debug};
-use super::models::{AltFile, Task, Priority, TaskStatus};
+use log::{info, warn, debug};
+use super::models::{AltFile};
 
 /// Validates an ALT file
 pub fn validate_alt_file(alt_file: &AltFile) -> Result<(), String> {

@@ -2,15 +2,16 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::task;
-use log::{info, error, warn, debug};
-use std::path::{Path, PathBuf};
+use log::{info, error, warn}; // Removed unused debug
+use std::path::PathBuf; // Removed unused Path
 use std::time::Instant;
 use rayon::prelude::*; // Added rayon prelude
 use num_cpus; // Added num_cpus import
 
-use crate::alt_file::models::{AltFile, AltMode};
-use crate::task_manager::models::{TaskResult, TaskStatus};
-use super::models::{LastFile, LastFileStatus, Artifact, ArtifactType, create_artifact};
+use crate::alt_file::models::AltFile; // Removed unused AltMode
+use crate::task_manager::models::TaskResult; // Removed unused TaskStatus
+// Removed unused Artifact, LastFileStatus
+use super::models::{LastFile, ArtifactType, create_artifact};
 use super::generator::{generate_last_file, extract_artifacts_from_results, generate_execution_graph_visualization};
 use super::writer::{write_last_file, write_last_file_summary, export_last_file_to_html};
 
@@ -411,98 +412,6 @@ impl LastFileProcessor {
         }
         
         Ok(())
-    }
-    
-    /// Processes multiple ALT files concurrently
-    pub async fn process_batch(&self, alt_files: Vec<AltFile>, results_map: HashMap<String, HashMap<String, TaskResult>>) -> HashMap<String, Result<LastFile, String>> {
-        info!("Processing batch of {} ALT files", alt_files.len());
-        
-        let mut handles = Vec::new();
-        let processor = Arc::new(self.clone()); // Clone processor for sharing across tasks
-        
-        for alt_file in alt_files {
-            let processor_clone = processor.clone();
-            let results = results_map.get(&alt_file.id).cloned().unwrap_or_default();
-            
-            let handle = task::spawn(async move {
-                let alt_file_id = alt_file.id.clone();
-                let result = processor_clone.process(&alt_file, results).await;
-                (alt_file_id, result)
-            });
-            handles.push(handle);
-        }
-        
-        let mut final_results = HashMap::new();
-        for handle in handles {
-            match handle.await {
-                Ok((alt_file_id, result)) => {
-                    final_results.insert(alt_file_id, result);
-                },
-                Err(e) => {
-                    error!("Task join error during batch processing: {}", e);
-                    // Optionally insert an error result for the corresponding ALT file
-                }
-            }
-        }
-        
-        final_results
-    }
-    
-    /// Processes multiple ALT files in parallel using Rayon
-    pub fn process_batch_parallel(&self, alt_files: Vec<AltFile>, results_map: HashMap<String, HashMap<String, TaskResult>>) -> HashMap<String, Result<LastFile, String>> {
-        info!("Processing batch of {} ALT files in parallel using Rayon", alt_files.len());
-        
-        // Configure Rayon thread pool
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(self.config.max_workers)
-            .build_global()
-            .unwrap();
-            
-        let results: Arc<Mutex<HashMap<String, Result<LastFile, String>>>> = Arc::new(Mutex::new(HashMap::new()));
-        
-        alt_files.into_iter().for_each(|alt_file| {
-            let alt_file_id = alt_file.id.clone();
-            let task_results = results_map.get(&alt_file_id).cloned().unwrap_or_default();
-            
-            // Need to run async code within Rayon thread
-            // Use a local tokio runtime or block_on
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            let result = rt.block_on(async {
-                // Generate basic LAST file
-                let mut last_file = generate_last_file(&alt_file, task_results);
-                
-                // Process sequentially within the parallel task
-                // (Parallel processing within a parallel task might be too complex)
-                match self.process_sequential(&mut last_file, &alt_file).await {
-                    Ok(_) => Ok(last_file),
-                    Err(e) => Err(e),
-                }
-            });
-            
-            let mut results_guard = results.lock().unwrap();
-            results_guard.insert(alt_file_id, result);
-        });
-        
-        Arc::try_unwrap(results).unwrap().into_inner().unwrap()
-    }
-}
-
-// Implement Clone for LastFileProcessor
-impl Clone for LastFileProcessor {
-    fn clone(&self) -> Self {
-        LastFileProcessor {
-            config: LastFileProcessorConfig {
-                output_dir: self.config.output_dir.clone(),
-                enable_compression: self.config.enable_compression,
-                enable_html_export: self.config.enable_html_export,
-                enable_graph_visualization: self.config.enable_graph_visualization,
-                enable_artifact_extraction: self.config.enable_artifact_extraction,
-                enable_ai_enhancement: self.config.enable_ai_enhancement,
-                parallel_processing: self.config.parallel_processing,
-                max_workers: self.config.max_workers,
-            },
-            ai_client: self.ai_client.clone(),
-        }
     }
 }
 

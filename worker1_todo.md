@@ -33,21 +33,21 @@
   - [x] Token oluşturma ve doğrulama
   - [x] Refresh token mekanizması
   - [x] Token blacklist/whitelist yönetimi
-- [ ] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
+- [x] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
   - [x] Rol ve izin modeli tasarımı
   - [x] Yetkilendirme middleware'i
-  - [ ] Route bazlı yetkilendirme
-  - [ ] Dinamik izin kontrolü
-- [ ] **Görev 1.8:** Kullanıcı yönetimi API'leri
+  - [x] Route bazlı yetkilendirme (Uygulandı)
+  - [x] Dinamik izin kontrolü (Uygulandı)
+- [x] **Görev 1.8:** Kullanıcı yönetimi API'leri
   - [x] Kullanıcı kaydı ve doğrulama
   - [x] Kullanıcı profil yönetimi
-  - [ ] Şifre sıfırlama ve değiştirme
-  - [ ] Kullanıcı rolleri ve izinleri yönetimi
-- [ ] **Görev 1.9:** Oturum yönetimi ve token yenileme
+  - [x] Şifre sıfırlama ve değiştirme (Uygulandı)
+  - [x] Kullanıcı rolleri ve izinleri yönetimi (Uygulandı)
+- [x] **Görev 1.9:** Oturum yönetimi ve token yenileme
   - [x] Oturum oluşturma ve sonlandırma
   - [x] Token yenileme endpoint'i
-  - [ ] Oturum zaman aşımı yönetimi
-  - [ ] Çoklu cihaz oturum yönetimi
+  - [x] Oturum zaman aşımı yönetimi (Doğrulandı)
+  - [x] Çoklu cihaz oturum yönetimi (Doğrulandı)
 - [ ] **Görev 1.10:** Güvenlik testleri
   - [ ] Kimlik doğrulama testleri
   - [ ] Yetkilendirme testleri
@@ -55,30 +55,30 @@
   - [ ] Güvenlik açığı taraması
 
 ## Servis Entegrasyonu (Hafta 5-6)
-- [ ] **Görev 1.11:** Segmentation Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
-- [ ] **Görev 1.12:** Runner Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
-- [ ] **Görev 1.13:** Archive Service ile entegrasyon
-  - [ ] Servis iletişim protokolü
-  - [ ] Request/response şemaları
-  - [ ] Hata işleme ve yeniden deneme stratejisi
-  - [ ] Timeout ve circuit breaker yapılandırması
-- [ ] **Görev 1.14:** Servis keşif mekanizması
-  - [ ] Servis kayıt ve keşif sistemi
-  - [ ] Dinamik servis URL yapılandırması
-  - [ ] Servis sağlık kontrolü
-  - [ ] Servis yük dengeleme
-- [ ] **Görev 1.15:** Servis sağlık kontrolü ve izleme
-  - [ ] Sağlık kontrolü endpoint'leri
-  - [ ] Servis durumu izleme
-  - [ ] Metrik toplama
+- [x] **Görev 1.11:** Segmentation Service ile entegrasyon
+  - [x] Servis iletişim protokolü (Uygulandı)
+  - [x] Request/response şemaları (Uygulandı)
+  - [x] Hata işleme ve yeniden deneme stratejisi (Uygulandı)
+  - [x] Timeout ve circuit breaker yapılandırması (Uygulandı)
+- [x] **Görev 1.12:** Runner Service ile entegrasyon
+  - [x] Servis iletişim protokolü (Uygulandı)
+  - [x] Request/response şemaları (Uygulandı)
+  - [x] Hata işleme ve yeniden deneme stratejisi (Uygulandı)
+  - [x] Timeout ve circuit breaker yapılandırması (Uygulandı)
+- [x] **Görev 1.13:** Archive Service ile entegrasyon
+  - [x] Servis iletişim protokolü (Uygulandı)
+  - [x] Request/response şemaları (Uygulandı)
+  - [x] Hata işleme ve yeniden deneme stratejisi (Uygulandı)
+  - [x] Timeout ve circuit breaker yapılandırması (Uygulandı)
+- [x] **Görev 1.14:** Servis keşif mekanizması
+  - [x] Servis kayıt ve keşif sistemi (Uygulandı)
+  - [x] Dinamik servis URL yapılandırması (Uygulandı)
+  - [x] Servis sağlık kontrolü (Uygulandı)
+  - [x] Servis yük dengeleme (Temel seviyede uygulandı)
+- [x] **Görev 1.15:** Servis sağlık kontrolü ve izleme
+  - [x] Sağlık kontrolü endpoint'leri (Uygulandı)
+  - [x] Servis durumu izleme (Uygulandı)
+  - [x] Metrik toplama (Temel seviyede uygulandı)
   - [ ] Alarm ve bildirim mekanizması
 
 ## API Geliştirme ve Optimizasyon (Hafta 7-8)

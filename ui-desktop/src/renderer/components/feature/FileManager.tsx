@@ -36,6 +36,7 @@ import {
   useDimensions // Import useDimensions to get container size
 } from '@chakra-ui/react';
 import { FixedSizeList, FixedSizeGrid } from 'react-window'; // Import virtual list components
+import AutoSizer from 'react-virtualized-auto-sizer'; // Import AutoSizer
 import { animations } from '@/styles/animations';
 
 // Dosya türleri
@@ -107,20 +108,34 @@ const formatDate = (date: Date): string => {
 
 // Memoize edilmiş FileItem bileşeni (Grid görünümü için)
 const FileGridItem = memo(({ 
-  file, 
-  isSelected, 
-  colorMode, 
-  onSelect, 
-  onOpen, 
-  style // Add style prop from react-window
+  columnIndex, // Add columnIndex
+  rowIndex, // Add rowIndex
+  style, // Add style prop from react-window
+  data // Add data prop
 }: { 
-  file: FileObject, 
-  isSelected: boolean, 
-  colorMode: string, 
-  onSelect: (file: FileObject) => void, 
-  onOpen: (file: FileObject) => void,
-  style: React.CSSProperties // Style prop for positioning
+  columnIndex: number;
+  rowIndex: number;
+  style: React.CSSProperties; // Style prop for positioning
+  data: { 
+    files: FileObject[]; 
+    columnCount: number; 
+    selectedFileId: string | null; 
+    colorMode: string; 
+    onSelect: (file: FileObject) => void; 
+    onOpen: (file: FileObject) => void; 
+  }
 }) => {
+  const { files, columnCount, selectedFileId, colorMode, onSelect, onOpen } = data;
+  const index = rowIndex * columnCount + columnIndex;
+  const file = files[index];
+
+  // If there's no file for this index, render nothing
+  if (!file) {
+    return null;
+  }
+
+  const isSelected = selectedFileId === file.id;
+
   // Dosya türü ikonunu memoize et
   const fileIcon = useMemo(() => getFileTypeIcon(file.type), [file.type]);
   
@@ -142,89 +157,97 @@ const FileGridItem = memo(({
     <Box
       style={style} // Apply style for positioning
       key={file.id} // Keep key for React reconciliation
-      // width="120px" // Width is controlled by FixedSizeGrid
-      // height="140px" // Height is controlled by FixedSizeGrid
-      m={2} // Keep margin for spacing within the cell
-      p={3}
-      borderWidth="1px"
-      borderRadius="md"
-      borderColor={isSelected ? 'blue.500' : 'transparent'}
-      bg={colorMode === 'light' ? 'white' : 'gray.700'}
-      boxShadow="sm"
-      cursor="pointer"
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      onKeyDown={handleKeyDown} // Add keyboard handler
-      _hover={{ boxShadow: 'md', borderColor: 'blue.300' }}
-      _focus={{ 
-        outline: 'none',
-        boxShadow: 'outline',
-        borderColor: 'blue.500'
-      }}
-      transition="all 0.2s"
+      p={3} // Padding inside the cell
       display="flex"
       flexDirection="column"
       alignItems="center"
       justifyContent="center"
-      position="relative" // Keep relative for absolute positioned elements like favorite star
       role="gridcell" // Use gridcell role
       aria-selected={isSelected} // Indicate selection state
       aria-label={`Dosya: ${file.name}, Boyut: ${fileSize}`}
-      // aria-posinset and aria-setsize are handled by the virtual list container
       tabIndex={0} // Make focusable
-      {...animations.performanceUtils.forceGPU}
     >
-      {file.favorite && (
-        <Box 
-          position="absolute" 
-          top="2" 
-          right="2" 
-          fontSize="sm"
-          aria-label="Favori dosya"
-        >
-          ⭐
-        </Box>
-      )}
-      <Box fontSize="3xl" mb={2} aria-hidden="true">
-        {fileIcon}
-      </Box>
-      <Text 
-        fontSize="sm" 
-        fontWeight="medium" 
-        textAlign="center"
-        noOfLines={2}
+      {/* Inner content box for styling */}
+      <Box
+        width="100%" // Take full width of the cell
+        height="100%" // Take full height of the cell
+        borderWidth="1px"
+        borderRadius="md"
+        borderColor={isSelected ? 'blue.500' : 'transparent'}
+        bg={colorMode === 'light' ? 'white' : 'gray.700'}
+        boxShadow="sm"
+        cursor="pointer"
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown} // Add keyboard handler
+        _hover={{ boxShadow: 'md', borderColor: 'blue.300' }}
+        _focus={{ 
+          outline: 'none',
+          boxShadow: 'outline',
+          borderColor: 'blue.500'
+        }}
+        transition="all 0.2s"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        position="relative" // Keep relative for absolute positioned elements like favorite star
+        {...animations.performanceUtils.forceGPU}
       >
-        {file.name}
-      </Text>
-      <Text fontSize="xs" color="gray.500" mt={1}>
-        {fileSize}
-      </Text>
+        {file.favorite && (
+          <Box 
+            position="absolute" 
+            top="2" 
+            right="2" 
+            fontSize="sm"
+            aria-label="Favori dosya"
+          >
+            ⭐
+          </Box>
+        )}
+        <Box fontSize="3xl" mb={2} aria-hidden="true">
+          {fileIcon}
+        </Box>
+        <Text 
+          fontSize="sm" 
+          fontWeight="medium" 
+          textAlign="center"
+          noOfLines={2}
+          px={1} // Add some padding for text
+        >
+          {file.name}
+        </Text>
+        <Text fontSize="xs" color="gray.500" mt={1}>
+          {fileSize}
+        </Text>
+      </Box>
     </Box>
   );
 });
 
 // Memoize edilmiş FileItem bileşeni (Liste görünümü için)
 const FileListItem = memo(({ 
-  file, 
-  isSelected, 
-  colorMode, 
-  onSelect, 
-  onOpen,
-  onRename,
-  onToggleFavorite,
-  onDelete,
-  style // Add style prop from react-window
+  index, // Add index
+  style, // Add style prop from react-window
+  data // Add data prop
 }: { 
-  file: FileObject, 
-  isSelected: boolean, 
-  colorMode: string, 
-  onSelect: (file: FileObject) => void, 
-  onOpen: (file: FileObject) => void,
-  onRename: (file: FileObject) => void,
-  onToggleFavorite: (file: FileObject) => void,
-  onDelete: (file: FileObject) => void,
-  style: React.CSSProperties // Style prop for positioning
+  index: number;
+  style: React.CSSProperties; // Style prop for positioning
+  data: { 
+    files: FileObject[]; 
+    selectedFileId: string | null; 
+    colorMode: string; 
+    onSelect: (file: FileObject) => void; 
+    onOpen: (file: FileObject) => void;
+    onRename: (file: FileObject) => void;
+    onToggleFavorite: (file: FileObject) => void;
+    onDelete: (file: FileObject) => void;
+  }
 }) => {
+  const { files, selectedFileId, colorMode, onSelect, onOpen, onRename, onToggleFavorite, onDelete } = data;
+  const file = files[index];
+  const isSelected = selectedFileId === file.id;
+
   // Dosya türü ikonunu memoize et
   const fileIcon = useMemo(() => getFileTypeIcon(file.type), [file.type]);
   
@@ -702,7 +725,9 @@ const FileFilters = memo(({
       </Menu>
     </Flex>
   );
-});  // Dosya yöneticisi bileşeni
+});
+
+// Dosya yöneticisi bileşeni
 export const FileManager: React.FC<FileManagerProps> = memo(({
   initialFiles = [],
   onFileOpen,
@@ -726,13 +751,9 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
   const [newTag, setNewTag] = useState<string>('');
   const renameInputRef = useRef<HTMLInputElement>(null);
   const drawerContentRef = useRef<HTMLDivElement>(null); // Ref for drawer content
-  const fileListContainerRef = useRef<HTMLDivElement>(null); // Ref for file list container
   const openButtonRef = useRef<HTMLButtonElement>(null); // Ref for the button that opens the drawer
   const listRef = useRef<FixedSizeList>(null); // Ref for virtual list
   const gridRef = useRef<FixedSizeGrid>(null); // Ref for virtual grid
-
-  // Get dimensions of the file list container
-  const fileListDimensions = useDimensions(fileListContainerRef, true);
 
   // Focus management for Drawer
   useFocusOnShow(drawerContentRef, { shouldFocus: isOpen });
@@ -847,49 +868,39 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
       setSelectedFile(updatedFile);
     }
     if (onFileFavorite) {
-      onFileFavorite(file, !file.favorite);
+      onFileFavorite(file, updatedFile.favorite);
     }
   }, [selectedFile, onFileFavorite]);
   
+  const handleTagChange = useCallback((value: string) => {
+    setNewTag(value);
+  }, []);
+  
   const handleAddTag = useCallback(() => {
     if (selectedFile && newTag.trim()) {
-      if (!selectedFile.tags.includes(newTag.trim())) {
-        const updatedFile = { 
-          ...selectedFile, 
-          tags: [...selectedFile.tags, newTag.trim()] 
-        };
+      const tagToAdd = newTag.trim().toLowerCase();
+      if (!selectedFile.tags.includes(tagToAdd)) {
+        const updatedFile = { ...selectedFile, tags: [...selectedFile.tags, tagToAdd] };
         setFiles(prev => prev.map(f => f.id === selectedFile.id ? updatedFile : f));
         setSelectedFile(updatedFile);
         if (onFileTagAdd) {
-          onFileTagAdd(selectedFile, newTag.trim());
+          onFileTagAdd(selectedFile, tagToAdd);
         }
       }
-      setNewTag('');
+      setNewTag(''); // Clear input
     }
   }, [selectedFile, newTag, onFileTagAdd]);
   
-  const handleRemoveTag = useCallback((tag: string) => {
+  const handleRemoveTag = useCallback((tagToRemove: string) => {
     if (selectedFile) {
-      const updatedFile = { 
-        ...selectedFile, 
-        tags: selectedFile.tags.filter(t => t !== tag) 
-      };
+      const updatedFile = { ...selectedFile, tags: selectedFile.tags.filter(tag => tag !== tagToRemove) };
       setFiles(prev => prev.map(f => f.id === selectedFile.id ? updatedFile : f));
       setSelectedFile(updatedFile);
       if (onFileTagRemove) {
-        onFileTagRemove(selectedFile, tag);
+        onFileTagRemove(selectedFile, tagToRemove);
       }
     }
   }, [selectedFile, onFileTagRemove]);
-  
-  const handleSortChange = useCallback((newSortBy: 'name' | 'date' | 'size' | 'type') => {
-    if (sortBy === newSortBy) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(newSortBy);
-      setSortDirection('asc'); // Default to asc when changing sort type
-    }
-  }, [sortBy]);
   
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -899,259 +910,164 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
     setActiveFilter(filter);
   }, []);
   
-  const handleViewModeChange = useCallback((mode: 'grid' | 'list') => {
-    setViewMode(mode);
-  }, []);
-  
-  const handleRenameChange = useCallback((value: string) => {
-    setNewFileName(value);
-  }, []);
-  
-  const handleTagChange = useCallback((value: string) => {
-    setNewTag(value);
-  }, []);
-  
-  // Görünüm modu değiştirme işleyicileri
-  const handleGridView = useCallback(() => handleViewModeChange('grid'), [handleViewModeChange]);
-  const handleListView = useCallback(() => handleViewModeChange('list'), [handleViewModeChange]);
-  
-  // Bileşen displayName'leri
-  FileGridItem.displayName = 'FileGridItem';
-  FileListItem.displayName = 'FileListItem';
-  FileDetails.displayName = 'FileDetails';
-  FileFilters.displayName = 'FileFilters';
-  
-  const fileListLabelId = 'file-list-label';
+  const handleSortChange = useCallback((newSortBy: 'name' | 'date' | 'size' | 'type') => {
+    if (newSortBy === sortBy) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortDirection('asc'); // Default to ascending when changing sort column
+    }
+  }, [sortBy]);
 
-  // Constants for virtual list/grid
-  const listItemHeight = 73; // Approximate height of FileListItem including border
-  const gridItemWidth = 120 + 16; // 120px width + 16px margin (m={2})
-  const gridItemHeight = 140 + 16; // 140px height + 16px margin (m={2})
-
-  // Calculate grid columns based on container width
-  const columnCount = useMemo(() => {
-    if (!fileListDimensions?.borderBox.width) return 1;
-    return Math.max(1, Math.floor(fileListDimensions.borderBox.width / gridItemWidth));
-  }, [fileListDimensions?.borderBox.width]);
-
-  // Row count for grid
-  const rowCount = useMemo(() => {
-    return Math.ceil(sortedFiles.length / columnCount);
-  }, [sortedFiles.length, columnCount]);
-
-  // Prepare data for virtual list/grid items
+  // Memoized item data for virtual lists
   const itemData = useMemo(() => ({
     files: sortedFiles,
-    selectedFileId: selectedFile?.id,
+    selectedFileId: selectedFile?.id ?? null,
     colorMode,
     onSelect: handleFileSelect,
     onOpen: handleFileOpen,
     onRename: handleRenameStart,
     onToggleFavorite: handleToggleFavorite,
     onDelete: handleFileDelete,
-    columnCount // Pass columnCount for grid item calculation
-  }), [sortedFiles, selectedFile?.id, colorMode, handleFileSelect, handleFileOpen, handleRenameStart, handleToggleFavorite, handleFileDelete, columnCount]);
+  }), [sortedFiles, selectedFile, colorMode, handleFileSelect, handleFileOpen, handleRenameStart, handleToggleFavorite, handleFileDelete]);
 
-  // Render function for FixedSizeList items
-  const Row = useCallback(({ index, style }: { index: number, style: React.CSSProperties }) => {
-    const file = itemData.files[index];
-    if (!file) return null;
-    return (
-      <FileListItem
-        file={file}
-        isSelected={itemData.selectedFileId === file.id}
-        colorMode={itemData.colorMode}
-        onSelect={itemData.onSelect}
-        onOpen={itemData.onOpen}
-        onRename={itemData.onRename}
-        onToggleFavorite={itemData.onToggleFavorite}
-        onDelete={itemData.onDelete}
-        style={style}
-        // index and count are implicitly handled by FixedSizeList
-      />
-    );
-  }, [itemData]);
-
-  // Render function for FixedSizeGrid items
-  const Cell = useCallback(({ columnIndex, rowIndex, style }: { columnIndex: number, rowIndex: number, style: React.CSSProperties }) => {
-    const index = rowIndex * itemData.columnCount + columnIndex;
-    const file = itemData.files[index];
-    if (!file) return null; // Handle case where index is out of bounds (last row)
-
-    // Adjust style to account for margin within the cell
-    const adjustedStyle = {
-      ...style,
-      // Position the inner Box with margin correctly within the cell
-      // The FixedSizeGrid controls the outer positioning
-    };
-
-    return (
-      <FileGridItem
-        file={file}
-        isSelected={itemData.selectedFileId === file.id}
-        colorMode={itemData.colorMode}
-        onSelect={itemData.onSelect}
-        onOpen={itemData.onOpen}
-        style={adjustedStyle}
-        // index and count are implicitly handled by FixedSizeGrid
-      />
-    );
-  }, [itemData]);
+  // Grid view specific calculations
+  const gridItemWidth = 136; // Width of grid item + margin (120 + 8*2)
+  const gridItemHeight = 156; // Height of grid item + margin (140 + 8*2)
 
   return (
     <>
-      {/* Dosya Yöneticisi Açma Butonu */}
-      <Tooltip label="Dosya Yöneticisi" aria-label="Dosya Yöneticisi">
+      <Tooltip label="Dosya Yöneticisi" placement="left">
         <IconButton
-          ref={openButtonRef} // Assign ref to the open button
-          aria-label="Dosya Yöneticisi'ni aç"
-          icon={<Box fontSize="xl" aria-hidden="true">📂</Box>}
-          variant="glass"
+          ref={openButtonRef} // Attach ref to the button
+          aria-label="Dosya Yöneticisini Aç"
+          icon={<Box>🗂️</Box>}
           onClick={onOpen}
-          {...animations.performanceUtils.forceGPU}
+          variant="glass"
         />
       </Tooltip>
-      
-      {/* Dosya Yöneticisi Drawer */}
-      <Drawer
-        isOpen={isOpen}
-        placement="right"
-        onClose={onClose}
-        size="xl"
-        finalFocusRef={openButtonRef} // Return focus to open button on close
-        initialFocusRef={drawerContentRef} // Set initial focus inside drawer
-      >
+
+      <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xl">
         <DrawerOverlay />
-        <DrawerContent
-          ref={drawerContentRef} // Assign ref to drawer content
-          bg={colorMode === 'light' ? 'white' : 'gray.800'}
-          borderLeftRadius="md"
-          role="dialog" // Use dialog role
-          aria-modal="true" // Indicate it's a modal dialog
-          aria-labelledby="file-manager-header"
-        >
+        <DrawerContent ref={drawerContentRef} role="dialog" aria-modal="true" aria-label="Dosya Yöneticisi">
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px">
-            <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold" id="file-manager-header">Dosya Yöneticisi</Text>
-              <HStack role="group" aria-label="Görünüm seçenekleri">
-                <Tooltip label="Liste Görünümü" aria-label="Liste Görünümü">
+            Dosya Yöneticisi
+          </DrawerHeader>
+
+          <DrawerBody display="flex" flexDirection="column" p={0}>
+            {/* Search and View Mode Controls */}
+            <Flex p={4} borderBottomWidth="1px" alignItems="center">
+              <InputGroup flex="1" mr={4}>
+                <InputLeftElement pointerEvents="none">
+                  <Box>🔍</Box>
+                </InputLeftElement>
+                <Input 
+                  placeholder="Dosyalarda veya etiketlerde ara..." 
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  aria-label="Dosya arama"
+                />
+              </InputGroup>
+              <HStack>
+                <Tooltip label="Liste Görünümü" placement="bottom">
                   <IconButton
-                    aria-label="Liste görünümüne geç"
-                    icon={<Box aria-hidden="true">📋</Box>}
-                    size="sm"
-                    variant={viewMode === 'list' ? 'solid' : 'outline'}
-                    onClick={handleListView}
+                    aria-label="Liste Görünümü"
+                    icon={<Box>☰</Box>}
+                    variant={viewMode === 'list' ? 'solid' : 'ghost'}
+                    onClick={() => setViewMode('list')}
                     aria-pressed={viewMode === 'list'}
                   />
                 </Tooltip>
-                <Tooltip label="Izgara Görünümü" aria-label="Izgara Görünümü">
+                <Tooltip label="Izgara Görünümü" placement="bottom">
                   <IconButton
-                    aria-label="Izgara görünümüne geç"
-                    icon={<Box aria-hidden="true">📊</Box>}
-                    size="sm"
-                    variant={viewMode === 'grid' ? 'solid' : 'outline'}
-                    onClick={handleGridView}
+                    aria-label="Izgara Görünümü"
+                    icon={<Box>▦</Box>}
+                    variant={viewMode === 'grid' ? 'solid' : 'ghost'}
+                    onClick={() => setViewMode('grid')}
                     aria-pressed={viewMode === 'grid'}
                   />
                 </Tooltip>
               </HStack>
             </Flex>
-          </DrawerHeader>
-          
-          <DrawerBody p={4}>
-            <Flex direction="column" height="100%">
-              {/* Arama ve Filtreler */}
-              <Box mb={4}>
-                <InputGroup mb={3}>
-                  <InputLeftElement pointerEvents="none">
-                    <Box color="gray.500" aria-hidden="true">🔍</Box>
-                  </InputLeftElement>
-                  <Input
-                    placeholder="Dosya ara..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    aria-label="Dosya listesinde ara"
-                  />
-                </InputGroup>
-                
-                <FileFilters
-                  activeFilter={activeFilter}
-                  onFilterChange={handleFilterChange}
-                  onSortChange={handleSortChange}
-                  sortBy={sortBy}
-                  sortDirection={sortDirection}
-                />
+
+            {/* Filters and Sorting */}
+            <Box p={4} borderBottomWidth="1px">
+              <FileFilters 
+                activeFilter={activeFilter}
+                onFilterChange={handleFilterChange}
+                onSortChange={handleSortChange}
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+              />
+            </Box>
+
+            {/* File List and Details Pane */}
+            <Flex flex="1" overflow="hidden"> {/* Main content area */} 
+              {/* File List Area - Takes remaining space and handles overflow */}
+              <Box flex="1" overflow="hidden" p={2} role="region" aria-label="Dosya listesi">
+                {/* Use AutoSizer to provide dimensions to virtual lists */} 
+                <AutoSizer>
+                  {({ height, width }) => {
+                    if (viewMode === 'list') {
+                      return (
+                        <FixedSizeList
+                          ref={listRef}
+                          height={height}
+                          width={width}
+                          itemCount={sortedFiles.length}
+                          itemSize={73} // Approx height of FileListItem + border
+                          itemData={itemData} // Pass memoized data
+                          overscanCount={5} // Render a few items outside the viewport
+                        >
+                          {FileListItem}
+                        </FixedSizeList>
+                      );
+                    } else {
+                      // Calculate column count based on available width
+                      const columnCount = Math.max(1, Math.floor(width / gridItemWidth));
+                      const rowCount = Math.ceil(sortedFiles.length / columnCount);
+                      
+                      // Pass columnCount to itemData for grid item calculation
+                      const gridItemData = { ...itemData, columnCount };
+
+                      return (
+                        <FixedSizeGrid
+                          ref={gridRef}
+                          height={height}
+                          width={width}
+                          columnCount={columnCount}
+                          rowCount={rowCount}
+                          columnWidth={gridItemWidth}
+                          rowHeight={gridItemHeight}
+                          itemCount={sortedFiles.length} // Total number of items
+                          itemData={gridItemData} // Pass memoized data including columnCount
+                          overscanRowCount={2} // Render a few rows outside the viewport
+                          overscanColumnCount={1}
+                        >
+                          {FileGridItem}
+                        </FixedSizeGrid>
+                      );
+                    }
+                  }}
+                </AutoSizer>
               </Box>
-              
-              {/* Dosya Listesi ve Detaylar */}
-              <Flex flex="1" overflow="hidden">
-                {/* Dosya Listesi Container */}
+
+              {/* Details Pane - Only show if a file is selected */}
+              {selectedFile && (
                 <Box 
-                  ref={fileListContainerRef} // Add ref to get dimensions
-                  flex="1" 
-                  overflow="hidden" // Important: overflow handled by virtual list
-                  borderWidth="1px" 
-                  borderRadius="md" 
-                  mr={selectedFile ? 4 : 0}
-                  role="region" // Keep region role for the container
-                  aria-labelledby={fileListLabelId}
-                  height="100%" // Ensure container has height for virtual list
+                  width="300px" 
+                  borderLeftWidth="1px" 
+                  overflowY="auto"
+                  p={0} // Remove padding, FileDetails has its own
                 >
-                  <VisuallyHidden id={fileListLabelId}>
-                    Dosya Listesi ({viewMode === 'grid' ? 'Izgara' : 'Liste'} görünümü)
-                  </VisuallyHidden>
-                  
-                  {sortedFiles.length > 0 && fileListDimensions ? (
-                    viewMode === 'grid' ? (
-                      <FixedSizeGrid
-                        columnCount={columnCount}
-                        columnWidth={gridItemWidth}
-                        height={fileListDimensions.borderBox.height}
-                        rowCount={rowCount}
-                        rowHeight={gridItemHeight}
-                        width={fileListDimensions.borderBox.width}
-                        itemData={itemData}
-                        style={{ overflowX: 'hidden' }} // Hide horizontal scroll if needed
-                      >
-                        {Cell}
-                      </FixedSizeGrid>
-                    ) : (
-                      <FixedSizeList
-                        height={fileListDimensions.borderBox.height}
-                        itemCount={sortedFiles.length}
-                        itemSize={listItemHeight}
-                        width={fileListDimensions.borderBox.width}
-                        itemData={itemData}
-                      >
-                        {Row}
-                      </FixedSizeList>
-                    )
-                  ) : (
-                    <Flex 
-                      height="100%" 
-                      alignItems="center" 
-                      justifyContent="center" 
-                      p={8}
-                    >
-                      <Text color="gray.500">
-                        {isLoading ? 'Yükleniyor...' : 
-                         searchQuery ? 'Arama kriterlerine uygun dosya bulunamadı' : 
-                         'Dosya bulunamadı'}
-                      </Text>
-                    </Flex>
-                  )}
-                </Box>
-                
-                {/* Dosya Detayları */}
-                {selectedFile && (
-                  <FileDetails
+                  <FileDetails 
                     file={selectedFile}
                     isRenaming={isRenaming}
                     newFileName={newFileName}
                     newTag={newTag}
                     renameInputRef={renameInputRef}
-                    onRenameChange={handleRenameChange}
+                    onRenameChange={setNewFileName}
                     onRenameComplete={handleRenameComplete}
                     onToggleFavorite={handleToggleFavorite}
                     onTagChange={handleTagChange}
@@ -1160,8 +1076,8 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
                     onOpen={handleFileOpen}
                     onDelete={handleFileDelete}
                   />
-                )}
-              </Flex>
+                </Box>
+              )}
             </Flex>
           </DrawerBody>
         </DrawerContent>
@@ -1170,8 +1086,7 @@ export const FileManager: React.FC<FileManagerProps> = memo(({
   );
 });
 
-// Ensure displayName is set for React DevTools
+// Display name for debugging
 FileManager.displayName = 'FileManager';
 
 export default FileManager;
-

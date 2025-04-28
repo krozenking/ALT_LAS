@@ -25,7 +25,7 @@ Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması 
 - [x] **Görev 5.3.2:** Büyük listeler için sanal listeleme implementasyonu
 - [x] **Görev 5.3.3:** React.lazy ve Suspense ile kod bölme
 - [x] **Görev 5.3.4:** useTransition ve useDeferredValue ile render önceliklendirme
-- [ ] **Görev 5.3.5:** Performans profilleme ve darboğaz analizi
+- [x] **Görev 5.3.5:** Performans profilleme ve darboğaz analizi
 
 ### Görev 5.4: Animasyon Optimizasyonu
 - [ ] **Görev 5.4.1:** GPU hızlandırmalı animasyonların implementasyonu

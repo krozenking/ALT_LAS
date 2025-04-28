@@ -43,6 +43,7 @@ import {
   CardFooter
 } from '@chakra-ui/react';
 import { animations } from '@/styles/animations';
+import { PerformanceProfiler } from './PerformanceProfiler';
 
 // Performans izleme arayüzü
 export interface PerformanceMetric {
@@ -519,43 +520,43 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
           history: [
             { timestamp: new Date(Date.now() - 1000 * 60 * 5), value: 60 },
             { timestamp: new Date(Date.now() - 1000 * 60 * 4), value: 63 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 3), value: 67 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 2), value: 70 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 3), value: 65 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 2), value: 68 },
             { timestamp: new Date(Date.now() - 1000 * 60 * 1), value: 72 }
           ]
         },
         {
           id: '7',
-          name: 'İşlem Sayısı',
-          value: 124,
-          unit: '',
+          name: 'Sistem Uptime',
+          value: 72,
+          unit: 'saat',
           trend: 'increase',
-          changePercentage: 15,
+          changePercentage: 1,
           category: 'system',
           critical: false,
           history: [
-            { timestamp: new Date(Date.now() - 1000 * 60 * 5), value: 105 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 4), value: 110 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 3), value: 115 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 2), value: 120 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 1), value: 124 }
+            { timestamp: new Date(Date.now() - 1000 * 60 * 5), value: 68 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 4), value: 69 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 3), value: 70 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 2), value: 71 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 1), value: 72 }
           ]
         },
         {
           id: '8',
-          name: 'Sayfa Hatası',
-          value: 45,
-          unit: '/s',
-          trend: 'increase',
-          changePercentage: 25,
+          name: 'Boş Bellek',
+          value: 1.2,
+          unit: 'GB',
+          trend: 'decrease',
+          changePercentage: 15,
           category: 'memory',
           critical: true,
           history: [
-            { timestamp: new Date(Date.now() - 1000 * 60 * 5), value: 20 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 4), value: 25 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 3), value: 30 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 2), value: 38 },
-            { timestamp: new Date(Date.now() - 1000 * 60 * 1), value: 45 }
+            { timestamp: new Date(Date.now() - 1000 * 60 * 5), value: 2.5 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 4), value: 2.2 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 3), value: 1.8 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 2), value: 1.5 },
+            { timestamp: new Date(Date.now() - 1000 * 60 * 1), value: 1.2 }
           ]
         }
       ];
@@ -566,12 +567,12 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
   
   // Metrikleri periyodik olarak güncelle
   useEffect(() => {
-    const simulateMetricUpdate = () => {
+    const updateMetrics = () => {
       setMetrics(prevMetrics => {
         return prevMetrics.map(metric => {
           // Rastgele değişim
-          const randomChange = Math.random() * 6 - 3; // -3 ile +3 arasında
-          let newValue = metric.value + randomChange;
+          const change = Math.random() * 10 - 5; // -5 ile 5 arası
+          let newValue = metric.value + (metric.value * change / 100);
           
           // Değer sınırlarını kontrol et
           if (metric.unit === '%') {
@@ -582,62 +583,55 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
           
           // Trend hesapla
           const lastValue = metric.history[metric.history.length - 1].value;
-          let trend: 'increase' | 'decrease' | 'stable' = 'stable';
-          let changePercentage = 0;
+          const trend: 'increase' | 'decrease' | 'stable' = 
+            newValue > lastValue * 1.02 ? 'increase' :
+            newValue < lastValue * 0.98 ? 'decrease' : 'stable';
           
-          if (newValue > lastValue) {
-            trend = 'increase';
-            changePercentage = ((newValue - lastValue) / lastValue) * 100;
-          } else if (newValue < lastValue) {
-            trend = 'decrease';
-            changePercentage = ((lastValue - newValue) / lastValue) * 100;
-          }
+          // Değişim yüzdesi
+          const changePercentage = lastValue > 0 
+            ? Math.abs(((newValue - lastValue) / lastValue) * 100) 
+            : 0;
           
           // Kritik durumu kontrol et
-          let critical = metric.critical;
-          if (metric.unit === '%' && newValue > 90) {
-            critical = true;
-          } else if (metric.name === 'Sistem Sıcaklığı' && newValue > 70) {
-            critical = true;
-          } else if (metric.name === 'Sayfa Hatası' && newValue > 40) {
-            critical = true;
-          }
+          let critical = false;
+          if (metric.category === 'cpu' && newValue > 90) critical = true;
+          if (metric.category === 'memory' && newValue > 90 && metric.unit === '%') critical = true;
+          if (metric.category === 'disk' && newValue > 95 && metric.unit === '%') critical = true;
+          if (metric.category === 'system' && metric.name === 'Sistem Sıcaklığı' && newValue > 80) critical = true;
+          if (metric.category === 'memory' && metric.name === 'Boş Bellek' && newValue < 1.0) critical = true;
           
-          // Kritik durum değiştiyse ve kritik olduysa bildirim gönder
-          if (!metric.critical && critical && onMetricAlert) {
+          // Yeni geçmiş değeri
+          const newHistory = [
+            ...metric.history.slice(-4), // Son 4 değeri al
+            { timestamp: new Date(), value: newValue }
+          ];
+          
+          // Kritik metrik uyarısı
+          if (critical && !metric.critical && onMetricAlert) {
             onMetricAlert({
               ...metric,
               value: newValue,
               trend,
-              changePercentage,
+              changePercentage: Math.round(changePercentage),
               critical,
-              history: [
-                ...metric.history,
-                { timestamp: new Date(), value: newValue }
-              ]
+              history: newHistory
             });
           }
           
-          // Yeni metrik nesnesi
           return {
             ...metric,
-            value: parseFloat(newValue.toFixed(1)),
+            value: newValue,
             trend,
-            changePercentage: parseFloat(changePercentage.toFixed(1)),
+            changePercentage: Math.round(changePercentage),
             critical,
-            history: [
-              ...metric.history,
-              { timestamp: new Date(), value: newValue }
-            ].slice(-10) // Son 10 veriyi tut
+            history: newHistory
           };
         });
       });
     };
     
-    // Periyodik güncelleme başlat
-    refreshTimerRef.current = setInterval(simulateMetricUpdate, refreshInterval);
+    refreshTimerRef.current = setInterval(updateMetrics, refreshInterval);
     
-    // Temizleme fonksiyonu
     return () => {
       if (refreshTimerRef.current) {
         clearInterval(refreshTimerRef.current);
@@ -645,16 +639,22 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
     };
   }, [refreshInterval, onMetricAlert]);
   
-  // Metrikleri filtrele - useMemo ile optimize edildi
+  // Filtrelenmiş metrikler - useMemo ile optimize edildi
   const filteredMetrics = useMemo(() => {
     return metrics.filter(metric => {
-      const categoryMatch = activeCategory === 'all' || metric.category === activeCategory;
-      const criticalMatch = !showCriticalOnly || metric.critical;
-      return categoryMatch && criticalMatch;
+      if (showCriticalOnly && !metric.critical) {
+        return false;
+      }
+      
+      if (activeCategory !== 'all' && metric.category !== activeCategory) {
+        return false;
+      }
+      
+      return true;
     });
-  }, [metrics, activeCategory, showCriticalOnly]);
+  }, [metrics, showCriticalOnly, activeCategory]);
   
-  // Metrikleri sırala - useMemo ile optimize edildi
+  // Sıralanmış metrikler - useMemo ile optimize edildi
   const sortedMetrics = useMemo(() => {
     return [...filteredMetrics].sort((a, b) => {
       let comparison = 0;
@@ -664,12 +664,19 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
           comparison = a.name.localeCompare(b.name);
           break;
         case 'value':
-          comparison = a.value - b.value;
+          // Birim yüzde ise doğrudan karşılaştır
+          if (a.unit === '%' && b.unit === '%') {
+            comparison = a.value - b.value;
+          } 
+          // Birimler farklı ise kategoriye göre sırala
+          else {
+            comparison = a.category.localeCompare(b.category);
+          }
           break;
         case 'trend':
-          // Trend sıralaması: artış > sabit > azalış
-          const trendOrder = { 'increase': 2, 'stable': 1, 'decrease': 0 };
-          comparison = trendOrder[a.trend] - trendOrder[b.trend];
+          // Trend değerlerini sayısal değerlere dönüştür
+          const trendValues = { 'increase': 2, 'stable': 1, 'decrease': 0 };
+          comparison = trendValues[a.trend] - trendValues[b.trend];
           break;
       }
       
@@ -677,45 +684,50 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
     });
   }, [filteredMetrics, sortBy, sortDirection]);
   
-  // Sıralama değiştir - useCallback ile optimize edildi
+  // Kategori değiştirme işleyicisi - useCallback ile optimize edildi
+  const handleCategoryChange = useCallback((category: 'all' | 'cpu' | 'memory' | 'disk' | 'network' | 'system') => {
+    setActiveCategory(category);
+  }, []);
+  
+  // Kritik metrik filtresini değiştirme işleyicisi - useCallback ile optimize edildi
+  const handleToggleCritical = useCallback(() => {
+    setShowCriticalOnly(prev => !prev);
+  }, []);
+  
+  // Sıralama değiştirme işleyicisi - useCallback ile optimize edildi
   const handleSortChange = useCallback((newSortBy: 'name' | 'value' | 'trend') => {
     if (sortBy === newSortBy) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(newSortBy);
-      setSortDirection('desc');
+      setSortDirection('desc'); // Varsayılan olarak azalan sıralama
     }
   }, [sortBy]);
   
-  // Kategori değiştir - useCallback ile optimize edildi
-  const handleCategoryChange = useCallback((category: 'all' | 'cpu' | 'memory' | 'disk' | 'network' | 'system') => {
-    setActiveCategory(category);
+  // Optimizasyon uygulama işleyicisi
+  const handleOptimizationApply = useCallback((bottleneckId: string) => {
+    // Burada gerçek bir optimizasyon uygulanabilir
+    console.log(`Optimizasyon uygulandı: ${bottleneckId}`);
   }, []);
-  
-  // Kritik metrik filtresini değiştir - useCallback ile optimize edildi
-  const handleToggleCritical = useCallback(() => {
-    setShowCriticalOnly(prev => !prev);
-  }, []);
-  
-  // Bileşen displayName'leri
-  PerformanceButton.displayName = 'PerformanceButton';
-  MetricCard.displayName = 'MetricCard';
-  CategoryFilters.displayName = 'CategoryFilters';
-  ControlPanel.displayName = 'ControlPanel';
-  MetricGrid.displayName = 'MetricGrid';
-  
+
   return (
     <>
-      {/* Performans Monitörü Açma Butonu */}
-      <PerformanceButton criticalCount={criticalCount} onOpen={onOpen} />
+      <Box position="relative">
+        {/* Performans Monitörü Butonu */}
+        <PerformanceButton criticalCount={criticalCount} onOpen={onOpen} />
+        
+        {/* Performans Profili Butonu */}
+        <Box position="absolute" top="0" left="0" transform="translateX(-120%)">
+          <PerformanceProfiler onOptimizationApply={handleOptimizationApply} />
+        </Box>
+      </Box>
       
       {/* Performans Monitörü Drawer */}
       <Drawer
         isOpen={isOpen}
         placement="right"
         onClose={onClose}
-        size="xl"
-        aria-labelledby="performance-monitor-header"
+        size="lg"
       >
         <DrawerOverlay />
         <DrawerContent
@@ -725,19 +737,29 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth="1px">
             <Flex justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold" id="performance-monitor-header">Performans Monitörü</Text>
-              <ControlPanel 
-                showCriticalOnly={showCriticalOnly}
-                onToggleCritical={handleToggleCritical}
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortChange={handleSortChange}
-              />
+              <Text fontSize="xl" fontWeight="bold">Performans Monitörü</Text>
+              {criticalCount > 0 && (
+                <Badge colorScheme="red" fontSize="sm" py={1} px={2} borderRadius="full">
+                  {criticalCount} Kritik Metrik
+                </Badge>
+              )}
             </Flex>
           </DrawerHeader>
           
           <DrawerBody p={4}>
-            <Flex direction="column" height="100%">
+            <VStack spacing={4} align="stretch">
+              {/* Kontrol Paneli */}
+              <Flex justifyContent="space-between" alignItems="center">
+                <Text fontSize="lg" fontWeight="medium">Sistem Metrikleri</Text>
+                <ControlPanel 
+                  showCriticalOnly={showCriticalOnly}
+                  onToggleCritical={handleToggleCritical}
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSortChange={handleSortChange}
+                />
+              </Flex>
+              
               {/* Kategori Filtreleri */}
               <CategoryFilters 
                 activeCategory={activeCategory}
@@ -750,7 +772,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
                 colorMode={colorMode}
                 showCriticalOnly={showCriticalOnly}
               />
-            </Flex>
+            </VStack>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
@@ -758,7 +780,7 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = memo(({
   );
 });
 
-// Ensure displayName is set for React DevTools
+// Display name for debugging
 PerformanceMonitor.displayName = 'PerformanceMonitor';
 
 export default PerformanceMonitor;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -12,7 +12,38 @@ export interface IconButtonProps extends BoxProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
-export const IconButton: React.FC<IconButtonProps> = ({
+// Custom comparison function for memoization
+const areEqual = (prevProps: IconButtonProps, nextProps: IconButtonProps) => {
+  // Compare primitive props
+  if (
+    prevProps.variant !== nextProps.variant ||
+    prevProps.size !== nextProps.size ||
+    prevProps.isDisabled !== nextProps.isDisabled ||
+    prevProps.isLoading !== nextProps.isLoading ||
+    prevProps.onClick !== nextProps.onClick ||
+    prevProps.ariaLabel !== nextProps.ariaLabel
+  ) {
+    return false;
+  }
+
+  // Compare style props that affect rendering
+  const styleProps = ['bg', 'color', 'borderColor', 'boxShadow', 'opacity', 'transform'];
+  for (const prop of styleProps) {
+    if (prevProps[prop] !== nextProps[prop]) {
+      return false;
+    }
+  }
+
+  // Assume icon changed if provided
+  if ((prevProps.icon && !nextProps.icon) || (!prevProps.icon && nextProps.icon)) {
+    return false;
+  }
+
+  // If we got here, props are considered equal
+  return true;
+};
+
+export const IconButton: React.FC<IconButtonProps> = memo(({
   variant = 'glass',
   size = 'md',
   isDisabled = false,
@@ -67,8 +98,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
     return {};
   };
 
-  // Size styles
-  const getSizeStyle = () => {
+  // Size styles - memoized
+  const getSizeStyle = React.useMemo(() => {
     switch (size) {
       case 'sm':
         return {
@@ -90,19 +121,19 @@ export const IconButton: React.FC<IconButtonProps> = ({
           fontSize: 'md'
         };
     }
-  };
+  }, [size]);
 
-  // Disabled styles
-  const disabledStyle = isDisabled ? {
+  // Disabled styles - memoized
+  const disabledStyle = React.useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
     _active: {},
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
-  } : {};
+  } : {}, [isDisabled]);
 
-  // Loading styles
-  const loadingStyle = isLoading ? {
+  // Loading styles - memoized
+  const loadingStyle = React.useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
     _before: {
@@ -120,14 +151,28 @@ export const IconButton: React.FC<IconButtonProps> = ({
       animation: 'spin 0.8s linear infinite',
     },
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
-  } : {};
+  } : {}, [isLoading]);
 
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
-  const focusStyles = !isDisabled && !isLoading ? {
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
+  const focusStyles = React.useMemo(() => !isDisabled && !isLoading ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
     zIndex: 1, // Ensure focus style is visible
-  } : {};
+  } : {}, [isDisabled, isLoading, colorMode]);
+
+  // Memoize glass style
+  const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
+
+  // Memoize interaction styles
+  const interactionStyles = React.useMemo(() => ({
+    _hover: !isDisabled && !isLoading ? {
+      transform: 'translateY(-2px)',
+      boxShadow: 'md',
+    } : {},
+    _active: !isDisabled && !isLoading ? {
+      transform: 'translateY(0)',
+    } : {},
+  }), [isDisabled, isLoading]);
 
   return (
     <Box
@@ -141,21 +186,15 @@ export const IconButton: React.FC<IconButtonProps> = ({
       transition="all 0.2s ease-in-out"
       position="relative" // Ensure position context for focus styles
       aria-label={ariaLabel} // Use the mandatory ariaLabel prop
-      _hover={!isDisabled && !isLoading ? {
-        transform: 'translateY(-2px)',
-        boxShadow: 'md',
-      } : {}}
-      _active={!isDisabled && !isLoading ? {
-        transform: 'translateY(0)',
-      } : {}}
       _focus={{
         ...focusStyles
       }}
       _focusVisible={{
         ...focusStyles
       }}
-      {...getGlassStyle()}
-      {...getSizeStyle()}
+      {...interactionStyles}
+      {...glassStyle}
+      {...getSizeStyle}
       {...disabledStyle}
       {...loadingStyle}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
@@ -165,14 +204,14 @@ export const IconButton: React.FC<IconButtonProps> = ({
       tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order
       {...rest}
     >
-      {/* Wrap icon in a span for better accessibility structure */} 
+      {/* Wrap icon in a span for better accessibility structure */}
       {isLoading ? (
         <Box opacity={0} aria-hidden="true">{icon}</Box>
       ) : (
-        <Box 
-          aria-hidden="true" 
-          display="flex" 
-          alignItems="center" 
+        <Box
+          aria-hidden="true"
+          display="flex"
+          alignItems="center"
           justifyContent="center"
         >
           {icon}
@@ -180,6 +219,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
       )}
     </Box>
   );
-};
+}, areEqual);
+
+// Display name for debugging
+IconButton.displayName = 'IconButton';
 
 export default IconButton;

@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useId, memo } from 'react';
 import { Box, BoxProps, useColorMode, Heading } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -12,7 +12,44 @@ export interface CardProps extends BoxProps {
   isFocusable?: boolean; // Add prop to make card focusable
 }
 
-export const Card: React.FC<CardProps> = ({
+// Custom comparison function for memoization
+const areEqual = (prevProps: CardProps, nextProps: CardProps) => {
+  // Compare primitive props
+  if (
+    prevProps.variant !== nextProps.variant ||
+    prevProps.headerLevel !== nextProps.headerLevel ||
+    prevProps.isHoverable !== nextProps.isHoverable ||
+    prevProps.role !== nextProps.role ||
+    prevProps.isFocusable !== nextProps.isFocusable
+  ) {
+    return false;
+  }
+
+  // Compare style props that affect rendering
+  const styleProps = ['bg', 'color', 'borderColor', 'boxShadow', 'opacity', 'transform'];
+  for (const prop of styleProps) {
+    if (prevProps[prop] !== nextProps[prop]) {
+      return false;
+    }
+  }
+
+  // Deep comparison is expensive, so we'll assume complex props changed if they're provided
+  if (
+    (prevProps.header && !nextProps.header) ||
+    (!prevProps.header && nextProps.header) ||
+    (prevProps.footer && !nextProps.footer) ||
+    (!prevProps.footer && nextProps.footer) ||
+    (prevProps.children && !nextProps.children) ||
+    (!prevProps.children && nextProps.children)
+  ) {
+    return false;
+  }
+
+  // If we got here, props are considered equal
+  return true;
+};
+
+export const Card: React.FC<CardProps> = memo(({
   variant = 'glass',
   header,
   headerLevel = 'h3', // Default header level
@@ -27,8 +64,8 @@ export const Card: React.FC<CardProps> = ({
   const headerId = useId();
   const contentId = useId();
 
-  // Apply glassmorphism effect based on color mode and variant
-  const getCardStyle = () => {
+  // Apply glassmorphism effect based on color mode and variant - memoized
+  const getCardStyle = React.useMemo(() => {
     if (variant === 'glass') {
       return colorMode === 'light'
         ? glassmorphism.create(0.7, 10, 1)
@@ -49,24 +86,24 @@ export const Card: React.FC<CardProps> = ({
     }
 
     return {};
-  };
+  }, [variant, colorMode]);
 
-  // Hover effect
-  const hoverStyle = isHoverable ? {
+  // Hover effect - memoized
+  const hoverStyle = React.useMemo(() => isHoverable ? {
     _hover: {
       transform: 'translateY(-4px)',
       boxShadow: 'lg',
       transition: 'all 0.3s ease',
     }
-  } : {};
+  } : {}, [isHoverable]);
 
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
   // Applied only if isFocusable is true
-  const focusStyles = isFocusable ? {
+  const focusStyles = React.useMemo(() => isFocusable ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
     zIndex: 1, // Ensure focus style is visible
-  } : {};
+  } : {}, [isFocusable, colorMode]);
 
   // Determine aria-labelledby based on header presence
   const ariaLabelledBy = header ? headerId : undefined;
@@ -78,7 +115,7 @@ export const Card: React.FC<CardProps> = ({
       overflow="hidden"
       transition="all 0.2s ease-in-out"
       position="relative" // Ensure position context for focus styles
-      {...getCardStyle()}
+      {...getCardStyle}
       {...hoverStyle}
       _focus={{
         ...focusStyles
@@ -135,6 +172,9 @@ export const Card: React.FC<CardProps> = ({
       )}
     </Box>
   );
-};
+}, areEqual);
+
+// Display name for debugging
+Card.displayName = 'Card';
 
 export default Card;

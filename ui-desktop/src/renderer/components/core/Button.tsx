@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -13,7 +13,45 @@ export interface ButtonProps extends BoxProps {
   'aria-label'?: string; // Add aria-label prop for accessibility
 }
 
-export const Button: React.FC<ButtonProps> = ({
+// Custom comparison function for memoization
+const areEqual = (prevProps: ButtonProps, nextProps: ButtonProps) => {
+  // Compare primitive props
+  if (
+    prevProps.variant !== nextProps.variant ||
+    prevProps.size !== nextProps.size ||
+    prevProps.isDisabled !== nextProps.isDisabled ||
+    prevProps.isLoading !== nextProps.isLoading ||
+    prevProps.onClick !== nextProps.onClick ||
+    prevProps['aria-label'] !== nextProps['aria-label'] ||
+    prevProps.children !== nextProps.children
+  ) {
+    return false;
+  }
+
+  // Compare style props that affect rendering
+  const styleProps = ['bg', 'color', 'borderColor', 'boxShadow', 'opacity', 'transform'];
+  for (const prop of styleProps) {
+    if (prevProps[prop] !== nextProps[prop]) {
+      return false;
+    }
+  }
+
+  // Deep comparison is expensive, so we'll assume icons changed if they're provided
+  // This is a trade-off between performance and correctness
+  if (
+    (prevProps.leftIcon && !nextProps.leftIcon) ||
+    (!prevProps.leftIcon && nextProps.leftIcon) ||
+    (prevProps.rightIcon && !nextProps.rightIcon) ||
+    (!prevProps.rightIcon && nextProps.rightIcon)
+  ) {
+    return false;
+  }
+
+  // If we got here, props are considered equal
+  return true;
+};
+
+export const Button: React.FC<ButtonProps> = memo(({
   variant = 'glass',
   size = 'md',
   isDisabled = false,
@@ -70,8 +108,8 @@ export const Button: React.FC<ButtonProps> = ({
     return {};
   };
 
-  // Size styles
-  const getSizeStyle = () => {
+  // Size styles - memoized to prevent recalculation
+  const getSizeStyle = React.useMemo(() => {
     switch (size) {
       case 'sm':
         return { px: 3, py: 1, fontSize: 'sm' };
@@ -81,19 +119,19 @@ export const Button: React.FC<ButtonProps> = ({
       default:
         return { px: 4, py: 2, fontSize: 'md' };
     }
-  };
+  }, [size]);
 
-  // Disabled styles
-  const disabledStyle = isDisabled ? {
+  // Disabled styles - memoized to prevent recalculation
+  const disabledStyle = React.useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
     _active: {},
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
-  } : {};
+  } : {}, [isDisabled]);
 
-  // Loading styles
-  const loadingStyle = isLoading ? {
+  // Loading styles - memoized to prevent recalculation
+  const loadingStyle = React.useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
     _before: {
@@ -111,17 +149,34 @@ export const Button: React.FC<ButtonProps> = ({
       animation: 'spin 0.8s linear infinite',
     },
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
-  } : {};
+  } : {}, [isLoading]);
 
   // Determine aria-label: Use provided label, or children if it's a string, otherwise undefined
-  const finalAriaLabel = ariaLabel || (typeof children === 'string' ? children : 'Button'); // Always provide a label for screen readers
+  const finalAriaLabel = React.useMemo(() => 
+    ariaLabel || (typeof children === 'string' ? children : 'Button'), // Always provide a label for screen readers
+    [ariaLabel, children]
+  );
 
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
-  const focusStyles = !isDisabled && !isLoading ? {
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
+  const focusStyles = React.useMemo(() => !isDisabled && !isLoading ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
     zIndex: 1, // Ensure focus style is visible
-  } : {};
+  } : {}, [isDisabled, isLoading, colorMode]);
+
+  // Memoize glass style to prevent recalculation on every render
+  const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
+
+  // Memoize hover and active styles
+  const interactionStyles = React.useMemo(() => ({
+    _hover: !isDisabled && !isLoading ? {
+      transform: 'translateY(-2px)',
+      boxShadow: 'md',
+    } : {},
+    _active: !isDisabled && !isLoading ? {
+      transform: 'translateY(0)',
+    } : {},
+  }), [isDisabled, isLoading]);
 
   return (
     <Box
@@ -135,21 +190,15 @@ export const Button: React.FC<ButtonProps> = ({
       fontWeight="medium"
       transition="all 0.2s ease-in-out"
       position="relative" // Ensure position context for focus styles
-      _hover={!isDisabled && !isLoading ? {
-        transform: 'translateY(-2px)',
-        boxShadow: 'md',
-      } : {}}
-      _active={!isDisabled && !isLoading ? {
-        transform: 'translateY(0)',
-      } : {}}
       _focus={{
         ...focusStyles
       }}
       _focusVisible={{
         ...focusStyles
       }}
-      {...getGlassStyle()}
-      {...getSizeStyle()}
+      {...interactionStyles}
+      {...glassStyle}
+      {...getSizeStyle}
       {...disabledStyle}
       {...loadingStyle}
       onClick={!isDisabled && !isLoading ? onClick : undefined}
@@ -173,6 +222,9 @@ export const Button: React.FC<ButtonProps> = ({
       )}
     </Box>
   );
-};
+}, areEqual);
+
+// Display name for debugging
+Button.displayName = 'Button';
 
 export default Button;

@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useId, memo } from 'react';
 import { Box, BoxProps, useColorMode, Input as ChakraInput, InputProps as ChakraInputProps, FormLabel } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -12,7 +12,48 @@ export interface InputProps extends Omit<ChakraInputProps, 'size'> {
   isRequired?: boolean; // Add isRequired prop for accessibility
 }
 
-export const Input: React.FC<InputProps> = ({
+// Custom comparison function for memoization
+const areEqual = (prevProps: InputProps, nextProps: InputProps) => {
+  // Compare primitive props
+  if (
+    prevProps.variant !== nextProps.variant ||
+    prevProps.size !== nextProps.size ||
+    prevProps.label !== nextProps.label ||
+    prevProps.error !== nextProps.error ||
+    prevProps.isRequired !== nextProps.isRequired ||
+    prevProps.isDisabled !== nextProps.isDisabled ||
+    prevProps.value !== nextProps.value || // Compare value
+    prevProps.placeholder !== nextProps.placeholder ||
+    prevProps.onChange !== nextProps.onChange ||
+    prevProps.onBlur !== nextProps.onBlur ||
+    prevProps.onFocus !== nextProps.onFocus
+  ) {
+    return false;
+  }
+
+  // Compare style props that affect rendering
+  const styleProps = ['bg', 'color', 'borderColor', 'boxShadow', 'opacity'];
+  for (const prop of styleProps) {
+    if (prevProps[prop] !== nextProps[prop]) {
+      return false;
+    }
+  }
+
+  // Assume elements changed if provided
+  if (
+    (prevProps.leftElement && !nextProps.leftElement) ||
+    (!prevProps.leftElement && nextProps.leftElement) ||
+    (prevProps.rightElement && !nextProps.rightElement) ||
+    (!prevProps.rightElement && nextProps.rightElement)
+  ) {
+    return false;
+  }
+
+  // If we got here, props are considered equal
+  return true;
+};
+
+export const Input: React.FC<InputProps> = memo(({
   variant = 'glass',
   size = 'md',
   label,
@@ -28,15 +69,15 @@ export const Input: React.FC<InputProps> = ({
   const errorId = error ? `${id}-error` : undefined;
   const labelId = label ? `${id}-label` : undefined;
 
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
-  const focusStyles = !isDisabled ? {
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
+  const focusStyles = React.useMemo(() => !isDisabled ? {
     borderColor: 'primary.500',
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
     zIndex: 1, // Ensure focus style is visible
-  } : {};
+  } : {}, [isDisabled, colorMode]);
 
   // Apply glassmorphism effect based on color mode and variant
-  const getInputStyle = () => {
+  const getInputStyle = React.useMemo(() => {
     if (variant === 'glass') {
       return {
         ...(colorMode === 'light'
@@ -64,10 +105,10 @@ export const Input: React.FC<InputProps> = ({
     }
 
     return {};
-  };
+  }, [variant, colorMode, focusStyles]);
 
-  // Size styles
-  const getSizeStyle = () => {
+  // Size styles - memoized
+  const getSizeStyle = React.useMemo(() => {
     switch (size) {
       case 'sm':
         return { px: 3, py: 1, fontSize: 'sm', height: '32px' };
@@ -77,10 +118,10 @@ export const Input: React.FC<InputProps> = ({
       default:
         return { px: 4, py: 2, fontSize: 'md', height: '40px' };
     }
-  };
+  }, [size]);
 
-  // Error styles
-  const errorStyle = error ? {
+  // Error styles - memoized
+  const errorStyle = React.useMemo(() => error ? {
     borderColor: 'error.500',
     _focus: {
       borderColor: 'error.500',
@@ -90,17 +131,17 @@ export const Input: React.FC<InputProps> = ({
       borderColor: 'error.500',
       boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(229, 62, 62, 0.6)' : 'rgba(252, 129, 129, 0.6)'}`, // Error focus ring
     }
-  } : {};
+  } : {}, [error, colorMode]);
 
-  // Disabled styles
-  const disabledStyle = isDisabled ? {
+  // Disabled styles - memoized
+  const disabledStyle = React.useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     bg: colorMode === 'light' ? 'gray.100' : 'gray.700',
     borderColor: colorMode === 'light' ? 'gray.200' : 'gray.600',
     _focus: { boxShadow: 'none' },
     _focusVisible: { boxShadow: 'none' },
-  } : {};
+  } : {}, [isDisabled, colorMode]);
 
   return (
     <Box width="100%">
@@ -145,8 +186,8 @@ export const Input: React.FC<InputProps> = ({
           transition="all 0.2s ease-in-out"
           pl={leftElement ? 10 : 4}
           pr={rightElement ? 10 : 4}
-          {...getInputStyle()}
-          {...getSizeStyle()}
+          {...getInputStyle}
+          {...getSizeStyle}
           {...errorStyle}
           {...disabledStyle} // Apply disabled styles
           id={id}
@@ -193,6 +234,9 @@ export const Input: React.FC<InputProps> = ({
       )}
     </Box>
   );
-};
+}, areEqual);
+
+// Display name for debugging
+Input.displayName = 'Input';
 
 export default Input;

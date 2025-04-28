@@ -21,7 +21,7 @@ Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması 
 ## Hafta 3-4: Performans Optimizasyonu
 
 ### Görev 5.3: Render Optimizasyonu
-- [ ] **Görev 5.3.1:** Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
+- [x] **Görev 5.3.1:** Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
 - [ ] **Görev 5.3.2:** Büyük listeler için sanal listeleme implementasyonu
 - [ ] **Görev 5.3.3:** React.lazy ve Suspense ile kod bölme
 - [ ] **Görev 5.3.4:** useTransition ve useDeferredValue ile render önceliklendirme

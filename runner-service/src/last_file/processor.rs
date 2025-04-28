@@ -99,7 +99,7 @@ impl LastFileProcessor {
         let (tx, mut rx) = mpsc::channel(self.config.max_workers);
         
         // Clone necessary data for tasks
-        let last_file_id = last_file.id.clone();
+        let _last_file_id = last_file.id.clone(); // Mark as unused
         let output_dir = self.config.output_dir.clone();
         let enable_artifact_extraction = self.config.enable_artifact_extraction;
         let enable_graph_visualization = self.config.enable_graph_visualization;

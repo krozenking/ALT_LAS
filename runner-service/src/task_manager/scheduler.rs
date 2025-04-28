@@ -136,7 +136,7 @@ impl TaskScheduler {
                     let tx_clone = tx.clone();
                     
                     // Clone executor for the spawned task
-                    let executor_clone = self.executor.clone();
+                    let _executor_clone = self.executor.clone(); // Mark as unused
                     
                     // Increment active tasks
                     active_tasks += 1;

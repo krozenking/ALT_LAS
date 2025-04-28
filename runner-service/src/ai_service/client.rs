@@ -1,420 +1,327 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::time::{timeout, Duration};
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use log::{info, error, warn, debug};
+use reqwest::{Client, StatusCode};
+use serde_json::{json, Value};
+use tokio::time::{timeout, Duration};
+use serde::{Serialize, Deserialize};
 
-/// AI service request structure
-#[derive(Debug, Serialize)]
-pub struct AiRequest {
-    pub task_id: String,
-    pub prompt: String,
-    pub mode: Option<String>,
-    pub persona: Option<String>,
-    pub parameters: Option<HashMap<String, serde_json::Value>>,
-    pub model: Option<String>,
-    pub stream: Option<bool>,
-}
-
-/// AI service response structure
-#[derive(Debug, Deserialize)]
-pub struct AiResponse {
-    pub task_id: String,
-    pub result: serde_json::Value,
-    pub processing_time_ms: Option<u64>,
-    pub model_used: Option<String>,
-    pub tokens_used: Option<u32>,
-}
-
-/// AI service client
+/// AI Service client for interacting with the AI Orchestrator
 pub struct AiServiceClient {
     base_url: String,
     client: Client,
     timeout_seconds: u64,
 }
 
+/// AI Task Processor for processing AI tasks
+pub struct AiTaskProcessor {
+    client: AiServiceClient,
+}
+
 impl AiServiceClient {
-    /// Creates a new AI service client
-    pub fn new(base_url: &str, timeout_seconds: u64) -> Self {
+    /// Creates a new AI Service client
+    pub fn new(base_url: String, timeout_seconds: u64) -> Self {
         AiServiceClient {
-            base_url: base_url.to_string(),
+            base_url,
             client: Client::new(),
             timeout_seconds,
         }
     }
     
-    /// Sends a request to the AI service
+    /// Sends a request to the AI Service
     pub async fn send_request(
         &self,
-        task_id: &str,
+        request_id: &str,
         prompt: &str,
         mode: Option<&str>,
         persona: Option<&str>,
-        parameters: Option<HashMap<String, serde_json::Value>>,
-    ) -> Result<serde_json::Value, String> {
-        info!("Sending AI request for task: {}", task_id);
-        debug!("Prompt: {}", prompt);
-        debug!("Mode: {:?}, Persona: {:?}", mode, persona);
+        parameters: Option<HashMap<String, Value>>,
+    ) -> Result<Value, String> {
+        info!("Sending request to AI Service: {}", request_id);
         
-        let request = AiRequest {
-            task_id: task_id.to_string(),
-            prompt: prompt.to_string(),
-            mode: mode.map(|s| s.to_string()),
-            persona: persona.map(|s| s.to_string()),
-            parameters: parameters.clone(),
-            model: parameters.as_ref().and_then(|p| 
-                p.get("model").and_then(|m| m.as_str()).map(|s| s.to_string())
-            ),
-            stream: None,
-        };
+        // Build request body
+        let mut body = json!({
+            "request_id": request_id,
+            "prompt": prompt,
+        });
         
-        let url = format!("{}/process", self.base_url);
+        // Add optional fields
+        if let Some(mode_str) = mode {
+            body["mode"] = json!(mode_str);
+        }
         
-        // Set timeout for the request
-        let timeout_duration = Duration::from_secs(self.timeout_seconds);
+        if let Some(persona_str) = persona {
+            body["persona"] = json!(persona_str);
+        }
+        
+        if let Some(params) = parameters {
+            body["parameters"] = json!(params);
+        }
         
         // Send request with timeout
-        match timeout(timeout_duration, self.client.post(&url).json(&request).send()).await {
+        match timeout(
+            Duration::from_secs(self.timeout_seconds),
+            self.client.post(&format!("{}/api/v1/generate", self.base_url))
+                .json(&body)
+                .send()
+        ).await {
             Ok(result) => {
                 match result {
                     Ok(response) => {
-                        if response.status().is_success() {
-                            match response.json::<AiResponse>().await {
-                                Ok(ai_response) => {
-                                    info!("Received AI response for task: {}", task_id);
-                                    if let Some(tokens) = ai_response.tokens_used {
-                                        debug!("Tokens used: {}", tokens);
-                                    }
-                                    if let Some(model) = &ai_response.model_used {
-                                        debug!("Model used: {}", model);
-                                    }
-                                    Ok(ai_response.result)
+                        let status = response.status();
+                        
+                        if status.is_success() {
+                            match response.json::<Value>().await {
+                                Ok(json_response) => {
+                                    info!("Received successful response from AI Service for request: {}", request_id);
+                                    Ok(json_response)
                                 },
                                 Err(err) => {
-                                    error!("Failed to parse AI response: {}", err);
-                                    Err(format!("Failed to parse AI response: {}", err))
+                                    error!("Failed to parse JSON response from AI Service: {}", err);
+                                    Err(format!("Failed to parse JSON response: {}", err))
                                 }
                             }
                         } else {
-                            let status = response.status();
                             let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                            error!("AI service returned error status {}: {}", status, error_text);
-                            Err(format!("AI service returned error status {}: {}", status, error_text))
+                            error!("AI Service returned error status {}: {}", status, error_text);
+                            Err(format!("AI Service returned error status {}: {}", status, error_text))
                         }
                     },
                     Err(err) => {
-                        error!("Failed to send request to AI service: {}", err);
-                        Err(format!("Failed to send request to AI service: {}", err))
+                        error!("Failed to send request to AI Service: {}", err);
+                        Err(format!("Failed to send request to AI Service: {}", err))
                     }
                 }
             },
             Err(_) => {
-                error!("Request to AI service timed out after {} seconds", self.timeout_seconds);
-                Err(format!("Request to AI service timed out after {} seconds", self.timeout_seconds))
+                error!("Request to AI Service timed out after {} seconds", self.timeout_seconds);
+                Err(format!("Request timed out after {} seconds", self.timeout_seconds))
             }
         }
     }
     
-    /// Sends a streaming request to the AI service
-    pub async fn send_streaming_request(
-        &self,
-        task_id: &str,
-        prompt: &str,
-        mode: Option<&str>,
-        persona: Option<&str>,
-        parameters: Option<HashMap<String, serde_json::Value>>,
-        callback: impl Fn(&str) + Send + Sync + 'static,
-    ) -> Result<serde_json::Value, String> {
-        info!("Sending streaming AI request for task: {}", task_id);
-        debug!("Prompt: {}", prompt);
+    /// Checks the health of the AI Service
+    pub async fn check_health(&self) -> Result<bool, String> {
+        info!("Checking AI Service health");
         
-        let request = AiRequest {
-            task_id: task_id.to_string(),
-            prompt: prompt.to_string(),
-            mode: mode.map(|s| s.to_string()),
-            persona: persona.map(|s| s.to_string()),
-            parameters: parameters.clone(),
-            model: parameters.as_ref().and_then(|p| 
-                p.get("model").and_then(|m| m.as_str()).map(|s| s.to_string())
-            ),
-            stream: Some(true),
-        };
-        
-        let url = format!("{}/stream", self.base_url);
-        
-        // Set timeout for the request
-        let timeout_duration = Duration::from_secs(self.timeout_seconds);
-        
-        // Create a callback Arc for sharing with the async block
-        let callback = Arc::new(callback);
-        
-        // Send request with timeout
-        match timeout(timeout_duration, self.client.post(&url).json(&request).send()).await {
+        match timeout(
+            Duration::from_secs(5),
+            self.client.get(&format!("{}/health", self.base_url)).send()
+        ).await {
             Ok(result) => {
                 match result {
                     Ok(response) => {
-                        if response.status().is_success() {
-                            let mut stream = response.bytes_stream();
-                            let mut full_response = String::new();
-                            
-                            // Process the stream
-                            while let Some(chunk_result) = stream.next().await {
-                                match chunk_result {
-                                    Ok(chunk) => {
-                                        if let Ok(text) = String::from_utf8(chunk.to_vec()) {
-                                            full_response.push_str(&text);
-                                            callback(&text);
-                                        }
-                                    },
-                                    Err(err) => {
-                                        error!("Error reading stream chunk: {}", err);
-                                        return Err(format!("Error reading stream: {}", err));
-                                    }
-                                }
-                            }
-                            
-                            // Create a final response
-                            let final_response = serde_json::json!({
-                                "text": full_response,
-                                "task_id": task_id,
-                                "streaming": true
-                            });
-                            
-                            Ok(final_response)
+                        let status = response.status();
+                        
+                        if status.is_success() {
+                            info!("AI Service is healthy");
+                            Ok(true)
                         } else {
-                            let status = response.status();
-                            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                            error!("AI service returned error status {}: {}", status, error_text);
-                            Err(format!("AI service returned error status {}: {}", status, error_text))
+                            warn!("AI Service health check failed with status: {}", status);
+                            Ok(false)
                         }
                     },
                     Err(err) => {
-                        error!("Failed to send streaming request to AI service: {}", err);
-                        Err(format!("Failed to send streaming request to AI service: {}", err))
+                        error!("Failed to send health check request: {}", err);
+                        Err(format!("Failed to send health check request: {}", err))
                     }
                 }
             },
             Err(_) => {
-                error!("Streaming request to AI service timed out after {} seconds", self.timeout_seconds);
-                Err(format!("Streaming request to AI service timed out after {} seconds", self.timeout_seconds))
+                error!("Health check request timed out");
+                Err("Health check request timed out".to_string())
             }
         }
     }
     
-    /// Checks the health of the AI service
-    pub async fn check_health(&self) -> bool {
-        info!("Checking AI service health");
-        
-        let url = format!("{}/health", self.base_url);
-        
-        match self.client.get(&url).send().await {
-            Ok(response) => response.status().is_success(),
-            Err(_) => false,
-        }
-    }
-    
-    /// Gets available models from the AI service
+    /// Gets available models from the AI Service
     pub async fn get_available_models(&self) -> Result<Vec<String>, String> {
-        info!("Getting available AI models");
+        info!("Getting available models from AI Service");
         
-        let url = format!("{}/models", self.base_url);
-        
-        match self.client.get(&url).send().await {
-            Ok(response) => {
-                if response.status().is_success() {
-                    match response.json::<serde_json::Value>().await {
-                        Ok(models_json) => {
-                            if let Some(models_array) = models_json.get("models").and_then(|m| m.as_array()) {
-                                let models: Vec<String> = models_array
-                                    .iter()
-                                    .filter_map(|m| m.as_str().map(|s| s.to_string()))
-                                    .collect();
-                                
-                                info!("Retrieved {} available models", models.len());
-                                Ok(models)
-                            } else {
-                                error!("Invalid models response format");
-                                Err("Invalid models response format".to_string())
+        match timeout(
+            Duration::from_secs(5),
+            self.client.get(&format!("{}/api/v1/models", self.base_url)).send()
+        ).await {
+            Ok(result) => {
+                match result {
+                    Ok(response) => {
+                        let status = response.status();
+                        
+                        if status.is_success() {
+                            match response.json::<Value>().await {
+                                Ok(json_response) => {
+                                    if let Some(models) = json_response.get("models").and_then(|m| m.as_array()) {
+                                        let model_names: Vec<String> = models.iter()
+                                            .filter_map(|m| m.as_str().map(|s| s.to_string()))
+                                            .collect();
+                                        
+                                        info!("Received {} available models from AI Service", model_names.len());
+                                        Ok(model_names)
+                                    } else {
+                                        error!("Invalid response format from AI Service: models field not found or not an array");
+                                        Err("Invalid response format: models field not found or not an array".to_string())
+                                    }
+                                },
+                                Err(err) => {
+                                    error!("Failed to parse JSON response from AI Service: {}", err);
+                                    Err(format!("Failed to parse JSON response: {}", err))
+                                }
                             }
-                        },
-                        Err(err) => {
-                            error!("Failed to parse models response: {}", err);
-                            Err(format!("Failed to parse models response: {}", err))
+                        } else {
+                            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                            error!("AI Service returned error status {}: {}", status, error_text);
+                            Err(format!("AI Service returned error status {}: {}", status, error_text))
                         }
+                    },
+                    Err(err) => {
+                        error!("Failed to send request to AI Service: {}", err);
+                        Err(format!("Failed to send request to AI Service: {}", err))
                     }
-                } else {
-                    let status = response.status();
-                    let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-                    error!("AI service returned error status {}: {}", status, error_text);
-                    Err(format!("AI service returned error status {}: {}", status, error_text))
                 }
             },
-            Err(err) => {
-                error!("Failed to get available models: {}", err);
-                Err(format!("Failed to get available models: {}", err))
+            Err(_) => {
+                error!("Request to AI Service timed out");
+                Err("Request timed out".to_string())
             }
         }
     }
 }
 
-/// Mock AI service client for testing
-pub struct MockAiServiceClient {}
-
-impl MockAiServiceClient {
-    /// Creates a new mock AI service client
-    pub fn new() -> Self {
-        MockAiServiceClient {}
-    }
-    
-    /// Sends a request to the mock AI service
-    pub async fn send_request(
-        &self,
-        task_id: &str,
-        prompt: &str,
-        mode: Option<&str>,
-        persona: Option<&str>,
-        parameters: Option<HashMap<String, serde_json::Value>>,
-    ) -> Result<serde_json::Value, String> {
-        info!("Sending mock AI request for task: {}", task_id);
-        debug!("Prompt: {}", prompt);
-        
-        // Simulate processing delay
-        tokio::time::sleep(Duration::from_millis(500)).await;
-        
-        // Extract model from parameters if available
-        let model = parameters.as_ref()
-            .and_then(|p| p.get("model"))
-            .and_then(|m| m.as_str())
-            .unwrap_or("default-mock-model");
-        
-        // Create mock response
-        let response = serde_json::json!({
-            "text": format!("Mock AI response for prompt: {}", prompt),
-            "confidence": 0.95,
-            "task_id": task_id,
-            "mode": mode.unwrap_or("Normal"),
-            "persona": persona.unwrap_or("technical_expert"),
-            "parameters": parameters,
-            "model_used": model,
-            "tokens_used": prompt.len() / 4, // Simulate token count
-        });
-        
-        Ok(response)
-    }
-    
-    /// Sends a streaming request to the mock AI service
-    pub async fn send_streaming_request(
-        &self,
-        task_id: &str,
-        prompt: &str,
-        mode: Option<&str>,
-        persona: Option<&str>,
-        parameters: Option<HashMap<String, serde_json::Value>>,
-        callback: impl Fn(&str) + Send + Sync + 'static,
-    ) -> Result<serde_json::Value, String> {
-        info!("Sending mock streaming AI request for task: {}", task_id);
-        
-        // Split the prompt into words to simulate streaming
-        let words: Vec<&str> = prompt.split_whitespace().collect();
-        
-        // Stream each word with a delay
-        for word in words {
-            // Simulate processing delay
-            tokio::time::sleep(Duration::from_millis(100)).await;
-            
-            // Call the callback with the word
-            callback(&format!("{} ", word));
+impl AiTaskProcessor {
+    /// Creates a new AI Task Processor
+    pub fn new(base_url: String, timeout_seconds: u64) -> Self {
+        AiTaskProcessor {
+            client: AiServiceClient::new(base_url, timeout_seconds),
         }
+    }
+    
+    /// Processes an AI task
+    pub async fn process_task(
+        &self,
+        task_id: &str,
+        prompt: &str,
+        mode: Option<&str>,
+        persona: Option<&str>,
+        parameters: Option<serde_json::Map<String, Value>>,
+    ) -> Result<Value, String> {
+        info!("Processing AI task: {}", task_id);
         
-        // Create final response
-        let response = serde_json::json!({
-            "text": prompt,
-            "task_id": task_id,
-            "streaming": true,
-            "mode": mode.unwrap_or("Normal"),
-            "persona": persona.unwrap_or("technical_expert"),
+        // Convert parameters to HashMap if provided
+        let params = parameters.map(|p| {
+            let mut map = HashMap::new();
+            for (k, v) in p {
+                map.insert(k, v);
+            }
+            map
         });
         
-        Ok(response)
+        // Send request to AI Service
+        self.client.send_request(task_id, prompt, mode, persona, params).await
     }
     
-    /// Checks the health of the mock AI service
-    pub async fn check_health(&self) -> bool {
-        true
-    }
-    
-    /// Gets available models from the mock AI service
-    pub async fn get_available_models(&self) -> Result<Vec<String>, String> {
-        Ok(vec![
-            "mock-gpt-3".to_string(),
-            "mock-gpt-4".to_string(),
-            "mock-llama-3".to_string(),
-            "mock-claude-3".to_string(),
-        ])
+    /// Checks if the AI Service is available
+    pub async fn is_available(&self) -> bool {
+        match self.client.check_health().await {
+            Ok(healthy) => healthy,
+            Err(_) => false,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockito::{mock, server_url};
+    use tokio;
     
     #[tokio::test]
-    async fn test_mock_ai_service() {
-        let client = MockAiServiceClient::new();
+    async fn test_send_request_success() {
+        let mock_server = mock("POST", "/api/v1/generate")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"text": "AI generated response", "model_used": "test-model", "tokens_used": 10}"#)
+            .create();
         
-        let mut parameters = HashMap::new();
-        parameters.insert("temperature".to_string(), serde_json::json!(0.7));
-        parameters.insert("model".to_string(), serde_json::json!("mock-gpt-4"));
+        let client = AiServiceClient::new(server_url(), 5);
         
         let result = client.send_request(
-            "test_task",
-            "This is a test prompt",
-            Some("Dream"),
-            Some("creative"),
-            Some(parameters),
+            "test-request",
+            "Test prompt",
+            Some("Normal"),
+            Some("tester"),
+            None,
         ).await;
+        
+        mock_server.assert();
         
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert!(response.get("text").is_some());
-        assert_eq!(response["mode"], "Dream");
-        assert_eq!(response["persona"], "creative");
-        assert_eq!(response["model_used"], "mock-gpt-4");
+        assert_eq!(response["text"], "AI generated response");
+        assert_eq!(response["model_used"], "test-model");
+        assert_eq!(response["tokens_used"], 10);
     }
     
     #[tokio::test]
-    async fn test_mock_streaming() {
-        let client = MockAiServiceClient::new();
+    async fn test_send_request_error() {
+        let mock_server = mock("POST", "/api/v1/generate")
+            .with_status(400)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"error": "Invalid request"}"#)
+            .create();
         
-        let mut received_chunks = Vec::new();
-        let callback = |chunk: &str| {
-            received_chunks.push(chunk.to_string());
-        };
+        let client = AiServiceClient::new(server_url(), 5);
         
-        let result = client.send_streaming_request(
-            "test_streaming",
-            "This is a test streaming prompt",
+        let result = client.send_request(
+            "test-request",
+            "Test prompt",
             None,
             None,
             None,
-            callback,
         ).await;
         
-        assert!(result.is_ok());
-        assert!(!received_chunks.is_empty());
+        mock_server.assert();
         
-        // Join all chunks and compare with original prompt
-        let joined = received_chunks.join("");
-        assert_eq!(joined.trim(), "This is a test streaming prompt");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("400"));
     }
     
     #[tokio::test]
-    async fn test_mock_models() {
-        let client = MockAiServiceClient::new();
-        let models = client.get_available_models().await.unwrap();
+    async fn test_check_health() {
+        let mock_server = mock("GET", "/health")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"status": "ok"}"#)
+            .create();
         
-        assert_eq!(models.len(), 4);
-        assert!(models.contains(&"mock-gpt-4".to_string()));
+        let client = AiServiceClient::new(server_url(), 5);
+        
+        let result = client.check_health().await;
+        
+        mock_server.assert();
+        
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+    
+    #[tokio::test]
+    async fn test_get_available_models() {
+        let mock_server = mock("GET", "/api/v1/models")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"models": ["model1", "model2", "model3"]}"#)
+            .create();
+        
+        let client = AiServiceClient::new(server_url(), 5);
+        
+        let result = client.get_available_models().await;
+        
+        mock_server.assert();
+        
+        assert!(result.is_ok());
+        let models = result.unwrap();
+        assert_eq!(models.len(), 3);
+        assert!(models.contains(&"model1".to_string()));
+        assert!(models.contains(&"model2".to_string()));
+        assert!(models.contains(&"model3".to_string()));
     }
 }

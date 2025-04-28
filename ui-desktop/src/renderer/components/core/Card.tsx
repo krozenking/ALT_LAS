@@ -81,6 +81,7 @@ export const Card: React.FC<CardProps> = ({
       {...focusStyle} // Apply focus style
       role={role} // Apply role
       aria-labelledby={ariaLabelledBy} // Label by header if exists
+      aria-describedby={contentId} // Describe by content
       {...rest}
     >
       {/* Card Header */}

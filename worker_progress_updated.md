@@ -96,13 +96,21 @@
 - **Sonraki Adım**: Performans optimizasyonu ve CI/CD pipeline entegrasyonu
 
 ## İşçi 5: UI Geliştirme Uzmanı
-- **Mevcut İlerleme**: %10
+- **Mevcut İlerleme**: %35
 - **Tamamlanan Görevler**: 
   - Electron/React proje yapısı oluşturuldu
   - Temel UI bileşenleri geliştirilmeye başlandı
   - Webpack yapılandırması tamamlandı
   - Temel test altyapısı kuruldu (vitest)
   - Yüksek kontrast renk paleti oluşturuldu
+  - WCAG 2.1 AA erişilebilirlik standartlarına uygun bileşen iyileştirmeleri
+  - Temel UI bileşenlerine ARIA rolleri ve özellikleri eklendi
+  - Klavye navigasyonu ve odak yönetimi iyileştirildi
+  - Performans optimizasyonları (react-window ile sanallaştırma)
+  - Akıllı bildirim sistemi implementasyonu
+  - Bildirim öncelik seviyesi ve filtreleme mekanizması
+  - Odaklanma modu entegrasyonu
+  - Bildirim erteleme (snooze) özelliği
 - **Kalan Görevler ve Yüzdeleri**:
   - Desktop UI (Electron/React) (%25)
     - Ana ekran ve navigasyon (%5)
@@ -189,28 +197,39 @@
 - **Sonraki Adım**: Model seçim algoritmasının geliştirilmesi ve paralel model çalıştırma mekanizmasının implementasyonu
 
 ## İşçi 8: Güvenlik Uzmanı
-- **Mevcut İlerleme**: %0
-- **Tamamlanan Görevler**: Henüz başlanmamış
+- **Mevcut İlerleme**: %25
+- **Tamamlanan Görevler**: 
+  - Docker, Kubernetes ve CI/CD güvenlik iyileştirmeleri
+  - Workflow Engine Service temel yapısı oluşturuldu (Python/FastAPI)
+  - Workflow modelleri tanımlandı (workflow.py)
+  - Temel Piece sınıfı implementasyonu (base.py)
+  - WorkflowExecutor geliştirildi (executor.py)
+  - PieceRegistry oluşturuldu (registry.py)
+  - Çeşitli workflow parçaları eklendi:
+    - Tetikleyiciler: ManualTrigger, ScheduleTrigger, WebhookTrigger
+    - Eylemler: CodeExecutor, HttpRequest, Delay
+    - Entegrasyonlar: AiOrchestrator, OsIntegration
+  - CHANGELOG.md ve FEATURE_ROADMAP.md oluşturuldu
 - **Kalan Görevler ve Yüzdeleri**:
-  - Policy Enforcement (%30)
-    - Güvenlik politikaları tanımlama (%10)
-    - İzin kontrolü mekanizması (%10)
-    - Politika doğrulama (%10)
-  - Sandbox Manager (%30)
-    - İzolasyon mekanizması (%10)
-    - Kaynak sınırlama (%10)
-    - Güvenli çalışma ortamı (%10)
-  - Audit Service (%30)
-    - İşlem kaydı (%10)
-    - Güvenlik günlükleri (%10)
-    - Anomali tespiti (%10)
+  - Policy Enforcement (%20)
+    - Güvenlik politikaları tanımlama (%7)
+    - İzin kontrolü mekanizması (%7)
+    - Politika doğrulama (%6)
+  - Sandbox Manager (%20)
+    - İzolasyon mekanizması (%7)
+    - Kaynak sınırlama (%7)
+    - Güvenli çalışma ortamı (%6)
+  - Audit Service (%25)
+    - İşlem kaydı (%8)
+    - Güvenlik günlükleri (%8)
+    - Anomali tespiti (%9)
   - Birim ve entegrasyon testleri (%5)
   - Performans optimizasyonu (%5)
-  - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: Rust kullanarak Policy Enforcement için temel yapının oluşturulması
+  - Dağıtım ve CI/CD entegrasyonu (%0) - Tamamlandı
+- **Sonraki Adım**: Workflow Engine Service'in geliştirilmeye devam edilmesi ve Policy Enforcement modülünün implementasyonu
 
 ## Genel Proje İlerlemesi
-- **Mevcut İlerleme**: %45
+- **Mevcut İlerleme**: %55
 - **Tamamlanan Görevler**: 
   - Proje mimarisi ve dokümantasyonu
   - Temel mikroservis yapıları
@@ -222,6 +241,9 @@
   - Segmentation Service tam işlevselliği (100% tamamlandı)
   - Archive Service temel işlevselliği
   - UI Desktop temel yapısı oluşturuldu
+  - UI Desktop erişilebilirlik, performans ve bildirim sistemi iyileştirmeleri (İşçi 5)
+  - Workflow Engine Service temel yapısı ve ilk parçaları (İşçi 8)
+  - Docker, K8s, CI/CD güvenlik iyileştirmeleri (İşçi 8)
 - **Kalan Görevler ve Yüzdeleri**:
   - Çekirdek Mikroservisler (%5)
     - API Gateway (%1.5)
@@ -240,10 +262,10 @@
     - Core AI Orchestrator (%2)
     - Computer Vision Service (%4)
     - Voice Processing Service (%2)
-  - Güvenlik Katmanı (%10)
-    - Policy Enforcement (%4)
-    - Sandbox Manager (%3)
-    - Audit Service (%3)
+  - Güvenlik Katmanı (%7)
+    - Policy Enforcement (%3)
+    - Sandbox Manager (%2)
+    - Audit Service (%2)
   - Test ve Optimizasyon (%10)
     - Birim Testleri (%3)
     - Entegrasyon Testleri (%3)

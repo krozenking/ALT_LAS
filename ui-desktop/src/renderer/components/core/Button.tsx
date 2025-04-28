@@ -119,6 +119,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <Box
       as="button"
+      role="button" // Explicitly set role for clarity
       type="button" // Explicitly set type for accessibility
       display="inline-flex"
       alignItems="center"

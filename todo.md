@@ -1,25 +1,22 @@
-# ALT_LAS Worker 2 (Segmentation Uzmanı) - NLP Entegrasyonu Görevleri
+# Worker 1: API Gateway Development Todo List
 
-## Temel Altyapı Doğrulama
-- [x] Temel birim testlerini kontrol et ve eksikleri tamamla
-- [x] *.alt dosya formatı işleme mekanizmasını doğrula
-
-## Mod & Persona Sistemi
-- [x] Çalışma modlarının (Normal, Dream, Explore, Chaos) etkisini implemente et
-- [x] Chaos level parametresinin işlenmesini implemente et
-- [x] Persona sisteminin etkisini implemente et
-- [x] Mod ve persona metadata'sının *.alt dosyasına eklenmesini sağla
-- [x] Mod ve persona davranışlarını test eden test senaryoları ekle
-
-## NLP Entegrasyonu ve Geliştirme
-- [ ] Mevcut NLP entegrasyonunu analiz et ve iyileştirme alanlarını belirle
-- [ ] Çoklu dil desteği için gereksinimleri belirle
-- [ ] NLP tokenizasyon iyileştirmelerini tasarla
-- [ ] Dile özgü geliştirmeleri tasarla
-- [ ] NLP tokenizasyon iyileştirmelerini uygula
-- [ ] Dile özgü geliştirmeleri uygula
-- [ ] Bağlam analizi ve referans çözümleme yeteneklerini ekle
-- [ ] Komut içindeki değişkenlerin çıkarılması ve işlenmesini geliştir
-- [ ] NLP özellikleri için birim testleri yaz
-- [ ] Entegrasyon testlerini güncelle
-- [ ] Dokümantasyonu güncelle
+## Current Tasks
+- [ ] Implement role-based authorization enhancements
+  - [ ] Complete route-based authorization
+  - [ ] Implement dynamic permission checking
+- [x] Implement user management APIs
+  - [x] Complete password reset and change functionality
+  - [x] Implement user roles and permissions management
+- [x] Implement session management
+  - [x] Complete session timeout management
+  - [x] Implement multi-device session management
+- [x] Implement service integration
+  - [x] Set up integration with Segmentation Service
+  - [x] Set up integration with Runner Service
+  - [x] Set up integration with Archive Service
+  - [x] Implement service discovery mechanism
+- [x] Test implementations
+  - [x] Write authentication and authorization tests
+  - [x] Write token management tests
+  - [x] Perform security vulnerability scanning
+- [ ] Commit and push changes to GitHub

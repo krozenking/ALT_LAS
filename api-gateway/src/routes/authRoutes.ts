@@ -1,497 +1,923 @@
-import { Router } from 'express';
-import { asyncHandler } from '../middleware/errorMiddleware';
-import { authenticateJWT, authorizeRoles, authorizePermissions } from '../middleware/authMiddleware'; 
-import sessionService, { DeviceInfo } from '../services/sessionService';
-import authService from '../services/authService'; 
+import { Router, Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+import { authenticateJWT, authorizeRoles, authorizePermissions } from '../middleware/authMiddleware';
+import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/errors';
 import logger from '../utils/logger';
+import authService from '../services/authService';
+import authorizationService from '../services/authorizationService';
+import { routeAuthManager } from '../middleware/routeAuthMiddleware';
 
 const router = Router();
 
-/**
- * @swagger
- * tags:
- *   name: Auth
- *   description: User authentication and authorization operations
- */
+// Kullanıcı kaydı
+router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { username, email, password, firstName, lastName } = req.body;
 
-// --- Public Routes --- 
-
-router.post('/register', asyncHandler(async (req, res) => {
-  const { username, password, email } = req.body; // Added email
-  // TODO: Validate input (username, password strength, email format)
-  // Assign default role 'user'
-  const result = await authService.register(username, password, email, ['user']); 
-  logger.info(`New user registered: ${username}`);
-  res.status(201).json(result);
-}));
-
-router.post("/login", asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
-  // TODO: Validate input
-  
-  // Extract device info from request headers (example)
-  const deviceInfo: DeviceInfo = {
-    userAgent: req.headers["user-agent"],
-    ip: req.ip, // Ensure express is configured to trust proxy if needed
-    // You might add more specific device identification logic here
-    deviceName: req.headers["user-agent"]?.split("(")[1]?.split(")")[0] || "Unknown Device"
-  };
-
-  const result = await authService.login(username, password, deviceInfo);
-  logger.info(`User login successful: ${username} from ${deviceInfo.deviceName}`);
-  res.json(result);
-}));
-
-router.post('/refresh', asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
-  // TODO: Validate input
-  const result = await authService.refreshToken(refreshToken);
-  logger.info('Token refresh successful');
-  res.json(result);
-}));
-
-/**
- * @swagger
- * /api/auth/forgot-password:
- *   post:
- *     summary: Sends a password reset request
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *             required:
- *               - email
- *     responses:
- *       200:
- *         description: Password reset instructions sent (if email is registered)
- *       400:
- *         description: Invalid request (email missing/format error)
- *       404:
- *         description: Email address not found (Usually returns 200 for security)
- *       500:
- *         description: Server error
- */
-router.post('/forgot-password', asyncHandler(async (req, res) => {
-    const { email } = req.body;
-    // TODO: Validate email format
-    if (!email) {
-        return res.status(400).json({ message: 'Email address is required' });
+    // Validasyon
+    if (!username || !email || !password) {
+      throw new BadRequestError('Kullanıcı adı, email ve şifre gereklidir');
     }
-    // TODO: Implement authService.requestPasswordReset(email)
-    // This service should generate a reset token, store it (with expiry), and send an email
-    await authService.requestPasswordReset(email);
-    logger.info(`Password reset request sent for: ${email}`);
-    // Always return a generic success message for security
-    res.json({ message: 'If your email address is registered in our system, password reset instructions will be sent.' });
-}));
 
-/**
- * @swagger
- * /api/auth/reset-password:
- *   post:
- *     summary: Sets a new password (with reset token)
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               token:
- *                 type: string
- *               newPassword:
- *                 type: string
- *             required:
- *               - token
- *               - newPassword
- *     responses:
- *       200:
- *         description: Password successfully reset
- *       400:
- *         description: Invalid request (token/password missing or password doesn't meet policy)
- *       401:
- *         description: Invalid or expired token
- *       500:
- *         description: Server error
- */
-router.post('/reset-password', asyncHandler(async (req, res) => {
-    const { token, newPassword } = req.body;
-    // TODO: Validate token and newPassword (strength)
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Token and new password are required' });
-    }
-    // TODO: Implement authService.resetPassword(token, newPassword)
-    // This service should validate the token, find the user, update the password, and invalidate the token
-    await authService.resetPassword(token, newPassword);
-    logger.info('Password reset successfully');
-    res.json({ message: 'Your password has been successfully reset.' });
-}));
+    // Kullanıcı oluştur
+    const user = await authService.createUser({
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      roles: ['user'] // Varsayılan rol
+    });
 
-// --- Authenticated Routes --- 
-
-router.use(authenticateJWT);
-
-router.post("/logout", asyncHandler(async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.split(" ")[1] || "";
-  const { refreshToken } = req.body; // Get refresh token from body if provided
-  
-  await authService.logout(token, refreshToken); 
-  logger.info(`User logout: ${req.user?.username}`);
-  res.json({ message: "Successfully logged out" });
-}));
-
-router.get('/me', asyncHandler(async (req, res) => {
-  const userId = req.user?.id;
-  if (!userId) {
-    // This should ideally not happen if authenticateJWT is working correctly
-    return res.status(401).json({ message: 'Authorization required' }); 
+    res.status(201).json({
+      success: true,
+      message: 'Kullanıcı başarıyla oluşturuldu',
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        roles: user.roles
+      }
+    });
+  } catch (error) {
+    next(error);
   }
-  // Use the user object already fetched by authenticateJWT
-  logger.info(`User details requested: ${req.user?.username}`);
-  // Omit sensitive data if necessary before sending
-  const { id, username, roles, permissions, /* other safe fields */ } = req.user || {};
-  res.json({ id, username, roles, permissions });
-}));
+});
 
-/**
- * @swagger
- * /api/auth/me/password:
- *   put:
- *     summary: Changes the current user's password
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               currentPassword:
- *                 type: string
- *               newPassword:
- *                 type: string
- *             required:
- *               - currentPassword
- *               - newPassword
- *     responses:
- *       200:
- *         description: Password successfully changed
- *       400:
- *         description: Invalid request (passwords missing or new password doesn't meet policy)
- *       401:
- *         description: Current password incorrect
- *       500:
- *         description: Server error
- */
-router.put('/me/password', asyncHandler(async (req, res) => {
+// Kullanıcı girişi
+router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { username, password } = req.body;
+
+    // Validasyon
+    if (!username || !password) {
+      throw new BadRequestError('Kullanıcı adı ve şifre gereklidir');
+    }
+
+    // Kullanıcıyı doğrula
+    const user = await authService.validateUser(username, password);
+
+    // Token oluştur
+    const tokenPayload = {
+      userId: user.id,
+      username: user.username,
+      roles: user.roles
+    };
+
+    const secret = process.env.JWT_SECRET || 'default_jwt_secret_change_in_production';
+    const token = jwt.sign(tokenPayload, secret, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ userId: user.id }, secret, { expiresIn: '7d' });
+
+    // Refresh token'ı kaydet
+    await authService.saveRefreshToken(user.id, refreshToken);
+
+    // Oturum oluştur
+    const sessionId = uuidv4();
+    await authService.createSession(user.id, sessionId, req.ip, req.headers['user-agent'] || 'unknown');
+
+    res.status(200).json({
+      success: true,
+      message: 'Giriş başarılı',
+      data: {
+        token,
+        refreshToken,
+        sessionId,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          roles: user.roles
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Token yenileme
+router.post('/refresh-token', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new BadRequestError('Refresh token gereklidir');
+    }
+
+    // Refresh token'ı doğrula
+    const secret = process.env.JWT_SECRET || 'default_jwt_secret_change_in_production';
+    const decoded = jwt.verify(refreshToken, secret) as { userId: string | number };
+
+    // Refresh token'ın geçerliliğini kontrol et
+    const isValid = await authService.validateRefreshToken(decoded.userId, refreshToken);
+    if (!isValid) {
+      throw new UnauthorizedError('Geçersiz veya süresi dolmuş refresh token');
+    }
+
+    // Kullanıcı bilgilerini al
+    const user = await authService.getUserById(decoded.userId);
+    if (!user) {
+      throw new NotFoundError('Kullanıcı bulunamadı');
+    }
+
+    // Yeni token oluştur
+    const tokenPayload = {
+      userId: user.id,
+      username: user.username,
+      roles: user.roles
+    };
+
+    const newToken = jwt.sign(tokenPayload, secret, { expiresIn: '1h' });
+    const newRefreshToken = jwt.sign({ userId: user.id }, secret, { expiresIn: '7d' });
+
+    // Eski refresh token'ı geçersiz kıl ve yenisini kaydet
+    await authService.invalidateRefreshToken(user.id, refreshToken);
+    await authService.saveRefreshToken(user.id, newRefreshToken);
+
+    res.status(200).json({
+      success: true,
+      message: 'Token başarıyla yenilendi',
+      data: {
+        token: newToken,
+        refreshToken: newRefreshToken
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı çıkışı
+router.post('/logout', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const sessionId = req.body.sessionId;
+
+    if (!userId) {
+      throw new UnauthorizedError('Oturum bulunamadı');
+    }
+
+    // Refresh token'ı geçersiz kıl (varsa)
+    if (req.body.refreshToken) {
+      await authService.invalidateRefreshToken(userId, req.body.refreshToken);
+    }
+
+    // Oturumu sonlandır
+    if (sessionId) {
+      await authService.endSession(userId, sessionId);
+    } else {
+      // Tüm oturumları sonlandır
+      await authService.endAllSessions(userId);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Çıkış başarılı'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı profili
+router.get('/profile', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+    }
+
+    const user = await authService.getUserById(userId);
+    if (!user) {
+      throw new NotFoundError('Kullanıcı bulunamadı');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roles: user.roles,
+        permissions: user.permissions,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı profili güncelleme
+router.put('/profile', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+    }
+
+    const { firstName, lastName, email } = req.body;
+    const updatedUser = await authService.updateUser(userId, { firstName, lastName, email });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profil başarıyla güncellendi',
+      data: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        roles: updatedUser.roles
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Şifre değiştirme
+router.post('/change-password', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const userId = req.user?.id;
     const { currentPassword, newPassword } = req.body;
-    // TODO: Validate passwords
-    if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: 'Current and new password are required' });
-    }
+
     if (!userId) {
-        return res.status(401).json({ message: 'Authorization required' });
+      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
     }
-    // TODO: Implement authService.changePassword(userId, currentPassword, newPassword)
-    await authService.changePassword(userId, currentPassword, newPassword);
-    logger.info(`User ${userId} changed password`);
-    res.json({ message: 'Your password has been successfully changed.' });
-}));
 
-// --- Admin & Permissioned Routes --- 
+    if (!currentPassword || !newPassword) {
+      throw new BadRequestError('Mevcut şifre ve yeni şifre gereklidir');
+    }
 
-router.get(
-    '/users', 
-    authorizeRoles('admin'), 
-    authorizePermissions('read:users'), 
-    asyncHandler(async (req, res) => {
-      const users = await authService.getAllUsers();
-      logger.info(`All users listed by admin ${req.user?.id}`);
-      res.json(users);
-}));
+    // Mevcut şifreyi doğrula
+    const user = await authService.getUserById(userId);
+    if (!user) {
+      throw new NotFoundError('Kullanıcı bulunamadı');
+    }
 
-router.get(
-    '/users/:userId',
-    authorizeRoles('admin'), 
-    authorizePermissions('read:users'), 
-    asyncHandler(async (req, res) => {
-      const targetUserId = req.params.userId;
-      const user = await authService.getUserById(targetUserId);
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Mevcut şifre yanlış');
+    }
+
+    // Şifreyi güncelle
+    await authService.updatePassword(userId, newPassword);
+
+    // Tüm oturumları sonlandır (isteğe bağlı)
+    // await authService.endAllSessions(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Şifre başarıyla değiştirildi'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Şifre sıfırlama isteği
+router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new BadRequestError('Email adresi gereklidir');
+    }
+
+    // Kullanıcıyı kontrol et
+    const user = await authService.getUserByEmail(email);
+    if (!user) {
+      // Güvenlik için kullanıcı bulunamasa bile başarılı yanıt dön
+      res.status(200).json({
+        success: true,
+        message: 'Şifre sıfırlama talimatları email adresinize gönderildi (eğer hesap mevcutsa)'
+      });
+      return;
+    }
+
+    // Şifre sıfırlama token'ı oluştur
+    const resetToken = uuidv4();
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 saat
+
+    // Token'ı kaydet
+    await authService.savePasswordResetToken(user.id, resetToken, resetTokenExpiry);
+
+    // Email gönder (gerçek uygulamada)
+    logger.info(`Şifre sıfırlama token'ı oluşturuldu: ${resetToken} (${user.email} için)`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Şifre sıfırlama talimatları email adresinize gönderildi',
+      // DEV ONLY: Token'ı yanıtta gönder (gerçek uygulamada kaldırılmalı)
+      data: {
+        resetToken
       }
-      logger.info(`User ${targetUserId} details requested by admin ${req.user?.id}`);
-      res.json(user);
-}));
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.put(
-    '/users/:userId/roles',
-    authorizeRoles('admin'), 
-    authorizePermissions('manage:roles'), 
-    asyncHandler(async (req, res) => {
-      const targetUserId = req.params.userId;
-      const { roles } = req.body;
+// Şifre sıfırlama
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+
+    if (!resetToken || !newPassword) {
+      throw new BadRequestError('Sıfırlama token\'ı ve yeni şifre gereklidir');
+    }
+
+    // Token'ı doğrula
+    const user = await authService.validatePasswordResetToken(resetToken);
+    if (!user) {
+      throw new UnauthorizedError('Geçersiz veya süresi dolmuş token');
+    }
+
+    // Şifreyi güncelle
+    await authService.updatePassword(user.id, newPassword);
+
+    // Token'ı geçersiz kıl
+    await authService.invalidatePasswordResetToken(resetToken);
+
+    // Tüm oturumları sonlandır
+    await authService.endAllSessions(user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Şifre başarıyla sıfırlandı'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı oturumları
+router.get('/sessions', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+    }
+
+    const sessions = await authService.getUserSessions(userId);
+
+    res.status(200).json({
+      success: true,
+      data: sessions
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Belirli bir oturumu sonlandır
+router.delete('/sessions/:sessionId', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const { sessionId } = req.params;
+
+    if (!userId) {
+      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+    }
+
+    await authService.endSession(userId, sessionId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Oturum başarıyla sonlandırıldı'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Tüm oturumları sonlandır (mevcut oturum hariç)
+router.delete('/sessions', authenticateJWT, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const currentSessionId = req.body.currentSessionId;
+
+    if (!userId) {
+      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+    }
+
+    if (!currentSessionId) {
+      throw new BadRequestError('Mevcut oturum ID\'si gereklidir');
+    }
+
+    await authService.endAllSessionsExcept(userId, currentSessionId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Diğer tüm oturumlar başarıyla sonlandırıldı'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---- YÖNETİCİ ROTALARI ----
+
+// Tüm kullanıcıları listele
+router.get('/users', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const users = await authService.getAllUsers();
+
+    res.status(200).json({
+      success: true,
+      data: users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        roles: user.roles,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı detayı
+router.get('/users/:userId', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const user = await authService.getUserById(userId);
+
+    if (!user) {
+      throw new NotFoundError('Kullanıcı bulunamadı');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roles: user.roles,
+        permissions: user.permissions,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı güncelleme (admin)
+router.put('/users/:userId', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const { firstName, lastName, email, isActive } = req.body;
+
+    const updatedUser = await authService.updateUser(userId, { firstName, lastName, email, isActive });
+
+    res.status(200).json({
+      success: true,
+      message: 'Kullanıcı başarıyla güncellendi',
+      data: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        roles: updatedUser.roles,
+        isActive: updatedUser.isActive
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı silme
+router.delete('/users/:userId', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    await authService.deleteUser(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Kullanıcı başarıyla silindi'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı rollerini güncelleme
+router.put('/users/:userId/roles', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const { roles } = req.body;
+
+    if (!Array.isArray(roles)) {
+      throw new BadRequestError('Roller bir dizi olmalıdır');
+    }
+
+    // Rollerin geçerliliğini kontrol et
+    const availableRoles = Object.keys(authorizationService.getRoles());
+    const invalidRoles = roles.filter(role => !availableRoles.includes(role));
+
+    if (invalidRoles.length > 0) {
+      throw new BadRequestError(`Geçersiz roller: ${invalidRoles.join(', ')}`);
+    }
+
+    const updatedUser = await authService.updateUserRoles(userId, roles);
+
+    res.status(200).json({
+      success: true,
+      message: 'Kullanıcı rolleri başarıyla güncellendi',
+      data: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        roles: updatedUser.roles
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Kullanıcı izinlerini güncelleme
+router.put('/users/:userId/permissions', authenticateJWT, authorizeRoles('admin'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const { permissions } = req.body;
+
+    if (!Array.isArray(permissions)) {
+      throw new BadRequestError('İzinler bir dizi olmalıdır');
+    }
+
+    // İzinlerin geçerliliğini kontrol et
+    const availablePermissions = Object.keys(authorizationService.getPermissions());
+    const invalidPermissions = permissions.filter(permission => !availablePermissions.includes(permission));
+
+    if (invalidPermissions.length > 0) {
+      throw new BadRequestError(`Geçersiz izinler: ${invalidPermissions.join(', ')}`);
+    }
+
+    const updatedUser = await authService.updateUserPermissions(userId, permissions);
+
+    res.status(200).json({
+      success: true,
+      message: 'Kullanıcı izinleri başarıyla güncellendi',
+      data: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        permissions: updatedUser.permissions
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---- ROL VE İZİN YÖNETİMİ ----
+
+// Tüm rolleri listele
+router.get('/roles', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response) => {
+  const roles = authorizationService.getRoles();
+  res.status(200).json({
+    success: true,
+    data: roles
+  });
+});
+
+// Rol detayı
+router.get('/roles/:roleName', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roleName } = req.params;
+    const role = authorizationService.getRole(roleName);
+
+    if (!role) {
+      throw new NotFoundError('Rol bulunamadı');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: role
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Yeni rol oluştur
+router.post('/roles', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, description, permissions } = req.body;
+
+    if (!name || !Array.isArray(permissions)) {
+      throw new BadRequestError('Rol adı ve izinler gereklidir');
+    }
+
+    // Rol zaten var mı kontrol et
+    if (authorizationService.getRole(name)) {
+      throw new BadRequestError(`'${name}' rolü zaten mevcut`);
+    }
+
+    // İzinlerin geçerliliğini kontrol et
+    const availablePermissions = Object.keys(authorizationService.getPermissions());
+    const invalidPermissions = permissions.filter(permission => !availablePermissions.includes(permission));
+
+    if (invalidPermissions.length > 0) {
+      throw new BadRequestError(`Geçersiz izinler: ${invalidPermissions.join(', ')}`);
+    }
+
+    authorizationService.addRole({
+      name,
+      description,
+      permissions
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Rol başarıyla oluşturuldu',
+      data: authorizationService.getRole(name)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Rol güncelle
+router.put('/roles/:roleName', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roleName } = req.params;
+    const { description, permissions } = req.body;
+
+    // Rol var mı kontrol et
+    const role = authorizationService.getRole(roleName);
+    if (!role) {
+      throw new NotFoundError('Rol bulunamadı');
+    }
+
+    // Admin rolünü güncellemeye izin verme
+    if (roleName === 'admin') {
+      throw new BadRequestError('Admin rolü güncellenemez');
+    }
+
+    // İzinlerin geçerliliğini kontrol et
+    if (permissions) {
+      if (!Array.isArray(permissions)) {
+        throw new BadRequestError('İzinler bir dizi olmalıdır');
+      }
+
+      const availablePermissions = Object.keys(authorizationService.getPermissions());
+      const invalidPermissions = permissions.filter(permission => !availablePermissions.includes(permission));
+
+      if (invalidPermissions.length > 0) {
+        throw new BadRequestError(`Geçersiz izinler: ${invalidPermissions.join(', ')}`);
+      }
+
+      // Önce tüm izinleri kaldır
+      [...role.permissions].forEach(permission => {
+        authorizationService.removePermissionFromRole(roleName, permission);
+      });
+
+      // Yeni izinleri ekle
+      permissions.forEach(permission => {
+        authorizationService.addPermissionToRole(roleName, permission);
+      });
+    }
+
+    // Açıklamayı güncelle
+    if (description) {
+      // Rol nesnesini güncelle (authorizationService'de bu işlevi eklemek gerekebilir)
+      role.description = description;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Rol başarıyla güncellendi',
+      data: authorizationService.getRole(roleName)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Rol sil
+router.delete('/roles/:roleName', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roleName } = req.params;
+
+    // Rol var mı kontrol et
+    if (!authorizationService.getRole(roleName)) {
+      throw new NotFoundError('Rol bulunamadı');
+    }
+
+    // Temel rolleri silmeye izin verme
+    if (['admin', 'user', 'service', 'guest'].includes(roleName)) {
+      throw new BadRequestError('Temel roller silinemez');
+    }
+
+    authorizationService.removeRole(roleName);
+
+    res.status(200).json({
+      success: true,
+      message: 'Rol başarıyla silindi'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Tüm izinleri listele
+router.get('/permissions', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response) => {
+  const permissions = authorizationService.getPermissions();
+  res.status(200).json({
+    success: true,
+    data: permissions
+  });
+});
+
+// İzin detayı
+router.get('/permissions/:permissionName', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { permissionName } = req.params;
+    const permission = authorizationService.getPermission(permissionName);
+
+    if (!permission) {
+      throw new NotFoundError('İzin bulunamadı');
+    }
+
+    res.status(200).json({
+      success: true,
+      data: permission
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Yeni izin oluştur
+router.post('/permissions', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, description, resource, action } = req.body;
+
+    if (!name) {
+      throw new BadRequestError('İzin adı gereklidir');
+    }
+
+    // İzin zaten var mı kontrol et
+    if (authorizationService.getPermission(name)) {
+      throw new BadRequestError(`'${name}' izni zaten mevcut`);
+    }
+
+    authorizationService.addPermission({
+      name,
+      description,
+      resource,
+      action
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'İzin başarıyla oluşturuldu',
+      data: authorizationService.getPermission(name)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// İzin sil
+router.delete('/permissions/:permissionName', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { permissionName } = req.params;
+
+    // İzin var mı kontrol et
+    if (!authorizationService.getPermission(permissionName)) {
+      throw new NotFoundError('İzin bulunamadı');
+    }
+
+    // Temel izinleri silmeye izin verme
+    if (permissionName === 'admin' || permissionName.startsWith('read:') || permissionName.startsWith('write:')) {
+      throw new BadRequestError('Temel izinler silinemez');
+    }
+
+    authorizationService.removePermission(permissionName);
+
+    res.status(200).json({
+      success: true,
+      message: 'İzin başarıyla silindi'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---- ROUTE İZİNLERİ YÖNETİMİ ----
+
+// Tüm route izinlerini listele
+router.get('/route-permissions', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response) => {
+  const routePermissions = routeAuthManager.getRoutePermissions();
+  res.status(200).json({
+    success: true,
+    data: routePermissions
+  });
+});
+
+// Route izni ekle/güncelle
+router.post('/route-permissions', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { path, method, roles, permissions, resourceAction } = req.body;
+
+    if (!path || !method) {
+      throw new BadRequestError('Path ve method gereklidir');
+    }
+
+    // Method geçerliliğini kontrol et
+    const validMethods = ['get', 'post', 'put', 'delete', 'patch'];
+    if (!validMethods.includes(method.toLowerCase())) {
+      throw new BadRequestError(`Geçersiz method: ${method}. Geçerli methodlar: ${validMethods.join(', ')}`);
+    }
+
+    // Rollerin geçerliliğini kontrol et
+    if (roles) {
       if (!Array.isArray(roles)) {
-          return res.status(400).json({ message: 'Roles must be an array' });
+        throw new BadRequestError('Roller bir dizi olmalıdır');
       }
-      // TODO: Validate roles against a predefined list of valid roles
-      await authService.updateUserRoles(targetUserId, roles);
-      logger.info(`User ${targetUserId} roles updated by admin ${req.user?.id}`);
-      res.json({ message: 'Roles updated successfully' });
-}));
 
-router.get(
-    '/users/:userId/permissions',
-    authorizeRoles('admin'), 
-    authorizePermissions('read:permissions'), 
-    asyncHandler(async (req, res) => {
-        const targetUserId = req.params.userId;
-        // TODO: Implement authService.getUserPermissions(targetUserId)
-        const permissions = await authService.getUserPermissions(targetUserId); 
-        logger.info(`User ${targetUserId} permissions viewed by admin ${req.user?.id}`);
-        res.json({ userId: targetUserId, permissions });
-}));
+      const availableRoles = Object.keys(authorizationService.getRoles());
+      const invalidRoles = roles.filter(role => !availableRoles.includes(role));
 
-router.put(
-    '/users/:userId/permissions',
-    authorizeRoles('admin'), 
-    authorizePermissions('manage:permissions'), 
-    asyncHandler(async (req, res) => {
-        const targetUserId = req.params.userId;
-        const { permissions } = req.body;
-        if (!Array.isArray(permissions)) {
-            return res.status(400).json({ message: 'Permissions must be an array' });
-        }
-        // TODO: Validate permissions against a predefined list of valid permissions
-        // TODO: Implement authService.updateUserPermissions(targetUserId, permissions)
-        await authService.updateUserPermissions(targetUserId, permissions);
-        logger.info(`User ${targetUserId} permissions updated by admin ${req.user?.id}`);
-        res.json({ message: 'Permissions updated successfully' });
-}));
+      if (invalidRoles.length > 0) {
+        throw new BadRequestError(`Geçersiz roller: ${invalidRoles.join(', ')}`);
+      }
+    }
 
-/**
- * @swagger
- * /api/auth/users/{userId}:
- *   put:
- *     summary: Updates user profile (Admin only)
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: userId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               isActive:
- *                 type: boolean
- *             # Add other updatable fields
- *     responses:
- *       200:
- *         description: User updated successfully
- *       400:
- *         description: Invalid request
- *       401:
- *         description: Authorization error
- *       403:
- *         description: Permission error (Admin required)
- *       404:
- *         description: User not found
- *       500:
- *         description: Server error
- */
-router.put(
-    '/users/:userId',
-    authorizeRoles('admin'),
-    authorizePermissions('manage:users'), // Requires permission to manage users
-    asyncHandler(async (req, res) => {
-        const targetUserId = req.params.userId;
-        const updateData = req.body; // Contains fields like username, email, isActive, etc.
-        // TODO: Validate updateData
-        // TODO: Implement authService.updateUserProfile(targetUserId, updateData)
-        const updatedUser = await authService.updateUserProfile(targetUserId, updateData);
-        logger.info(`User ${targetUserId} profile updated by admin ${req.user?.id}`);
-        res.json(updatedUser);
-}));
+    // İzinlerin geçerliliğini kontrol et
+    if (permissions) {
+      if (!Array.isArray(permissions)) {
+        throw new BadRequestError('İzinler bir dizi olmalıdır');
+      }
 
-/**
- * @swagger
- * /api/auth/users/{userId}:
- *   delete:
- *     summary: Deletes a user (Admin only)
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: userId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: User deleted successfully
- *       401:
- *         description: Authorization error
- *       403:
- *         description: Permission error (Admin required)
- *       404:
- *         description: User not found
- *       500:
- *         description: Server error
- */
-router.delete(
-    '/users/:userId',
-    authorizeRoles('admin'),
-    authorizePermissions('delete:users'), // Requires permission to delete users
-    asyncHandler(async (req, res) => {
-        const targetUserId = req.params.userId;
-        // Prevent admin from deleting themselves? Add check if needed.
-        // if (targetUserId === req.user?.id) { ... }
-        // TODO: Implement authService.deleteUser(targetUserId)
-        await authService.deleteUser(targetUserId);
-        logger.info(`User ${targetUserId} deleted by admin ${req.user?.id}`);
-        res.status(204).send(); // No Content response
-}));
+      const availablePermissions = Object.keys(authorizationService.getPermissions());
+      const invalidPermissions = permissions.filter(permission => !availablePermissions.includes(permission));
+
+      if (invalidPermissions.length > 0) {
+        throw new BadRequestError(`Geçersiz izinler: ${invalidPermissions.join(', ')}`);
+      }
+    }
+
+    // ResourceAction geçerliliğini kontrol et
+    if (resourceAction) {
+      if (!resourceAction.resource || !resourceAction.action) {
+        throw new BadRequestError('ResourceAction için resource ve action gereklidir');
+      }
+    }
+
+    routeAuthManager.addRoutePermission({
+      path,
+      method: method.toLowerCase(),
+      roles,
+      permissions,
+      resourceAction
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Route izni başarıyla eklendi/güncellendi'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Route izni sil
+router.delete('/route-permissions', authenticateJWT, authorizeRoles('admin'), (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { path, method } = req.body;
+
+    if (!path || !method) {
+      throw new BadRequestError('Path ve method gereklidir');
+    }
+
+    routeAuthManager.removeRoutePermission(path, method.toLowerCase());
+
+    res.status(200).json({
+      success: true,
+      message: 'Route izni başarıyla silindi'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;
-
-
-
-
-// --- Session Management Routes ---
-
-/**
- * @swagger
- * /api/auth/me/sessions:
- *   get:
- *     summary: Lists the current user's active sessions
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: A list of active sessions
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   deviceInfo:
- *                     type: object
- *                     properties:
- *                       deviceName:
- *                         type: string
- *                       browser:
- *                         type: string
- *                       os:
- *                         type: string
- *                       ip:
- *                         type: string
- *                   createdAt:
- *                     type: string
- *                     format: date-time
- *                   lastUsedAt:
- *                     type: string
- *                     format: date-time
- *       401:
- *         description: Authorization error
- *       500:
- *         description: Server error
- */
-router.get("/me/sessions", asyncHandler(async (req, res) => {
-    const userId = req.user?.id;
-    if (!userId) {
-        return res.status(401).json({ message: "Authorization required" });
-    }
-    const activeSessions = sessionService.getUserActiveSessions(userId);
-    // Map sessions to exclude sensitive info like full refreshToken
-    const safeSessions = activeSessions.map(s => ({
-        id: s.id,
-        deviceInfo: {
-            deviceName: s.deviceInfo.deviceName,
-            browser: s.deviceInfo.browser,
-            os: s.deviceInfo.os,
-            ip: s.deviceInfo.ip // Consider masking part of the IP
-        },
-        createdAt: s.createdAt,
-        lastUsedAt: s.lastUsedAt
-    }));
-    logger.info(`User ${userId} listed their active sessions`);
-    res.json(safeSessions);
-}));
-
-/**
- * @swagger
- * /api/auth/me/sessions/{sessionId}:
- *   delete:
- *     summary: Revokes a specific session for the current user
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: sessionId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Session revoked successfully
- *       401:
- *         description: Authorization error
- *       403:
- *         description: Forbidden (trying to revoke another user's session)
- *       404:
- *         description: Session not found
- *       500:
- *         description: Server error
- */
-router.delete("/me/sessions/:sessionId", asyncHandler(async (req, res) => {
-    const userId = req.user?.id;
-    const sessionIdToRevoke = req.params.sessionId;
-
-    if (!userId) {
-        return res.status(401).json({ message: "Authorization required" });
-    }
-
-    // Verify the session belongs to the current user before revoking
-    const session = sessionService.getUserActiveSessions(userId).find(s => s.id === sessionIdToRevoke);
-    if (!session) {
-        // Session not found or doesn't belong to the user
-        return res.status(404).json({ message: "Session not found or access denied" });
-    }
-
-    sessionService.invalidateSession(sessionIdToRevoke);
-    logger.info(`User ${userId} revoked session ${sessionIdToRevoke}`);
-    res.status(204).send();
-}));
-

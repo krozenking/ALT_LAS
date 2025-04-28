@@ -5,17 +5,17 @@ Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması 
 ## Hafta 1-2: Erişilebilirlik İyileştirmeleri
 
 ### Görev 5.1: WCAG 2.1 AA Uyumluluğu
-- [ ] **Görev 5.1.1:** Tüm bileşenlerin ARIA rolleri ve özelliklerinin eklenmesi
-- [ ] **Görev 5.1.2:** Klavye navigasyonu ve odak yönetiminin iyileştirilmesi
-- [ ] **Görev 5.1.3:** Renk kontrastı ve görsel ipuçlarının optimize edilmesi
-- [ ] **Görev 5.1.4:** Ekran okuyucu uyumluluğunun test edilmesi ve iyileştirilmesi
-- [ ] **Görev 5.1.5:** Erişilebilirlik dokümantasyonunun hazırlanması
+- [x] **Görev 5.1.1:** Tüm bileşenlerin ARIA rolleri ve özelliklerinin eklenmesi
+- [x] **Görev 5.1.2:** Klavye navigasyonu ve odak yönetiminin iyileştirilmesi
+- [x] **Görev 5.1.3:** Renk kontrastı ve görsel ipuçlarının optimize edilmesi
+- [x] **Görev 5.1.4:** Ekran okuyucu uyumluluğunun test edilmesi ve iyileştirilmesi
+- [x] **Görev 5.1.5:** Erişilebilirlik dokümantasyonunun hazırlanması
 
 ### Görev 5.2: Yüksek Kontrast Tema
-- [ ] **Görev 5.2.1:** Yüksek kontrast tema tasarımı
-- [ ] **Görev 5.2.2:** Yüksek kontrast tema implementasyonu
-- [ ] **Görev 5.2.3:** Tema geçiş mekanizmasının iyileştirilmesi
-- [ ] **Görev 5.2.4:** Sistem teması algılama ve uyum
+- [x] **Görev 5.2.1:** Yüksek kontrast tema tasarımı
+- [x] **Görev 5.2.2:** Yüksek kontrast tema implementasyonu
+- [x] **Görev 5.2.3:** Tema geçiş mekanizmasının iyileştirilmesi
+- [x] **Görev 5.2.4:** Sistem teması algılama ve uyum
 - [ ] **Görev 5.2.5:** Tema testleri ve hata düzeltmeleri
 
 ## Hafta 3-4: Performans Optimizasyonu

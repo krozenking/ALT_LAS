@@ -1,13 +1,22 @@
-import React from 'react';
-import { Box, Flex, useColorMode, Button, HStack, Text, useToast } from '@chakra-ui/react';
+import React, { lazy, Suspense } from 'react';
+import { Box, Flex, useColorMode, Button, HStack, Text, useToast, Spinner, Center } from '@chakra-ui/react';
 import { ChakraProvider } from '@chakra-ui/react';
 import DemoLayout from '@/components/layouts/DemoLayout';
 import { theme } from '@/styles/theme'; // Import the base theme
 import { highContrastTheme } from '@/styles/highContrastTheme'; // Import the new high contrast theme
-import NotificationCenter from '@/components/feature/NotificationCenter';
-import FileManager from '@/components/feature/FileManager';
-import PerformanceMonitor from '@/components/feature/PerformanceMonitor';
-import SettingsPanel from '@/components/feature/SettingsPanel';
+
+// Lazy load feature components to improve initial load time
+const NotificationCenter = lazy(() => import('@/components/feature/NotificationCenter'));
+const FileManager = lazy(() => import('@/components/feature/FileManager'));
+const PerformanceMonitor = lazy(() => import('@/components/feature/PerformanceMonitor'));
+const SettingsPanel = lazy(() => import('@/components/feature/SettingsPanel'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <Center p={4}>
+    <Spinner size="md" color="blue.500" thickness="3px" speed="0.65s" />
+  </Center>
+);
 
 const App: React.FC = () => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -103,11 +112,23 @@ const App: React.FC = () => {
           >
             {isHighContrast ? 'Standart Mod' : 'Yüksek Kontrast'}
           </Button>
-          {/* Ensure these components work correctly with the high contrast theme */}
-          <NotificationCenter />
-          <FileManager />
-          <PerformanceMonitor onMetricAlert={handleMetricAlert} />
-          <SettingsPanel onSettingChange={handleSettingChange} />
+          
+          {/* Wrap lazy-loaded components with Suspense */}
+          <Suspense fallback={<LoadingFallback />}>
+            <NotificationCenter />
+          </Suspense>
+          
+          <Suspense fallback={<LoadingFallback />}>
+            <FileManager />
+          </Suspense>
+          
+          <Suspense fallback={<LoadingFallback />}>
+            <PerformanceMonitor onMetricAlert={handleMetricAlert} />
+          </Suspense>
+          
+          <Suspense fallback={<LoadingFallback />}>
+            <SettingsPanel onSettingChange={handleSettingChange} />
+          </Suspense>
         </HStack>
         
         <DemoLayout 

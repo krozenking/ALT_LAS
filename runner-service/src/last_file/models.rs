@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::alt_file::models::{AltMode, Priority};
+use crate::alt_file::models::{AltFile, AltMode, Priority, Task as AltTask}; // Added AltFile, AltTask
 use crate::task_manager::models::{TaskResult, TaskStatus};
 
 /// Represents the overall status of the LAST file execution
@@ -54,7 +54,7 @@ pub struct ExecutionNode {
     pub task_id: String,
     pub status: TaskStatus,
     pub duration_ms: Option<u64>,
-    pub start_time: Option<DateTime<Utc>>,
+    pub start_time: Option<DateTime<Utc>>, // Changed to Option<DateTime<Utc>>
     pub end_time: Option<DateTime<Utc>>,
 }
 
@@ -182,11 +182,11 @@ impl LastFile {
         let mut total_duration: u64 = 0;
 
         for result in self.task_results.values() {
-            if let Some(start) = result.start_time {
-                if start < min_start_time {
-                    min_start_time = start;
-                }
+            // Use start_time directly as it's DateTime<Utc>
+            if result.start_time < min_start_time {
+                min_start_time = result.start_time;
             }
+            
             if let Some(end) = result.end_time {
                 if end > max_end_time {
                     max_end_time = end;
@@ -241,13 +241,13 @@ impl LastFile {
         self.priority = Some(priority);
     }
     
-    /// Creates the execution graph based on task results and dependencies
-    pub fn create_execution_graph(&mut self) {
+    /// Creates the execution graph based on task results and ALT file dependencies
+    pub fn create_execution_graph_from_alt(&mut self, alt_file: &AltFile) { // Renamed and added alt_file param
         let mut nodes = Vec::new();
         let mut edges = Vec::new();
         let mut node_map = HashMap::new(); // Map task_id to node_id
 
-        // Create nodes
+        // Create nodes from task results
         for (task_id, result) in &self.task_results {
             let node_id = Uuid::new_v4().to_string();
             nodes.push(ExecutionNode {
@@ -255,30 +255,42 @@ impl LastFile {
                 task_id: task_id.clone(),
                 status: result.status.clone(),
                 duration_ms: result.duration_ms,
-                start_time: result.start_time,
+                start_time: Some(result.start_time), // Wrap in Some
                 end_time: result.end_time,
             });
             node_map.insert(task_id.clone(), node_id);
         }
+        
+        // Add nodes for tasks that might not have results (e.g., if parsing failed early)
+        // Or ensure all tasks from alt_file are represented
+        for task in &alt_file.tasks {
+            if !node_map.contains_key(&task.id) {
+                let node_id = Uuid::new_v4().to_string();
+                nodes.push(ExecutionNode {
+                    id: node_id.clone(),
+                    task_id: task.id.clone(),
+                    status: TaskStatus::Pending, // Or determine status based on context
+                    duration_ms: None,
+                    start_time: None,
+                    end_time: None,
+                });
+                node_map.insert(task.id.clone(), node_id);
+            }
+        }
 
-        // Create edges (assuming dependencies are stored in TaskResult or accessible elsewhere)
-        // TODO: Need access to original ALT file tasks to get dependencies
-        // For now, creating dummy edges if results exist
-        for (task_id, result) in &self.task_results {
-            // This part needs the original task definition to get dependencies
-            // Example: if let Some(original_task) = get_original_task(task_id) {
-            //     if let Some(deps) = &original_task.dependencies {
-            //         for dep_id in deps {
-            //             if let (Some(source_node_id), Some(target_node_id)) = (node_map.get(dep_id), node_map.get(task_id)) {
-            //                 edges.push(ExecutionEdge {
-            //                     source: source_node_id.clone(),
-            //                     target: target_node_id.clone(),
-            //                     dependency_type: DependencyType::Required, // Assuming required for now
-            //                 });
-            //             }
-            //         }
-            //     }
-            // }
+        // Create edges using dependencies from ALT file
+        for task in &alt_file.tasks {
+            if let Some(deps) = &task.dependencies {
+                for dep_id in deps {
+                    if let (Some(source_node_id), Some(target_node_id)) = (node_map.get(dep_id), node_map.get(&task.id)) {
+                        edges.push(ExecutionEdge {
+                            source: source_node_id.clone(),
+                            target: target_node_id.clone(),
+                            dependency_type: DependencyType::Required, // Assuming required for now
+                        });
+                    }
+                }
+            }
         }
 
         self.execution_graph = Some(ExecutionGraph { nodes, edges });
@@ -351,4 +363,5 @@ pub fn create_artifact(name: String, artifact_type: ArtifactType, task_id: Strin
         metadata: None,
     }
 }
+
 

@@ -40,7 +40,7 @@ impl From<zip::result::ZipError> for LastWriteError {
 }
 
 impl std::fmt::Display for LastWriteError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<\_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LastWriteError::IoError(err) => write!(f, "IO Error: {}", err),
             LastWriteError::JsonError(err) => write!(f, "JSON Error: {}", err),

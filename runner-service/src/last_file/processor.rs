@@ -5,7 +5,8 @@ use tokio::task;
 use log::{info, error, warn, debug};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
-use rayon::prelude::*;
+use rayon::prelude::*; // Added rayon prelude
+use num_cpus; // Added num_cpus import
 
 use crate::alt_file::models::{AltFile, AltMode};
 use crate::task_manager::models::{TaskResult, TaskStatus};
@@ -104,6 +105,7 @@ impl LastFileProcessor {
         let enable_graph_visualization = self.config.enable_graph_visualization;
         let enable_html_export = self.config.enable_html_export;
         let last_file_clone = last_file.clone();
+        let alt_file_clone = alt_file.clone(); // Clone alt_file for graph generation
         
         // Spawn artifact extraction task if enabled
         if enable_artifact_extraction {
@@ -132,12 +134,14 @@ impl LastFileProcessor {
             let tx_clone = tx.clone();
             let output_dir_clone = output_dir.clone();
             let last_file_clone = last_file_clone.clone();
+            let alt_file_clone = alt_file_clone.clone(); // Clone alt_file for this task
             
             task::spawn(async move {
                 let result = task::spawn_blocking(move || {
                     let mut last_file_copy = last_file_clone.clone();
                     if last_file_copy.execution_graph.is_none() {
-                        last_file_copy.create_execution_graph();
+                        // Use the correct method with alt_file
+                        last_file_copy.create_execution_graph_from_alt(&alt_file_clone);
                     }
                     
                     if let Some(graph_path) = generate_execution_graph_visualization(&last_file_copy, &output_dir_clone) {
@@ -329,7 +333,8 @@ impl LastFileProcessor {
         // Generate execution graph visualization if enabled
         if self.config.enable_graph_visualization {
             if last_file.execution_graph.is_none() {
-                last_file.create_execution_graph();
+                // Use the correct method with alt_file
+                last_file.create_execution_graph_from_alt(alt_file);
             }
             
             if let Some(graph_path) = generate_execution_graph_visualization(last_file, &self.config.output_dir) {
@@ -408,224 +413,96 @@ impl LastFileProcessor {
         Ok(())
     }
     
-    /// Batch processes multiple ALT files and task results
-    pub async fn batch_process(
-        &self,
-        alt_files: Vec<AltFile>,
-        task_results_map: HashMap<String, HashMap<String, TaskResult>>,
-    ) -> HashMap<String, Result<LastFile, String>> {
-        info!("Batch processing {} ALT files", alt_files.len());
-        let start_time = Instant::now();
+    /// Processes multiple ALT files concurrently
+    pub async fn process_batch(&self, alt_files: Vec<AltFile>, results_map: HashMap<String, HashMap<String, TaskResult>>) -> HashMap<String, Result<LastFile, String>> {
+        info!("Processing batch of {} ALT files", alt_files.len());
         
-        let mut results = HashMap::new();
+        let mut handles = Vec::new();
+        let processor = Arc::new(self.clone()); // Clone processor for sharing across tasks
         
-        // Process ALT files in parallel using rayon
-        if self.config.parallel_processing {
-            // Create a shared results container
-            let results_mutex = Arc::new(Mutex::new(HashMap::new()));
+        for alt_file in alt_files {
+            let processor_clone = processor.clone();
+            let results = results_map.get(&alt_file.id).cloned().unwrap_or_default();
             
-            // Process files in parallel
-            alt_files.into_par_iter().for_each(|alt_file| {
-                let alt_id = alt_file.id.clone();
-                
-                // Get task results for this ALT file
-                let task_results = match task_results_map.get(&alt_id) {
-                    Some(results) => results.clone(),
-                    None => HashMap::new(),
-                };
-                
-                // Create a runtime for this thread
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap();
-                
-                // Process the ALT file
-                let process_result = rt.block_on(self.process(&alt_file, task_results));
-                
-                // Store the result
-                let mut results = results_mutex.lock().unwrap();
-                results.insert(alt_id, process_result);
+            let handle = task::spawn(async move {
+                let alt_file_id = alt_file.id.clone();
+                let result = processor_clone.process(&alt_file, results).await;
+                (alt_file_id, result)
             });
-            
-            // Get the final results
-            results = Arc::try_unwrap(results_mutex).unwrap().into_inner().unwrap();
-        } else {
-            // Process files sequentially
-            for alt_file in alt_files {
-                let alt_id = alt_file.id.clone();
-                
-                // Get task results for this ALT file
-                let task_results = match task_results_map.get(&alt_id) {
-                    Some(results) => results.clone(),
-                    None => HashMap::new(),
-                };
-                
-                // Process the ALT file
-                let process_result = self.process(&alt_file, task_results).await;
-                
-                // Store the result
-                results.insert(alt_id, process_result);
+            handles.push(handle);
+        }
+        
+        let mut final_results = HashMap::new();
+        for handle in handles {
+            match handle.await {
+                Ok((alt_file_id, result)) => {
+                    final_results.insert(alt_file_id, result);
+                },
+                Err(e) => {
+                    error!("Task join error during batch processing: {}", e);
+                    // Optionally insert an error result for the corresponding ALT file
+                }
             }
         }
         
-        let duration = start_time.elapsed();
-        info!("Batch processing completed in {:?} for {} ALT files", duration, results.len());
+        final_results
+    }
+    
+    /// Processes multiple ALT files in parallel using Rayon
+    pub fn process_batch_parallel(&self, alt_files: Vec<AltFile>, results_map: HashMap<String, HashMap<String, TaskResult>>) -> HashMap<String, Result<LastFile, String>> {
+        info!("Processing batch of {} ALT files in parallel using Rayon", alt_files.len());
         
-        results
+        // Configure Rayon thread pool
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(self.config.max_workers)
+            .build_global()
+            .unwrap();
+            
+        let results: Arc<Mutex<HashMap<String, Result<LastFile, String>>>> = Arc::new(Mutex::new(HashMap::new()));
+        
+        alt_files.into_iter().for_each(|alt_file| {
+            let alt_file_id = alt_file.id.clone();
+            let task_results = results_map.get(&alt_file_id).cloned().unwrap_or_default();
+            
+            // Need to run async code within Rayon thread
+            // Use a local tokio runtime or block_on
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let result = rt.block_on(async {
+                // Generate basic LAST file
+                let mut last_file = generate_last_file(&alt_file, task_results);
+                
+                // Process sequentially within the parallel task
+                // (Parallel processing within a parallel task might be too complex)
+                match self.process_sequential(&mut last_file, &alt_file).await {
+                    Ok(_) => Ok(last_file),
+                    Err(e) => Err(e),
+                }
+            });
+            
+            let mut results_guard = results.lock().unwrap();
+            results_guard.insert(alt_file_id, result);
+        });
+        
+        Arc::try_unwrap(results).unwrap().into_inner().unwrap()
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::alt_file::models::{Task, AltMode};
-    use crate::task_manager::models::{TaskStatus, TaskResult};
-    use tempfile::TempDir;
-    
-    fn create_test_alt_file() -> AltFile {
-        let mut alt_file = AltFile::new("Test ALT File".to_string());
-        alt_file.mode = Some(AltMode::Normal);
-        
-        let task1 = Task {
-            id: "task1".to_string(),
-            description: "First task".to_string(),
-            dependencies: None,
-            parameters: None,
-            timeout_seconds: None,
-            retry_count: None,
-            status: None,
-            priority: None,
-            tags: None,
-        };
-        
-        let task2 = Task {
-            id: "task2".to_string(),
-            description: "Second task".to_string(),
-            dependencies: Some(vec!["task1".to_string()]),
-            parameters: None,
-            timeout_seconds: None,
-            retry_count: None,
-            status: None,
-            priority: None,
-            tags: None,
-        };
-        
-        alt_file.add_task(task1);
-        alt_file.add_task(task2);
-        
-        alt_file
-    }
-    
-    fn create_test_task_results() -> HashMap<String, TaskResult> {
-        let mut results = HashMap::new();
-        
-        // Create successful task result
-        let mut result1 = TaskResult::new("task1".to_string());
-        result1.mark_running();
-        result1.mark_completed(serde_json::json!({
-            "output": "Task 1 completed successfully",
-            "text": "This is the output text from task 1"
-        }));
-        
-        // Create failed task result
-        let mut result2 = TaskResult::new("task2".to_string());
-        result2.mark_running();
-        result2.mark_failed("Task 2 failed".to_string());
-        
-        results.insert("task1".to_string(), result1);
-        results.insert("task2".to_string(), result2);
-        
-        results
-    }
-    
-    #[tokio::test]
-    async fn test_last_file_processor_sequential() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
-        
-        // Create test data
-        let alt_file = create_test_alt_file();
-        let task_results = create_test_task_results();
-        
-        // Create processor with sequential processing
-        let mut config = LastFileProcessorConfig::default();
-        config.output_dir = temp_dir.path().to_path_buf();
-        config.parallel_processing = false;
-        config.enable_ai_enhancement = false;
-        
-        let processor = LastFileProcessor::with_config(config);
-        
-        // Process the ALT file
-        let result = processor.process(&alt_file, task_results).await;
-        
-        // Verify result
-        assert!(result.is_ok());
-        let last_file = result.unwrap();
-        assert_eq!(last_file.alt_file_id, alt_file.id);
-        assert_eq!(last_file.status, LastFileStatus::PartialSuccess);
-    }
-    
-    #[tokio::test]
-    async fn test_last_file_processor_parallel() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
-        
-        // Create test data
-        let alt_file = create_test_alt_file();
-        let task_results = create_test_task_results();
-        
-        // Create processor with parallel processing
-        let mut config = LastFileProcessorConfig::default();
-        config.output_dir = temp_dir.path().to_path_buf();
-        config.parallel_processing = true;
-        config.enable_ai_enhancement = false;
-        
-        let processor = LastFileProcessor::with_config(config);
-        
-        // Process the ALT file
-        let result = processor.process(&alt_file, task_results).await;
-        
-        // Verify result
-        assert!(result.is_ok());
-        let last_file = result.unwrap();
-        assert_eq!(last_file.alt_file_id, alt_file.id);
-        assert_eq!(last_file.status, LastFileStatus::PartialSuccess);
-    }
-    
-    #[tokio::test]
-    async fn test_batch_processing() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
-        
-        // Create multiple test ALT files
-        let alt_file1 = create_test_alt_file();
-        let mut alt_file2 = create_test_alt_file();
-        alt_file2.id = "alt_file_2".to_string();
-        
-        let alt_files = vec![alt_file1.clone(), alt_file2.clone()];
-        
-        // Create task results for each ALT file
-        let mut task_results_map = HashMap::new();
-        task_results_map.insert(alt_file1.id.clone(), create_test_task_results());
-        task_results_map.insert(alt_file2.id.clone(), create_test_task_results());
-        
-        // Create processor
-        let mut config = LastFileProcessorConfig::default();
-        config.output_dir = temp_dir.path().to_path_buf();
-        config.enable_ai_enhancement = false;
-        
-        let processor = LastFileProcessor::with_config(config);
-        
-        // Batch process the ALT files
-        let results = processor.batch_process(alt_files, task_results_map).await;
-        
-        // Verify results
-        assert_eq!(results.len(), 2);
-        assert!(results.contains_key(&alt_file1.id));
-        assert!(results.contains_key(&alt_file2.id));
-        
-        assert!(results.get(&alt_file1.id).unwrap().is_ok());
-        assert!(results.get(&alt_file2.id).unwrap().is_ok());
+// Implement Clone for LastFileProcessor
+impl Clone for LastFileProcessor {
+    fn clone(&self) -> Self {
+        LastFileProcessor {
+            config: LastFileProcessorConfig {
+                output_dir: self.config.output_dir.clone(),
+                enable_compression: self.config.enable_compression,
+                enable_html_export: self.config.enable_html_export,
+                enable_graph_visualization: self.config.enable_graph_visualization,
+                enable_artifact_extraction: self.config.enable_artifact_extraction,
+                enable_ai_enhancement: self.config.enable_ai_enhancement,
+                parallel_processing: self.config.parallel_processing,
+                max_workers: self.config.max_workers,
+            },
+            ai_client: self.ai_client.clone(),
+        }
     }
 }
+

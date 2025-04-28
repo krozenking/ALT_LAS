@@ -63,13 +63,8 @@ impl TaskScheduler {
         let mut task_executions = HashMap::new();
         
         for task in &alt_file.tasks {
-            let task_execution = TaskExecution {
-                task_id: task.id.clone(),
-                description: task.description.clone(),
-                dependencies: task.dependencies.clone().unwrap_or_else(Vec::new),
-                parameters: task.parameters.clone(),
-            };
-            
+            // Use the from_alt_task constructor which initializes all fields
+            let task_execution = TaskExecution::from_alt_task(task);
             task_executions.insert(task.id.clone(), task_execution);
         }
         
@@ -132,13 +127,16 @@ impl TaskScheduler {
                 
                 if let Some(task) = task_executions.get(&task_id) {
                     // Clone task for execution
-                    let task_clone = task.clone();
+                    let task_clone = task.clone(); // Removed mut
                     
                     // Clone results for task
                     let results = self.results.clone();
                     
                     // Clone tx for task
                     let tx_clone = tx.clone();
+                    
+                    // Clone executor for the spawned task
+                    let executor_clone = self.executor.clone();
                     
                     // Increment active tasks
                     active_tasks += 1;
@@ -152,14 +150,26 @@ impl TaskScheduler {
                         for dep_id in &task_clone.dependencies {
                             if let Some(result) = results_lock.get(dep_id) {
                                 dependency_results.insert(dep_id.clone(), result.clone());
+                            } else {
+                                // Handle missing dependency result (should not happen if logic is correct)
+                                error!("Missing dependency result for task {} dependency {}", task_clone.task_id, dep_id);
+                                let mut failed_result = TaskResult::new(task_clone.task_id.clone());
+                                failed_result.mark_failed(format!("Missing dependency result: {}", dep_id));
+                                // Store result
+                                {
+                                    let mut results_lock_inner = results.lock().await;
+                                    results_lock_inner.insert(task_clone.task_id.clone(), failed_result.clone());
+                                }
+                                // Notify completion
+                                let _ = tx_clone.send((task_clone.task_id.clone(), failed_result.status.clone())).await;
+                                return; // Stop execution for this task
                             }
                         }
                         
                         drop(results_lock); // Release lock before execution
                         
-                        // Execute task
-                        let executor = TaskExecutor::new(None); // Create new executor for this task
-                        let result = executor.execute_task(task_clone.clone(), dependency_results).await;
+                        // Execute task using associated function syntax
+                        let result = TaskExecutor::execute_task(task_clone.clone(), dependency_results).await;
                         
                         // Store result
                         {
@@ -181,6 +191,8 @@ impl TaskScheduler {
                     
                     // If task failed, cancel dependent tasks
                     if status != TaskStatus::Completed {
+                        // Check for retry logic here if needed before cancelling
+                        warn!("Task {} failed or timed out, cancelling dependents.", completed_task_id);
                         self.cancel_dependent_tasks(&completed_task_id, &dependency_graph).await;
                     } else {
                         // Update remaining dependencies for dependent tasks
@@ -194,8 +206,16 @@ impl TaskScheduler {
                                     
                                     // If no more dependencies, add to ready tasks
                                     if deps.is_empty() {
-                                        ready_tasks.push(dependent_id.clone());
-                                        remaining_deps.remove(dependent_id);
+                                        // Check if task was already cancelled
+                                        let results_lock = self.results.lock().await;
+                                        let is_cancelled = results_lock.get(dependent_id)
+                                            .map_or(false, |r| r.status == TaskStatus::Cancelled);
+                                        drop(results_lock);
+                                        
+                                        if !is_cancelled {
+                                            ready_tasks.push(dependent_id.clone());
+                                            remaining_deps.remove(dependent_id);
+                                        }
                                     }
                                 }
                             }
@@ -209,78 +229,108 @@ impl TaskScheduler {
     /// Cancels tasks that depend on a failed task
     async fn cancel_dependent_tasks(&self, failed_task_id: &str, dependency_graph: &HashMap<String, Vec<String>>) {
         let mut to_cancel = Vec::new();
+        let mut queue = Vec::new();
         
         // Find direct dependents
         if let Some(dependents) = dependency_graph.get(failed_task_id) {
-            to_cancel.extend(dependents.clone());
+            queue.extend(dependents.clone());
         }
         
-        // Process all dependents recursively
-        let mut i = 0;
-        while i < to_cancel.len() {
-            let task_id = &to_cancel[i];
-            
-            // Find dependents of this task
-            if let Some(dependents) = dependency_graph.get(task_id) {
-                for dependent in dependents {
-                    if !to_cancel.contains(dependent) {
-                        to_cancel.push(dependent.clone());
-                    }
+        // Process all dependents recursively using BFS
+        while let Some(task_id) = queue.pop() {
+            if !to_cancel.contains(&task_id) {
+                to_cancel.push(task_id.clone());
+                if let Some(dependents) = dependency_graph.get(&task_id) {
+                    queue.extend(dependents.clone());
                 }
             }
-            
-            i += 1;
         }
         
         // Cancel all dependent tasks
         let mut results = self.results.lock().await;
         for task_id in to_cancel {
-            let mut result = TaskResult::new(task_id.clone());
-            result.mark_cancelled(format!("Cancelled due to dependency failure: {}", failed_task_id));
-            results.insert(task_id, result);
+            // Only cancel if not already completed or failed
+            if !results.contains_key(&task_id) || 
+               (results.get(&task_id).unwrap().status != TaskStatus::Completed && 
+                results.get(&task_id).unwrap().status != TaskStatus::Failed &&
+                results.get(&task_id).unwrap().status != TaskStatus::Cancelled) {
+                
+                let task_id_clone = task_id.clone(); // Clone task_id before moving it
+                let mut result = TaskResult::new(task_id_clone.clone());
+                let error_msg = format!("Cancelled due to dependency failure: {}", failed_task_id);
+                result.mark_cancelled(error_msg.clone());
+                results.insert(task_id_clone, result);
+                info!("Cancelled task {} due to dependency failure: {}", task_id, failed_task_id);
+            }
         }
     }
     
-    /// Executes a single task with its dependencies
+    /// Executes a single task with its dependencies (Recursive approach)
     pub async fn execute_single_task(&self, 
                                     alt_file: &AltFile, 
                                     task_id: &str) -> Option<TaskResult> {
-        info!("Executing single task: {} from ALT file: {}", task_id, alt_file.id);
+        info!("Executing single task (recursive): {} from ALT file: {}", task_id, alt_file.id);
         
-        // Find the task
-        let task = alt_file.tasks.iter().find(|t| t.id == task_id);
-        if task.is_none() {
-            error!("Task not found: {}", task_id);
-            return None;
+        // Check if result already exists
+        {
+            let results_lock = self.results.lock().await;
+            if let Some(existing_result) = results_lock.get(task_id) {
+                debug!("Task {} already executed with status {:?}", task_id, existing_result.status);
+                return Some(existing_result.clone());
+            }
         }
         
-        let task = task.unwrap();
+        // Find the task
+        let task = match alt_file.tasks.iter().find(|t| t.id == task_id) {
+            Some(t) => t,
+            None => {
+                error!("Task not found: {}", task_id);
+                return None;
+            }
+        };
         
         // Create task execution
-        let task_execution = TaskExecution {
-            task_id: task.id.clone(),
-            description: task.description.clone(),
-            dependencies: task.dependencies.clone().unwrap_or_else(Vec::new),
-            parameters: task.parameters.clone(),
-        };
+        let task_execution = TaskExecution::from_alt_task(task);
         
         // Execute dependencies first if any
         let mut dependency_results = HashMap::new();
+        
+        // Use Box::pin to handle recursion in async function
         if let Some(deps) = &task.dependencies {
             for dep_id in deps {
-                if let Some(dep_result) = self.execute_single_task(alt_file, dep_id).await {
-                    dependency_results.insert(dep_id.clone(), dep_result);
-                } else {
-                    // Dependency failed or not found
-                    let mut result = TaskResult::new(task_id.to_string());
-                    result.mark_failed(format!("Dependency not found or failed: {}", dep_id));
-                    return Some(result);
+                let dep_result = Box::pin(self.execute_single_task(alt_file, dep_id)).await;
+                match dep_result {
+                    Some(dep_result) => {
+                        if dep_result.status != TaskStatus::Completed {
+                            // Dependency failed or was cancelled
+                            let mut result = TaskResult::new(task_id.to_string());
+                            result.mark_failed(format!("Dependency {} failed or cancelled ({:?})", dep_id, dep_result.status));
+                            // Store the failure result for this task
+                            {
+                                let mut results = self.results.lock().await;
+                                results.insert(task_id.to_string(), result.clone());
+                            }
+                            return Some(result);
+                        }
+                        dependency_results.insert(dep_id.clone(), dep_result);
+                    },
+                    None => {
+                        // Dependency not found (should not happen if ALT file is valid)
+                        let mut result = TaskResult::new(task_id.to_string());
+                        result.mark_failed(format!("Dependency {} not found", dep_id));
+                        // Store the failure result for this task
+                        {
+                            let mut results = self.results.lock().await;
+                            results.insert(task_id.to_string(), result.clone());
+                        }
+                        return Some(result);
+                    }
                 }
             }
         }
         
-        // Execute the task
-        let result = self.executor.execute_task(task_execution, dependency_results).await;
+        // Execute the task using associated function syntax
+        let result = TaskExecutor::execute_task(task_execution, dependency_results).await;
         
         // Store result
         {
@@ -295,7 +345,7 @@ impl TaskScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alt_file::models::{AltFile, Task as AltTask};
+    use crate::alt_file::models::{AltFile, Task as AltTask, Priority};
     use serde_json::json;
     
     fn create_test_alt_file() -> AltFile {
@@ -307,13 +357,14 @@ mod tests {
             description: "Task 1".to_string(),
             dependencies: None,
             parameters: Some(json!({
-                "task_type": "generic",
-                "test_param": "test_value"
+                "task_type": "system_command",
+                "command": "echo",
+                "args": ["Task 1 Done"]
             }).as_object().unwrap().clone()),
             timeout_seconds: Some(5),
             retry_count: None,
             status: None,
-            priority: None,
+            priority: Some(Priority::Medium),
             tags: None,
         };
         
@@ -323,13 +374,14 @@ mod tests {
             description: "Task 2".to_string(),
             dependencies: Some(vec!["task1".to_string()]),
             parameters: Some(json!({
-                "task_type": "generic",
-                "test_param": "test_value2"
+                "task_type": "system_command",
+                "command": "echo",
+                "args": ["Task 2 Done"]
             }).as_object().unwrap().clone()),
             timeout_seconds: Some(5),
             retry_count: None,
             status: None,
-            priority: None,
+            priority: Some(Priority::Medium),
             tags: None,
         };
         
@@ -339,13 +391,14 @@ mod tests {
             description: "Task 3".to_string(),
             dependencies: Some(vec!["task1".to_string()]),
             parameters: Some(json!({
-                "task_type": "generic",
-                "test_param": "test_value3"
+                "task_type": "system_command",
+                "command": "echo",
+                "args": ["Task 3 Done"]
             }).as_object().unwrap().clone()),
             timeout_seconds: Some(5),
             retry_count: None,
             status: None,
-            priority: None,
+            priority: Some(Priority::Medium),
             tags: None,
         };
         
@@ -355,13 +408,14 @@ mod tests {
             description: "Task 4".to_string(),
             dependencies: Some(vec!["task2".to_string(), "task3".to_string()]),
             parameters: Some(json!({
-                "task_type": "generic",
-                "test_param": "test_value4"
+                "task_type": "system_command",
+                "command": "echo",
+                "args": ["Task 4 Done"]
             }).as_object().unwrap().clone()),
             timeout_seconds: Some(5),
             retry_count: None,
             status: None,
-            priority: None,
+            priority: Some(Priority::Medium),
             tags: None,
         };
         
@@ -422,19 +476,49 @@ mod tests {
         let alt_file = create_test_alt_file();
         let scheduler = TaskScheduler::new(None, 4);
         
-        // Execute task4 (should execute all dependencies)
-        let result = scheduler.execute_single_task(&alt_file, "task4").await;
+        // Execute task4, which should trigger execution of task1, task2, and task3
+        let result4 = scheduler.execute_single_task(&alt_file, "task4").await;
         
-        assert!(result.is_some());
-        let result = result.unwrap();
-        assert_eq!(result.status, TaskStatus::Completed);
+        assert!(result4.is_some());
+        assert_eq!(result4.unwrap().status, TaskStatus::Completed);
         
-        // Check that all dependencies were executed
+        // Check that all dependencies were also executed and stored
         let results = scheduler.results.lock().await;
         assert_eq!(results.len(), 4);
-        assert!(results.contains_key("task1"));
-        assert!(results.contains_key("task2"));
-        assert!(results.contains_key("task3"));
-        assert!(results.contains_key("task4"));
+        assert_eq!(results.get("task1").unwrap().status, TaskStatus::Completed);
+        assert_eq!(results.get("task2").unwrap().status, TaskStatus::Completed);
+        assert_eq!(results.get("task3").unwrap().status, TaskStatus::Completed);
+        assert_eq!(results.get("task4").unwrap().status, TaskStatus::Completed);
+    }
+    
+    #[tokio::test]
+    async fn test_execute_single_task_dependency_failure() {
+        let mut alt_file = create_test_alt_file();
+        
+        // Modify task1 to fail
+        let task1 = alt_file.tasks.iter_mut().find(|t| t.id == "task1").unwrap();
+        task1.parameters = Some(json!({
+            "task_type": "system_command",
+            "command": "non_existent_command",
+            "args": []
+        }).as_object().unwrap().clone());
+        
+        let scheduler = TaskScheduler::new(None, 4);
+        
+        // Execute task4
+        let result4 = scheduler.execute_single_task(&alt_file, "task4").await;
+        
+        assert!(result4.is_some());
+        // Task4 should fail because its dependencies (task2, task3) failed due to task1 failing
+        assert_eq!(result4.unwrap().status, TaskStatus::Failed);
+        
+        // Check the stored results
+        let results = scheduler.results.lock().await;
+        assert_eq!(results.len(), 4); // All tasks attempted
+        assert_eq!(results.get("task1").unwrap().status, TaskStatus::Failed);
+        assert_eq!(results.get("task2").unwrap().status, TaskStatus::Failed); // Failed due to task1
+        assert_eq!(results.get("task3").unwrap().status, TaskStatus::Failed); // Failed due to task1
+        assert_eq!(results.get("task4").unwrap().status, TaskStatus::Failed); // Failed due to task2/task3
     }
 }
+

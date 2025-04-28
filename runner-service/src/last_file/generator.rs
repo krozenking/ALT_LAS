@@ -197,6 +197,8 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
         }
     }
     
+    let mut new_artifacts = Vec::new();
+    
     // Process each task result
     for (task_id, result) in &last_file.task_results {
         // Extract output artifacts if available
@@ -265,7 +267,7 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
                                 _ => Some("application/octet-stream".to_string()),
                             };
                             
-                            last_file.add_artifact(artifact);
+                            new_artifacts.push(artifact);
                         } else {
                             warn!("Artifact source file not found, skipping: {}", file_path.display());
                         }
@@ -303,11 +305,16 @@ pub fn extract_artifacts_from_results(mut last_file: LastFile, output_dir: &Path
                         artifact.size_bytes = size;
                         artifact.mime_type = Some("text/plain".to_string());
                         
-                        last_file.add_artifact(artifact);
+                        new_artifacts.push(artifact);
                     }
                 }
             }
         }
+    }
+    
+    // Add collected artifacts to the last_file
+    for artifact in new_artifacts {
+        last_file.add_artifact(artifact);
     }
     
     // Update summary with artifact count

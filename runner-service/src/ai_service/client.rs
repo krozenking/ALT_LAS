@@ -7,13 +7,15 @@ use tokio::time::{timeout, Duration};
 use serde::{Serialize, Deserialize};
 
 /// AI Service client for interacting with the AI Orchestrator
+#[derive(Clone)] // Added Clone trait
 pub struct AiServiceClient {
-    base_url: String,
+    pub base_url: String, // Made public
     client: Client,
-    timeout_seconds: u64,
+    pub timeout_seconds: u64, // Made public
 }
 
 /// AI Task Processor for processing AI tasks
+#[derive(Clone)] // Added Clone trait
 pub struct AiTaskProcessor {
     client: AiServiceClient,
 }

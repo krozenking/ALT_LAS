@@ -9,6 +9,7 @@ export interface CardProps extends BoxProps {
   footer?: React.ReactNode;
   isHoverable?: boolean;
   role?: string; // Allow overriding the default role
+  isFocusable?: boolean; // Add prop to make card focusable
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -18,7 +19,8 @@ export const Card: React.FC<CardProps> = ({
   footer,
   isHoverable = true,
   children,
-  role = 'region', // Default role to region
+  role = 'region', // Default role to region, suitable for landmark
+  isFocusable = false, // Default to not focusable
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -58,14 +60,13 @@ export const Card: React.FC<CardProps> = ({
     }
   } : {};
 
-  // Focus style (applied if the card itself is made focusable, e.g., tabIndex={0})
-  const focusStyle = {
-    _focus: {
-        outline: 'none', // Remove default outline
-        boxShadow: 'outline', // Use Chakra's focus outline style
-        zIndex: 1, // Ensure focus style is visible
-    }
-  };
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
+  // Applied only if isFocusable is true
+  const focusStyles = isFocusable ? {
+    outline: 'none', // Remove default outline
+    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
+    zIndex: 1, // Ensure focus style is visible
+  } : {};
 
   // Determine aria-labelledby based on header presence
   const ariaLabelledBy = header ? headerId : undefined;
@@ -76,12 +77,20 @@ export const Card: React.FC<CardProps> = ({
       flexDirection="column"
       overflow="hidden"
       transition="all 0.2s ease-in-out"
+      position="relative" // Ensure position context for focus styles
       {...getCardStyle()}
       {...hoverStyle}
-      {...focusStyle} // Apply focus style
+      _focus={{
+        ...focusStyles
+      }}
+      _focusVisible={{
+        ...focusStyles
+      }}
       role={role} // Apply role
       aria-labelledby={ariaLabelledBy} // Label by header if exists
-      aria-describedby={contentId} // Describe by content
+      // aria-describedby={contentId} // Describe by content - removed as content might be complex and not suitable for description
+      tabIndex={isFocusable ? 0 : undefined} // Make focusable if needed
+      data-focus-visible-added // Support for focus-visible polyfill
       {...rest}
     >
       {/* Card Header */}
@@ -92,11 +101,13 @@ export const Card: React.FC<CardProps> = ({
           borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
           className="card-header"
         >
-          {/* Render header content, potentially wrapping in a Heading tag */} 
+          {/* Render header content, ensuring it has the correct ID */} 
           {typeof header === 'string' ? (
             <Heading as={headerLevel} size="md" id={headerId}>{header}</Heading>
           ) : (
-            <Box id={headerId}>{header}</Box> // Use Box if header is complex node
+            // If header is a complex node, ensure the primary text element within it gets the ID
+            // For simplicity, wrapping in a Box with ID. User should ensure semantic heading inside.
+            <Box id={headerId}>{header}</Box> 
           )}
         </Box>
       )}
@@ -106,7 +117,7 @@ export const Card: React.FC<CardProps> = ({
         p={4}
         flex="1"
         className="card-content"
-        id={contentId} // Add id for potential aria-describedby usage
+        id={contentId} // Keep id for potential custom use, but removed from aria-describedby
       >
         {children}
       </Box>
@@ -127,4 +138,3 @@ export const Card: React.FC<CardProps> = ({
 };
 
 export default Card;
-

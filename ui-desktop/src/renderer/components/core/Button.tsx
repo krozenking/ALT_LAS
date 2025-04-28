@@ -114,7 +114,14 @@ export const Button: React.FC<ButtonProps> = ({
   } : {};
 
   // Determine aria-label: Use provided label, or children if it's a string, otherwise undefined
-  const finalAriaLabel = ariaLabel || (typeof children === 'string' ? undefined : 'Button'); // Default label if no text/label
+  const finalAriaLabel = ariaLabel || (typeof children === 'string' ? children : 'Button'); // Always provide a label for screen readers
+
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
+  const focusStyles = !isDisabled && !isLoading ? {
+    outline: 'none', // Remove default outline
+    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
+    zIndex: 1, // Ensure focus style is visible
+  } : {};
 
   return (
     <Box
@@ -127,6 +134,7 @@ export const Button: React.FC<ButtonProps> = ({
       borderRadius="md"
       fontWeight="medium"
       transition="all 0.2s ease-in-out"
+      position="relative" // Ensure position context for focus styles
       _hover={!isDisabled && !isLoading ? {
         transform: 'translateY(-2px)',
         boxShadow: 'md',
@@ -134,11 +142,12 @@ export const Button: React.FC<ButtonProps> = ({
       _active={!isDisabled && !isLoading ? {
         transform: 'translateY(0)',
       } : {}}
-      _focus={!isDisabled && !isLoading ? {
-        outline: 'none', // Remove default outline
-        boxShadow: 'outline', // Use Chakra's focus outline style
-        zIndex: 1, // Ensure focus style is visible
-      } : {}}
+      _focus={{
+        ...focusStyles
+      }}
+      _focusVisible={{
+        ...focusStyles
+      }}
       {...getGlassStyle()}
       {...getSizeStyle()}
       {...disabledStyle}
@@ -147,6 +156,8 @@ export const Button: React.FC<ButtonProps> = ({
       aria-disabled={isDisabled}
       aria-busy={isLoading}
       aria-label={finalAriaLabel} // Add computed aria-label
+      data-focus-visible-added // Support for focus-visible polyfill
+      tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order
       {...rest}
     >
       {leftIcon && (
@@ -165,4 +176,3 @@ export const Button: React.FC<ButtonProps> = ({
 };
 
 export default Button;
-

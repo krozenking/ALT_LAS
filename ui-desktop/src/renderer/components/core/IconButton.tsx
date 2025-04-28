@@ -8,7 +8,7 @@ export interface IconButtonProps extends BoxProps {
   isDisabled?: boolean;
   isLoading?: boolean;
   icon: React.ReactNode;
-  ariaLabel: string; // Keep existing ariaLabel prop
+  ariaLabel: string; // Required ariaLabel prop
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -122,15 +122,24 @@ export const IconButton: React.FC<IconButtonProps> = ({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on loading
   } : {};
 
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
+  const focusStyles = !isDisabled && !isLoading ? {
+    outline: 'none', // Remove default outline
+    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
+    zIndex: 1, // Ensure focus style is visible
+  } : {};
+
   return (
     <Box
       as="button"
+      role="button" // Explicitly set role for clarity
       type="button" // Explicitly set type for accessibility
       display="inline-flex"
       alignItems="center"
       justifyContent="center"
       borderRadius="md"
       transition="all 0.2s ease-in-out"
+      position="relative" // Ensure position context for focus styles
       aria-label={ariaLabel} // Use the mandatory ariaLabel prop
       _hover={!isDisabled && !isLoading ? {
         transform: 'translateY(-2px)',
@@ -139,11 +148,12 @@ export const IconButton: React.FC<IconButtonProps> = ({
       _active={!isDisabled && !isLoading ? {
         transform: 'translateY(0)',
       } : {}}
-      _focus={!isDisabled && !isLoading ? {
-        outline: 'none', // Remove default outline
-        boxShadow: 'outline', // Use Chakra's focus outline style
-        zIndex: 1, // Ensure focus style is visible
-      } : {}}
+      _focus={{
+        ...focusStyles
+      }}
+      _focusVisible={{
+        ...focusStyles
+      }}
       {...getGlassStyle()}
       {...getSizeStyle()}
       {...disabledStyle}
@@ -151,13 +161,25 @@ export const IconButton: React.FC<IconButtonProps> = ({
       onClick={!isDisabled && !isLoading ? onClick : undefined}
       aria-disabled={isDisabled}
       aria-busy={isLoading}
+      data-focus-visible-added // Support for focus-visible polyfill
+      tabIndex={isDisabled ? -1 : 0} // Ensure proper tab order
       {...rest}
     >
-      {/* Wrap icon in a span for better accessibility structure if needed, but Box is fine */} 
-      {isLoading ? <Box opacity={0} aria-hidden="true">{icon}</Box> : <Box aria-hidden="true">{icon}</Box>}
+      {/* Wrap icon in a span for better accessibility structure */} 
+      {isLoading ? (
+        <Box opacity={0} aria-hidden="true">{icon}</Box>
+      ) : (
+        <Box 
+          aria-hidden="true" 
+          display="flex" 
+          alignItems="center" 
+          justifyContent="center"
+        >
+          {icon}
+        </Box>
+      )}
     </Box>
   );
 };
 
 export default IconButton;
-

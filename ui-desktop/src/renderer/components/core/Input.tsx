@@ -20,12 +20,20 @@ export const Input: React.FC<InputProps> = ({
   leftElement,
   rightElement,
   isRequired = false, // Default isRequired to false
+  isDisabled = false, // Add isDisabled prop
   ...rest
 }) => {
   const { colorMode } = useColorMode();
   const id = useId();
   const errorId = error ? `${id}-error` : undefined;
   const labelId = label ? `${id}-label` : undefined;
+
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance)
+  const focusStyles = !isDisabled ? {
+    borderColor: 'primary.500',
+    boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
+    zIndex: 1, // Ensure focus style is visible
+  } : {};
 
   // Apply glassmorphism effect based on color mode and variant
   const getInputStyle = () => {
@@ -34,33 +42,24 @@ export const Input: React.FC<InputProps> = ({
         ...(colorMode === 'light'
           ? glassmorphism.create(0.5, 8, 1)
           : glassmorphism.createDark(0.5, 8, 1)),
-        _focus: {
-          borderColor: 'primary.500',
-          boxShadow: `0 0 0 1px ${colorMode === 'light' ? 'rgba(62, 92, 118, 0.6)' : 'rgba(62, 92, 118, 0.4)'}`,
-          zIndex: 1, // Ensure focus style is visible
-        }
+        _focus: { ...focusStyles },
+        _focusVisible: { ...focusStyles },
       };
     } else if (variant === 'solid') {
       return {
         bg: colorMode === 'light' ? 'white' : 'gray.800',
         border: '1px solid',
         borderColor: colorMode === 'light' ? 'gray.200' : 'gray.700',
-        _focus: {
-          borderColor: 'primary.500',
-          boxShadow: `0 0 0 1px ${colorMode === 'light' ? 'rgba(62, 92, 118, 0.6)' : 'rgba(62, 92, 118, 0.4)'}`,
-          zIndex: 1,
-        }
+        _focus: { ...focusStyles },
+        _focusVisible: { ...focusStyles },
       };
     } else if (variant === 'outline') {
       return {
         bg: 'transparent',
         border: '1px solid',
         borderColor: colorMode === 'light' ? 'gray.300' : 'gray.600',
-        _focus: {
-          borderColor: 'primary.500',
-          boxShadow: `0 0 0 1px ${colorMode === 'light' ? 'rgba(62, 92, 118, 0.6)' : 'rgba(62, 92, 118, 0.4)'}`,
-          zIndex: 1,
-        }
+        _focus: { ...focusStyles },
+        _focusVisible: { ...focusStyles },
       };
     }
 
@@ -85,8 +84,22 @@ export const Input: React.FC<InputProps> = ({
     borderColor: 'error.500',
     _focus: {
       borderColor: 'error.500',
-      boxShadow: `0 0 0 1px ${colorMode === 'light' ? 'rgba(244, 67, 54, 0.6)' : 'rgba(244, 67, 54, 0.4)'}`,
+      boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(229, 62, 62, 0.6)' : 'rgba(252, 129, 129, 0.6)'}`, // Error focus ring
+    },
+    _focusVisible: {
+      borderColor: 'error.500',
+      boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(229, 62, 62, 0.6)' : 'rgba(252, 129, 129, 0.6)'}`, // Error focus ring
     }
+  } : {};
+
+  // Disabled styles
+  const disabledStyle = isDisabled ? {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+    bg: colorMode === 'light' ? 'gray.100' : 'gray.700',
+    borderColor: colorMode === 'light' ? 'gray.200' : 'gray.600',
+    _focus: { boxShadow: 'none' },
+    _focusVisible: { boxShadow: 'none' },
   } : {};
 
   return (
@@ -100,9 +113,9 @@ export const Input: React.FC<InputProps> = ({
           fontWeight="medium"
           mb={1}
           display="block"
-          color={colorMode === 'light' ? 'gray.700' : 'gray.300'}
+          color={isDisabled ? (colorMode === 'light' ? 'gray.400' : 'gray.500') : (colorMode === 'light' ? 'gray.700' : 'gray.300')}
         >
-          {label}{isRequired && <Box as="span" color="red.500" ml={1}>*</Box>}
+          {label}{isRequired && <Box as="span" color="red.500" ml={1} aria-hidden="true">*</Box>}
         </FormLabel>
       )}
 
@@ -118,6 +131,7 @@ export const Input: React.FC<InputProps> = ({
             zIndex={2}
             display="flex"
             alignItems="center"
+            color={isDisabled ? (colorMode === 'light' ? 'gray.400' : 'gray.500') : 'inherit'}
             aria-hidden="true" // Hide decorative element from screen readers
           >
             {leftElement}
@@ -134,12 +148,15 @@ export const Input: React.FC<InputProps> = ({
           {...getInputStyle()}
           {...getSizeStyle()}
           {...errorStyle}
+          {...disabledStyle} // Apply disabled styles
           id={id}
+          isDisabled={isDisabled} // Pass isDisabled to ChakraInput
           isRequired={isRequired} // Pass isRequired to ChakraInput
           aria-invalid={!!error}
           aria-required={isRequired} // Explicitly set aria-required
           aria-describedby={errorId}
           aria-labelledby={label ? labelId : undefined} // Associate label if exists
+          data-focus-visible-added // Support for focus-visible polyfill
           {...rest}
         />
 
@@ -153,6 +170,7 @@ export const Input: React.FC<InputProps> = ({
             zIndex={2}
             display="flex"
             alignItems="center"
+            color={isDisabled ? (colorMode === 'light' ? 'gray.400' : 'gray.500') : 'inherit'}
             aria-hidden="true" // Hide decorative element from screen readers
           >
             {rightElement}
@@ -168,6 +186,7 @@ export const Input: React.FC<InputProps> = ({
           fontSize="sm"
           color="error.500"
           role="alert" // Add role alert for error messages
+          aria-live="assertive" // Ensure screen readers announce the error
         >
           {error}
         </Box>
@@ -177,4 +196,3 @@ export const Input: React.FC<InputProps> = ({
 };
 
 export default Input;
-

@@ -1,87 +1,111 @@
-# Çalışan 1 - API Gateway Geliştirme Görevleri
+# ALT_LAS İşçi 5 (UI/UX Geliştirici) Görev Listesi
 
-## Tamamlanacak Görevler
+Bu belge, ALT_LAS projesinde UI/UX Geliştirici (İşçi 5) için tamamlanması gereken görevleri içermektedir.
 
-### Kimlik Doğrulama ve Yetkilendirme (Hafta 3-4)
-- [ ] **Görev 1.7:** Rol tabanlı yetkilendirme sistemi
-  - [x] Rol ve izin modeli tasarımı
-  - [x] Yetkilendirme middleware'i
-  - [ ] Route bazlı yetkilendirme (Uygulama gerekli)
-  - [ ] Dinamik izin kontrolü (Uygulama gerekli)
-- [x] **Görev 1.8:** Kullanıcı yönetimi API'leri
-  - [x] Kullanıcı kaydı ve doğrulama
-  - [x] Kullanıcı profil yönetimi
-  - [x] Şifre sıfırlama ve değiştirme
-  - [x] Kullanıcı rolleri ve izinleri yönetimi
-- [x] **Görev 1.9:** Oturum yönetimi ve token yenileme
-  - [x] Oturum oluşturma ve sonlandırma
-  - [x] Token yenileme endpoint'i
-  - [x] Oturum zaman aşımı yönetimi
-  - [x] Çoklu cihaz oturum yönetimi
-- [ ] **Görev 1.10:** Güvenlik testleri
-  - [ ] Kimlik doğrulama testleri
-  - [ ] Yetkilendirme testleri
-  - [ ] Token yönetimi testleri
-  - [ ] Güvenlik açığı taraması
+## Hafta 1-2: Erişilebilirlik İyileştirmeleri
 
-### Servis Entegrasyonu (Hafta 5-6)
-- [x] **Görev 1.11:** Segmentation Service ile entegrasyon
-  - [x] Servis iletişim protokolü
-  - [x] Request/response şemaları
-  - [x] Hata işleme ve yeniden deneme stratejisi
-  - [x] Timeout ve circuit breaker yapılandırması
-- [x] **Görev 1.12:** Runner Service ile entegrasyon
-  - [x] Servis iletişim protokolü
-  - [x] Request/response şemaları
-  - [x] Hata işleme ve yeniden deneme stratejisi
-  - [x] Timeout ve circuit breaker yapılandırması
-- [x] **Görev 1.13:** Archive Service ile entegrasyon
-  - [x] Servis iletişim protokolü
-  - [x] Request/response şemaları
-  - [x] Hata işleme ve yeniden deneme stratejisi
-  - [x] Timeout ve circuit breaker yapılandırması
-- [x] **Görev 1.14:** Servis keşif mekanizması
-  - [x] Servis kayıt ve keşif sistemi
-  - [x] Dinamik servis URL yapılandırması
-  - [x] Servis sağlık kontrolü
-  - [ ] Servis yük dengeleme
-- [x] **Görev 1.15:** Servis sağlık kontrolü ve izleme
-  - [x] Sağlık kontrolü endpoint'leri
-  - [x] Servis durumu izleme
-  - [ ] Metrik toplama
-  - [ ] Alarm ve bildirim mekanizması
+### Görev 5.1: WCAG 2.1 AA Uyumluluğu
+- [ ] **Görev 5.1.1:** Tüm bileşenlerin ARIA rolleri ve özelliklerinin eklenmesi
+- [ ] **Görev 5.1.2:** Klavye navigasyonu ve odak yönetiminin iyileştirilmesi
+- [ ] **Görev 5.1.3:** Renk kontrastı ve görsel ipuçlarının optimize edilmesi
+- [ ] **Görev 5.1.4:** Ekran okuyucu uyumluluğunun test edilmesi ve iyileştirilmesi
+- [ ] **Görev 5.1.5:** Erişilebilirlik dokümantasyonunun hazırlanması
 
-### API Geliştirme ve Optimizasyon (Hafta 7-8)
-- [ ] **Görev 1.16:** Komut işleme API'leri
-  - [ ] Komut gönderme endpoint'i
-  - [ ] Komut durumu sorgulama
-  - [ ] Komut iptal etme
-  - [ ] Komut geçmişi
-- [ ] **Görev 1.17:** Dosya yönetimi API'leri (*.alt, *.last, *.atlas)
-  - [ ] Dosya yükleme endpoint'i
-  - [ ] Dosya indirme endpoint'i
-  - [ ] Dosya listeleme ve arama
-  - [ ] Dosya metadata yönetimi
-- [ ] **Görev 1.18:** Performans optimizasyonu ve caching
-  - [ ] Response caching stratejisi
-  - [ ] Redis cache entegrasyonu
-  - [ ] Query optimizasyonu
-  - [ ] Payload sıkıştırma
-- [ ] **Görev 1.19:** API versiyonlama stratejisi
-  - [ ] URL/header tabanlı versiyonlama
-  - [ ] Versiyon geçiş stratejisi
-  - [ ] Geriye dönük uyumluluk
-  - [ ] Versiyon dokümantasyonu
-- [ ] **Görev 1.20:** Kapsamlı API testleri
-  - [ ] Birim testleri
-  - [ ] Entegrasyon testleri
-  - [ ] Performans testleri
-  - [ ] Yük testleri
+### Görev 5.2: Yüksek Kontrast Tema
+- [ ] **Görev 5.2.1:** Yüksek kontrast tema tasarımı
+- [ ] **Görev 5.2.2:** Yüksek kontrast tema implementasyonu
+- [ ] **Görev 5.2.3:** Tema geçiş mekanizmasının iyileştirilmesi
+- [ ] **Görev 5.2.4:** Sistem teması algılama ve uyum
+- [ ] **Görev 5.2.5:** Tema testleri ve hata düzeltmeleri
 
-## Öncelikli Görevler
+## Hafta 3-4: Performans Optimizasyonu
 
-1. Rol tabanlı yetkilendirme sistemini tamamlama (Görev 1.7)
-2. Kullanıcı yönetimi API'lerini tamamlama (Görev 1.8)
-3. Oturum yönetimi ve token yenileme işlevlerini tamamlama (Görev 1.9)
-4. Güvenlik testlerini gerçekleştirme (Görev 1.10)
-5. Servis entegrasyonlarını başlatma (Görev 1.11, 1.12, 1.13)
+### Görev 5.3: Render Optimizasyonu
+- [ ] **Görev 5.3.1:** Bileşen memoizasyonu ve gereksiz render'ların önlenmesi
+- [ ] **Görev 5.3.2:** Büyük listeler için sanal listeleme implementasyonu
+- [ ] **Görev 5.3.3:** React.lazy ve Suspense ile kod bölme
+- [ ] **Görev 5.3.4:** useTransition ve useDeferredValue ile render önceliklendirme
+- [ ] **Görev 5.3.5:** Performans profilleme ve darboğaz analizi
+
+### Görev 5.4: Animasyon Optimizasyonu
+- [ ] **Görev 5.4.1:** GPU hızlandırmalı animasyonların implementasyonu
+- [ ] **Görev 5.4.2:** Animasyon performans testleri ve iyileştirmeleri
+- [ ] **Görev 5.4.3:** Animasyon zamanlama ve easing fonksiyonlarının optimize edilmesi
+- [ ] **Görev 5.4.4:** Düşük performanslı cihazlar için animasyon alternatiflerinin oluşturulması
+- [ ] **Görev 5.4.5:** Animasyon dokümantasyonunun hazırlanması
+
+## Hafta 5-6: Akıllı Bildirim Sistemi
+
+### Görev 5.5: Bildirim Merkezi
+- [ ] **Görev 5.5.1:** Bildirim merkezi UI tasarımı
+- [ ] **Görev 5.5.2:** Bildirim kategorileri ve önceliklendirme
+- [ ] **Görev 5.5.3:** Bildirim gruplandırma ve filtreleme
+- [ ] **Görev 5.5.4:** Bildirim eylemleri ve hızlı yanıtlar
+- [ ] **Görev 5.5.5:** Bildirim geçmişi ve arşivleme
+
+### Görev 5.6: Odaklanma Modu
+- [ ] **Görev 5.6.1:** Odaklanma modu UI tasarımı
+- [ ] **Görev 5.6.2:** Bildirim filtreleme ve erteleme mekanizması
+- [ ] **Görev 5.6.3:** Zamanlayıcı ve mola hatırlatıcıları
+- [ ] **Görev 5.6.4:** Odaklanma istatistikleri ve raporlama
+- [ ] **Görev 5.6.5:** Odaklanma modu testleri ve iyileştirmeleri
+
+## Hafta 7-8: Gelişmiş Ekran Yakalama Özellikleri
+
+### Görev 5.7: Akıllı Nesne Seçimi
+- [ ] **Görev 5.7.1:** Nesne algılama algoritmasının implementasyonu
+- [ ] **Görev 5.7.2:** Akıllı seçim UI'ının tasarlanması
+- [ ] **Görev 5.7.3:** Seçim iyileştirme ve hassas ayar araçları
+- [ ] **Görev 5.7.4:** Çoklu nesne seçimi ve grup işlemleri
+- [ ] **Görev 5.7.5:** Nesne seçimi testleri ve iyileştirmeleri
+
+### Görev 5.8: Ekran Kaydı Özellikleri
+- [ ] **Görev 5.8.1:** Ekran kaydı UI tasarımı
+- [ ] **Görev 5.8.2:** Kayıt modu seçenekleri (tam ekran, pencere, bölge)
+- [ ] **Görev 5.8.3:** Ses kaynağı seçimi ve mikrofon entegrasyonu
+- [ ] **Görev 5.8.4:** Kayıt sonrası işleme araçları
+- [ ] **Görev 5.8.5:** Kayıt performans optimizasyonu
+
+## Hafta 9-10: Adaptif Düzen Sistemi
+
+### Görev 5.9: Görev Bazlı Düzenler
+- [ ] **Görev 5.9.1:** Görev analizi ve düzen ihtiyaçlarının belirlenmesi
+- [ ] **Görev 5.9.2:** Görev bazlı düzen şablonlarının tasarlanması
+- [ ] **Görev 5.9.3:** Düzen şablonları arasında geçiş mekanizması
+- [ ] **Görev 5.9.4:** Düzen özelleştirme ve kaydetme
+- [ ] **Görev 5.9.5:** Düzen şablonları dokümantasyonu
+
+### Görev 5.10: Responsive Tasarım İyileştirmeleri
+- [ ] **Görev 5.10.1:** Farklı ekran boyutları için düzen testleri
+- [ ] **Görev 5.10.2:** Mobil uyumluluk iyileştirmeleri
+- [ ] **Görev 5.10.3:** Çoklu monitör desteği
+- [ ] **Görev 5.10.4:** Dokunmatik ekran optimizasyonu
+- [ ] **Görev 5.10.5:** Responsive tasarım dokümantasyonu
+
+## Hafta 11-12: Lisans Uyumluluğu ve Dokümantasyon
+
+### Görev 5.11: Lisans Uyumluluğu
+- [ ] **Görev 5.11.1:** UI bağımlılıklarının lisans analizi
+- [ ] **Görev 5.11.2:** Lisans uyumluluğu dokümantasyonunun hazırlanması
+- [ ] **Görev 5.11.3:** Üçüncü taraf lisanslarının dahil edilmesi
+- [ ] **Görev 5.11.4:** Lisans uyarılarının UI'a entegrasyonu
+- [ ] **Görev 5.11.5:** Lisans uyumluluğu testleri
+
+### Görev 5.12: Kapsamlı UI Dokümantasyonu
+- [ ] **Görev 5.12.1:** Bileşen API dokümantasyonu
+- [ ] **Görev 5.12.2:** Storybook entegrasyonu ve hikayeler
+- [ ] **Görev 5.12.3:** Kullanım örnekleri ve kod parçacıkları
+- [ ] **Görev 5.12.4:** Tema ve stil rehberi
+- [ ] **Görev 5.12.5:** Geliştirici kılavuzu ve en iyi uygulamalar
+
+## Devam Eden Görevler
+
+### Tema Sistemi Geliştirme
+- [ ] Mod-spesifik tema varyantları (Normal, Dream, Explore, Chaos)
+- [ ] Tema özelleştirme arayüzü
+- [ ] Dinamik tema geçişleri ve animasyonları
+
+### Panel Sistemi İyileştirmeleri
+- [ ] Panel düzenlerini kaydetme ve geri yükleme
+- [ ] Panel grupları ve sekme yönetimi
+- [ ] Otomatik panel düzenleme algoritmaları

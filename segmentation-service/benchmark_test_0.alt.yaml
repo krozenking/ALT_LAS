@@ -1,13 +1,13 @@
-id: 58becb01-48f7-4b0e-b5df-9ccb161fab0b
+id: a6deb67c-255d-442c-be10-baf2fee257ec
 version: '1.0'
-timestamp: '2025-04-27T15:12:06.692143'
+timestamp: '2025-04-28T00:28:21.922739'
 command: "Dosyalar\u0131 s\u0131rala ve en b\xFCy\xFCk 10 tanesini g\xF6ster"
 language: tr
 mode: Dream
 persona: technical_expert
 chaos_level: null
 segments:
-- id: 2a103de2-6edf-43cb-ae60-7edb29deee26
+- id: 7727f885-67ad-4625-bec8-256cedbe6bc5
   task_type: execute
   content: "Dosyalar\u0131 s\u0131rala"
   parameters:
@@ -19,7 +19,7 @@ segments:
   dependencies: []
   metadata:
     confidence: 0.5
-- id: 8afd1bd2-1dc0-4000-a3ae-af57fec4229f
+- id: a8f2b0be-3757-46b6-a7d6-459a936f4601
   task_type: execute
   content: "en b\xFCy\xFCk 10 tanesini g\xF6ster"
   parameters:

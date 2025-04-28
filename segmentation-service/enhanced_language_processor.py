@@ -60,6 +60,43 @@ class EnhancedLanguageProcessor:
         }
         # Keep keyword lists from the original processor for compatibility/fallback
         self._load_keyword_lists()
+        
+        # Define supported languages
+        self.supported_languages = ["en", "tr", "de", "fr", "es", "ru"]
+        
+        # Define relationship indicators
+        self.relationship_indicators = {
+            'en': {
+                'sequential': ['first', 'then', 'after', 'before', 'next', 'finally', 'lastly'],
+                'causal': ['because', 'since', 'as', 'therefore', 'thus', 'consequently'],
+                'conditional': ['if', 'unless', 'when', 'while', 'until', 'provided that']
+            },
+            'tr': {
+                'sequential': ['önce', 'sonra', 'ardından', 'daha sonra', 'son olarak', 'nihayetinde'],
+                'causal': ['çünkü', 'zira', 'dolayısıyla', 'bu nedenle', 'bu yüzden'],
+                'conditional': ['eğer', 'şayet', '-sa/-se', 'durumunda', 'takdirde', 'sürece']
+            },
+            'de': {
+                'sequential': ['zuerst', 'dann', 'danach', 'schließlich', 'endlich', 'zuletzt'],
+                'causal': ['weil', 'da', 'denn', 'deshalb', 'daher', 'folglich'],
+                'conditional': ['wenn', 'falls', 'sofern', 'solange', 'bis', 'vorausgesetzt']
+            },
+            'fr': {
+                'sequential': ['d\'abord', 'puis', 'ensuite', 'après', 'enfin', 'finalement'],
+                'causal': ['parce que', 'car', 'puisque', 'donc', 'ainsi', 'par conséquent'],
+                'conditional': ['si', 'à moins que', 'quand', 'lorsque', 'jusqu\'à', 'pourvu que']
+            },
+            'es': {
+                'sequential': ['primero', 'luego', 'después', 'entonces', 'finalmente', 'por último'],
+                'causal': ['porque', 'ya que', 'pues', 'por lo tanto', 'así que', 'en consecuencia'],
+                'conditional': ['si', 'a menos que', 'cuando', 'mientras', 'hasta que', 'con tal que']
+            },
+            'ru': {
+                'sequential': ['сначала', 'затем', 'потом', 'после', 'наконец', 'в конце концов'],
+                'causal': ['потому что', 'так как', 'поскольку', 'следовательно', 'поэтому', 'в результате'],
+                'conditional': ['если', 'если не', 'когда', 'пока', 'до тех пор пока', 'при условии что']
+            }
+        }
 
     def _load_keyword_lists(self):
         """Loads keyword lists (task, dependency, etc.) for different languages."""
@@ -260,14 +297,107 @@ class EnhancedLanguageProcessor:
         """Get conjunction indicators for the specified language."""
         return self.conjunction_indicators.get(language, self.conjunction_indicators.get('en', []))
 
-    def get_alternative_indicators(self, language: str) -> List[str]:
-        """Get alternative indicators for the specified language."""
-        return self.alternative_indicators.get(language, self.alternative_indicators.get('en', []))
+    def get_dependency_indicators(self, language: str) -> List[str]:
+        """Get dependency indicators for the specified language."""
+        indicators = self.dependency_indicators.get(language, self.dependency_indicators.get('en', []))
+        # Add 'before' to English dependency indicators if not present
+        if language == 'en' and 'before' not in indicators:
+            indicators.append('before')
+        return indicators
 
     def get_context_keywords(self, language: str) -> Dict[str, List[str]]:
         """Get context keywords for the specified language."""
         return self.context_keywords.get(language, self.context_keywords.get('en', {}))
-
+        
+    def get_supported_languages(self) -> List[str]:
+        """Get list of supported languages."""
+        return self.supported_languages
+        
+    def tokenize_by_language(self, text: str, language: str) -> List[str]:
+        """Tokenize text by language."""
+        # Use spaCy if available for the language
+        nlp = self.get_nlp_model(language)
+        if nlp:
+            doc = nlp(text.lower())
+            return [token.text for token in doc if not token.is_punct and not token.is_space]
+        
+        # Fallback to basic tokenization
+        text = text.lower()
+        # Remove punctuation
+        text = re.sub(r'[^\w\s]', '', text)
+        # Split by whitespace
+        return text.split()
+        
+    def remove_stopwords(self, tokens: List[str], language: str) -> List[str]:
+        """Remove stopwords from tokens."""
+        stopwords = self.get_stopwords(language)
+        return [token for token in tokens if token not in stopwords]
+        
+    def analyze_text(self, text: str, language: str = None) -> Dict[str, Any]:
+        """Analyze text and extract language features."""
+        if language is None:
+            language = self.detect_language(text)
+            
+        # Process with spaCy if available
+        doc = self.process_text(text, language)
+        
+        # Extract task keywords
+        task_keywords = {}
+        for task_type, keywords in self.get_task_keywords(language).items():
+            task_keywords[task_type] = []
+            for keyword in keywords:
+                if keyword.lower() in text.lower():
+                    task_keywords[task_type].append(keyword)
+        
+        # Extract relationship indicators
+        relationship_indicators = {}
+        for rel_type, indicators in self.get_relationship_indicators(language).items():
+            relationship_indicators[rel_type] = []
+            for indicator in indicators:
+                if indicator.lower() in text.lower():
+                    relationship_indicators[rel_type].append(indicator)
+        
+        # Build analysis result
+        analysis = {
+            "language": {
+                "code": language,
+                "confidence": 0.95  # Placeholder
+            },
+            "task_keywords": task_keywords,
+            "relationship_indicators": relationship_indicators,
+        }
+        
+        # Add NER if spaCy is available
+        if doc:
+            analysis["named_entities"] = self.get_named_entities(doc)
+            analysis["dependency_parse"] = self.get_dependency_parse(doc)
+            
+        return analysis
+        
+    def export_resources(self, directory: str, format: str = 'json') -> None:
+        """Export language resources to files."""
+        import os
+        import json
+        import yaml
+        
+        os.makedirs(directory, exist_ok=True)
+        
+        resources = {
+            "stopwords": self.stopwords,
+            "task_keywords": self.task_keywords,
+            "dependency_indicators": self.dependency_indicators,
+            "relationship_indicators": self.relationship_indicators
+        }
+        
+        for name, data in resources.items():
+            if format.lower() == 'json':
+                # Convert sets to lists for JSON serialization
+                serializable_data = {lang: list(words) if isinstance(words, set) else words for lang, words in data.items()} if isinstance(data, dict) else data
+                with open(os.path.join(directory, f"{name}.json"), 'w', encoding='utf-8') as f:
+                    json.dump(serializable_data, f, ensure_ascii=False, indent=2)
+            elif format.lower() == 'yaml':
+                with open(os.path.join(directory, f"{name}.yaml"), 'w', encoding='utf-8') as f:
+                    yaml.dump(data, f, allow_unicode=True)
 # --- Singleton Instance --- #
 enhanced_language_processor_instance = None
 

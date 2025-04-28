@@ -1,13 +1,13 @@
-id: 29472b9c-2c43-4171-a694-2ade2f0e0229
+id: 82aa0a41-509f-4818-a029-69219d1b3ae9
 version: '1.0'
-timestamp: '2025-04-27T15:12:06.695277'
+timestamp: '2025-04-28T00:28:21.924613'
 command: "E-postalar\u0131m\u0131 kontrol et ve \xF6nemli olanlar\u0131 i\u015Faretle"
 language: tr
-mode: Chaos
-persona: system_admin
-chaos_level: 5
+mode: Normal
+persona: technical_expert
+chaos_level: null
 segments:
-- id: a055c4c7-30cb-400d-bbd8-b29a5f9a6f73
+- id: 97ce9e8b-b98e-4148-b203-251a78eeb987
   task_type: execute
   content: "E-postalar\u0131m\u0131 kontrol et"
   parameters:
@@ -19,7 +19,7 @@ segments:
   dependencies: []
   metadata:
     confidence: 0.5
-- id: 6234b19f-8ee3-45c3-9f0b-bb07d45fd66f
+- id: db794062-1065-4208-9f1d-14da8dc464d3
   task_type: execute
   content: "\xF6nemli olanlar\u0131 i\u015Faretle"
   parameters:

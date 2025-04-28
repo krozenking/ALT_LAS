@@ -1,13 +1,13 @@
-id: 1c6705b0-65a3-4713-9f31-07e2e269d94b
+id: 63acd403-e82b-4a25-b112-c7b0e649f05a
 version: '1.0'
-timestamp: '2025-04-27T15:12:06.694546'
+timestamp: '2025-04-28T00:28:21.924151'
 command: "Sistem performans\u0131n\u0131 kontrol et ve bir rapor olu\u015Ftur"
 language: tr
 mode: Normal
-persona: technical_expert
+persona: system_admin
 chaos_level: null
 segments:
-- id: a61db5a0-440c-4f23-8331-6cb4c45bf8be
+- id: 920b25b7-1817-4780-a656-fd526d530b32
   task_type: execute
   content: "Sistem performans\u0131n\u0131 kontrol et"
   parameters:
@@ -19,7 +19,7 @@ segments:
   dependencies: []
   metadata:
     confidence: 0.5
-- id: 488ef86f-f436-4431-97ae-6863dbb34ffa
+- id: ef3c72c3-20ea-4721-b68b-5f1d3ab92f98
   task_type: execute
   content: "bir rapor olu\u015Ftur"
   parameters:

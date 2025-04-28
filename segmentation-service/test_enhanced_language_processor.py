@@ -34,7 +34,7 @@ class TestEnhancedLanguageProcessor(unittest.TestCase):
     
     def setUp(self):
         """Set up test environment"""
-        self.processor = LanguageProcessor()
+        self.processor = EnhancedLanguageProcessor()
         self.test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_resources")
         os.makedirs(self.test_dir, exist_ok=True)
     
@@ -351,11 +351,11 @@ class TestEnhancedLanguageProcessor(unittest.TestCase):
     
     def test_get_language_processor(self):
         """Test getting language processor instance"""
-        processor = get_language_processor()
-        self.assertIsInstance(processor, LanguageProcessor)
+        processor = get_enhanced_language_processor()
+        self.assertIsInstance(processor, EnhancedLanguageProcessor)
         
         # Should return the same instance
-        processor2 = get_language_processor()
+        processor2 = get_enhanced_language_processor()
         self.assertIs(processor, processor2)
     
     def test_supported_languages(self):

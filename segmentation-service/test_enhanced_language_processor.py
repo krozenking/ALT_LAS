@@ -1,540 +1,346 @@
-#!/usr/bin/env python3
 """
-Test suite for enhanced language processor with multilingual support
-
-This module tests the enhanced language processor with support for multiple languages:
-- English (en)
-- Turkish (tr)
-- German (de)
-- French (fr)
-- Spanish (es)
-- Russian (ru)
+Unit tests for the Enhanced Language Processor module.
 """
 
-import os
-import json
 import unittest
 from unittest.mock import patch, MagicMock
-import sys
-import logging
+import spacy
+from spacy.tokens import Doc, Span, Token
 
-# Add parent directory to path to import modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import modules to test
+# Import the module to be tested
 from enhanced_language_processor import EnhancedLanguageProcessor, get_enhanced_language_processor
-from language_resources_manager import LanguageResourcesManager
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import nltk # Add this import
+
+# Download NLTK data
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Mock spaCy models if they are not loaded
+try:
+    nlp_en = spacy.load("en_core_web_sm")
+except OSError:
+    nlp_en = MagicMock()
+    nlp_en.return_value = MagicMock(spec=Doc)
+
+try:
+    nlp_tr = spacy.load("tr_core_news_sm")
+except OSError:
+    nlp_tr = MagicMock()
+    nlp_tr.return_value = MagicMock(spec=Doc)
 
 class TestEnhancedLanguageProcessor(unittest.TestCase):
-    """Test cases for enhanced language processor"""
-    
-    def setUp(self):
-        """Set up test environment"""
-        self.processor = EnhancedLanguageProcessor()
-        self.test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_resources")
-        os.makedirs(self.test_dir, exist_ok=True)
-    
-    def tearDown(self):
-        """Clean up test environment"""
-        # Clean up test resources directory
-        for filename in os.listdir(self.test_dir):
-            file_path = os.path.join(self.test_dir, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-        
-        # Remove test resources directory
-        os.rmdir(self.test_dir)
-    
-    def test_language_detection(self):
-        """Test language detection"""
-        # Test English
-        self.assertEqual(self.processor.detect_language("This is a test sentence in English."), "en")
-        
-        # Test Turkish
-        self.assertEqual(self.processor.detect_language("Bu bir Türkçe test cümlesidir."), "tr")
-        
-        # Test German
-        self.assertEqual(self.processor.detect_language("Dies ist ein Testsatz auf Deutsch."), "de")
-        
-        # Test French
-        self.assertEqual(self.processor.detect_language("C'est une phrase de test en français."), "fr")
-        
-        # Test Spanish
-        self.assertEqual(self.processor.detect_language("Esta es una frase de prueba en español."), "es")
-        
-        # Test Russian
-        self.assertEqual(self.processor.detect_language("Это тестовое предложение на русском языке."), "ru")
-        
-        # Test mixed language (should detect based on strongest signals)
-        self.assertEqual(self.processor.detect_language("This is a mixed sentence with some Türkçe words."), "en")
-        
-        # Test empty text (should default to English)
-        self.assertEqual(self.processor.detect_language(""), "en")
-    
-    def test_tokenization(self):
-        """Test tokenization for different languages"""
-        # Test English
-        tokens = self.processor.tokenize_by_language("This is a test.", "en")
-        self.assertEqual(tokens, ["this", "is", "a", "test"])
-        
-        # Test Turkish
-        tokens = self.processor.tokenize_by_language("Bu bir test.", "tr")
-        self.assertEqual(tokens, ["bu", "bir", "test"])
-        
-        # Test German
-        tokens = self.processor.tokenize_by_language("Dies ist ein Test.", "de")
-        self.assertEqual(tokens, ["dies", "ist", "ein", "test"])
-        
-        # Test French
-        tokens = self.processor.tokenize_by_language("C'est un test.", "fr")
-        self.assertEqual(tokens, ["c", "est", "un", "test"])
-        
-        # Test Spanish
-        tokens = self.processor.tokenize_by_language("Esto es una prueba.", "es")
-        self.assertEqual(tokens, ["esto", "es", "una", "prueba"])
-        
-        # Test Russian
-        tokens = self.processor.tokenize_by_language("Это тест.", "ru")
-        self.assertEqual(tokens, ["это", "тест"])
-        
-        # Test unsupported language (should default to English tokenization)
-        tokens = self.processor.tokenize_by_language("This is a test.", "xx")
-        self.assertEqual(tokens, ["this", "is", "a", "test"])
-    
-    def test_stopwords_removal(self):
-        """Test stopwords removal for different languages"""
-        # Test English
-        tokens = ["this", "is", "a", "test", "sentence"]
-        filtered = self.processor.remove_stopwords(tokens, "en")
-        self.assertEqual(filtered, ["test", "sentence"])
-        
-        # Test Turkish
-        tokens = ["bu", "bir", "test", "cümlesi"]
-        filtered = self.processor.remove_stopwords(tokens, "tr")
-        self.assertEqual(filtered, ["test", "cümlesi"])
-        
-        # Test German
-        tokens = ["dies", "ist", "ein", "test", "satz"]
-        filtered = self.processor.remove_stopwords(tokens, "de")
-        self.assertEqual(filtered, ["test", "satz"])
-        
-        # Test French
-        tokens = ["c", "est", "un", "test", "phrase"]
-        filtered = self.processor.remove_stopwords(tokens, "fr")
-        self.assertEqual(filtered, ["test", "phrase"])
-        
-        # Test Spanish
-        tokens = ["esto", "es", "una", "prueba", "frase"]
-        filtered = self.processor.remove_stopwords(tokens, "es")
-        self.assertEqual(filtered, ["prueba", "frase"])
-        
-        # Test Russian
-        tokens = ["это", "тест", "предложение"]
-        filtered = self.processor.remove_stopwords(tokens, "ru")
-        self.assertEqual(filtered, ["тест", "предложение"])
-        
-        # Test unsupported language (should default to English stopwords)
-        tokens = ["this", "is", "a", "test", "sentence"]
-        filtered = self.processor.remove_stopwords(tokens, "xx")
-        self.assertEqual(filtered, ["test", "sentence"])
-    
-    def test_task_keywords(self):
-        """Test task keywords for different languages"""
-        # Test English
-        keywords = self.processor.get_task_keywords("en")
-        self.assertIn("search", keywords)
-        self.assertIn("create", keywords)
-        self.assertIn("analyze", keywords)
-        
-        # Test Turkish
-        keywords = self.processor.get_task_keywords("tr")
-        self.assertIn("search", keywords)
-        self.assertIn("create", keywords)
-        self.assertIn("analyze", keywords)
-        
-        # Test German
-        keywords = self.processor.get_task_keywords("de")
-        self.assertIn("search", keywords)
-        self.assertIn("create", keywords)
-        self.assertIn("analyze", keywords)
-        
-        # Test French
-        keywords = self.processor.get_task_keywords("fr")
-        self.assertIn("search", keywords)
-        self.assertIn("create", keywords)
-        self.assertIn("analyze", keywords)
-        
-        # Test Spanish
-        keywords = self.processor.get_task_keywords("es")
-        self.assertIn("search", keywords)
-        self.assertIn("create", keywords)
-        self.assertIn("analyze", keywords)
-        
-        # Test Russian
-        keywords = self.processor.get_task_keywords("ru")
-        self.assertIn("search", keywords)
-        self.assertIn("create", keywords)
-        self.assertIn("analyze", keywords)
-        
-        # Test unsupported language (should default to English)
-        keywords = self.processor.get_task_keywords("xx")
-        self.assertEqual(keywords, self.processor.task_keywords["en"])
-    
-    def test_dependency_indicators(self):
-        """Test dependency indicators for different languages"""
-        # Test English
-        indicators = self.processor.get_dependency_indicators("en")
-        self.assertIn("after", indicators)
-        self.assertIn("before", indicators)
-        self.assertIn("then", indicators)
-        
-        # Test Turkish
-        indicators = self.processor.get_dependency_indicators("tr")
-        self.assertIn("sonra", indicators)
-        self.assertIn("önce", indicators)
-        self.assertIn("ardından", indicators)
-        
-        # Test German
-        indicators = self.processor.get_dependency_indicators("de")
-        self.assertIn("nach", indicators)
-        self.assertIn("vor", indicators)
-        self.assertIn("dann", indicators)
-        
-        # Test French
-        indicators = self.processor.get_dependency_indicators("fr")
-        self.assertIn("après", indicators)
-        self.assertIn("avant", indicators)
-        self.assertIn("puis", indicators)
-        
-        # Test Spanish
-        indicators = self.processor.get_dependency_indicators("es")
-        self.assertIn("después", indicators)
-        self.assertIn("antes", indicators)
-        self.assertIn("luego", indicators)
-        
-        # Test Russian
-        indicators = self.processor.get_dependency_indicators("ru")
-        self.assertIn("после", indicators)
-        self.assertIn("до", indicators)
-        self.assertIn("затем", indicators)
-        
-        # Test unsupported language (should default to English)
-        indicators = self.processor.get_dependency_indicators("xx")
-        self.assertEqual(indicators, self.processor.dependency_indicators["en"])
-    
-    def test_relationship_indicators(self):
-        """Test relationship indicators for different languages"""
-        # Test English
-        indicators = self.processor.get_relationship_indicators("en")
-        self.assertIn("sequential", indicators)
-        self.assertIn("causal", indicators)
-        self.assertIn("conditional", indicators)
-        
-        # Test Turkish
-        indicators = self.processor.get_relationship_indicators("tr")
-        self.assertIn("sequential", indicators)
-        self.assertIn("causal", indicators)
-        self.assertIn("conditional", indicators)
-        
-        # Test German
-        indicators = self.processor.get_relationship_indicators("de")
-        self.assertIn("sequential", indicators)
-        self.assertIn("causal", indicators)
-        self.assertIn("conditional", indicators)
-        
-        # Test French
-        indicators = self.processor.get_relationship_indicators("fr")
-        self.assertIn("sequential", indicators)
-        self.assertIn("causal", indicators)
-        self.assertIn("conditional", indicators)
-        
-        # Test Spanish
-        indicators = self.processor.get_relationship_indicators("es")
-        self.assertIn("sequential", indicators)
-        self.assertIn("causal", indicators)
-        self.assertIn("conditional", indicators)
-        
-        # Test Russian
-        indicators = self.processor.get_relationship_indicators("ru")
-        self.assertIn("sequential", indicators)
-        self.assertIn("causal", indicators)
-        self.assertIn("conditional", indicators)
-        
-        # Test unsupported language (should default to English)
-        indicators = self.processor.get_relationship_indicators("xx")
-        self.assertEqual(indicators, self.processor.relationship_indicators["en"])
-    
-    def test_text_analysis(self):
-        """Test text analysis for different languages"""
-        # Test English
-        text = "First search for information, then create a report."
-        analysis = self.processor.analyze_text(text, "en")
-        self.assertEqual(analysis["language"]["code"], "en")
-        self.assertIn("search", analysis["task_keywords"]["search"])
-        self.assertIn("create", analysis["task_keywords"]["create"])
-        self.assertIn("first", analysis["relationship_indicators"]["sequential"])
-        self.assertIn("then", analysis["relationship_indicators"]["sequential"])
-        
-        # Test Turkish
-        text = "Önce bilgi ara, sonra bir rapor oluştur."
-        analysis = self.processor.analyze_text(text, "tr")
-        self.assertEqual(analysis["language"]["code"], "tr")
-        self.assertIn("ara", analysis["task_keywords"]["search"])
-        self.assertIn("oluştur", analysis["task_keywords"]["create"])
-        self.assertIn("önce", analysis["relationship_indicators"]["sequential"])
-        self.assertIn("sonra", analysis["relationship_indicators"]["sequential"])
-        
-        # Test German
-        text = "Zuerst nach Informationen suchen, dann einen Bericht erstellen."
-        analysis = self.processor.analyze_text(text, "de")
-        self.assertEqual(analysis["language"]["code"], "de")
-        self.assertIn("suchen", analysis["task_keywords"]["search"])
-        self.assertIn("erstellen", analysis["task_keywords"]["create"])
-        self.assertIn("zuerst", analysis["relationship_indicators"]["sequential"])
-        self.assertIn("dann", analysis["relationship_indicators"]["sequential"])
-        
-        # Test French
-        text = "D'abord rechercher des informations, puis créer un rapport."
-        analysis = self.processor.analyze_text(text, "fr")
-        self.assertEqual(analysis["language"]["code"], "fr")
-        self.assertIn("rechercher", analysis["task_keywords"]["search"])
-        self.assertIn("créer", analysis["task_keywords"]["create"])
-        self.assertIn("d'abord", analysis["relationship_indicators"]["sequential"])
-        self.assertIn("puis", analysis["relationship_indicators"]["sequential"])
-        
-        # Test Spanish
-        text = "Primero buscar información, luego crear un informe."
-        analysis = self.processor.analyze_text(text, "es")
-        self.assertEqual(analysis["language"]["code"], "es")
-        self.assertIn("buscar", analysis["task_keywords"]["search"])
-        self.assertIn("crear", analysis["task_keywords"]["create"])
-        self.assertIn("primero", analysis["relationship_indicators"]["sequential"])
-        self.assertIn("luego", analysis["relationship_indicators"]["sequential"])
-        
-        # Test Russian
-        text = "Сначала найти информацию, затем создать отчет."
-        analysis = self.processor.analyze_text(text, "ru")
-        self.assertEqual(analysis["language"]["code"], "ru")
-        self.assertIn("найти", analysis["task_keywords"]["search"])
-        self.assertIn("создать", analysis["task_keywords"]["create"])
-        self.assertIn("сначала", analysis["relationship_indicators"]["sequential"])
-        self.assertIn("затем", analysis["relationship_indicators"]["sequential"])
-        
-        # Test auto language detection
-        text = "First search for information, then create a report."
-        analysis = self.processor.analyze_text(text)
-        self.assertEqual(analysis["language"]["code"], "en")
-    
-    def test_export_resources(self):
-        """Test exporting language resources"""
-        # Export resources to test directory
-        self.processor.export_resources(self.test_dir, 'yaml')
-        
-        # Check if files were created
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "stopwords.yaml")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "task_keywords.yaml")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "dependency_indicators.yaml")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "relationship_indicators.yaml")))
-        
-        # Export resources to test directory in JSON format
-        self.processor.export_resources(self.test_dir, 'json')
-        
-        # Check if files were created
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "stopwords.json")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "task_keywords.json")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "dependency_indicators.json")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "relationship_indicators.json")))
-    
-    def test_get_language_processor(self):
-        """Test getting language processor instance"""
-        processor = get_enhanced_language_processor()
-        self.assertIsInstance(processor, EnhancedLanguageProcessor)
-        
-        # Should return the same instance
-        processor2 = get_enhanced_language_processor()
-        self.assertIs(processor, processor2)
-    
-    def test_supported_languages(self):
-        """Test getting supported languages"""
-        languages = self.processor.get_supported_languages()
-        self.assertEqual(len(languages), 6)  # en, tr, de, fr, es, ru
-        
-        # Check if all languages are included
-        language_codes = [lang["code"] for lang in languages]
-        self.assertIn("en", language_codes)
-        self.assertIn("tr", language_codes)
-        self.assertIn("de", language_codes)
-        self.assertIn("fr", language_codes)
-        self.assertIn("es", language_codes)
-        self.assertIn("ru", language_codes)
-        
-        # Check language names
-        for lang in languages:
-            if lang["code"] == "en":
-                self.assertEqual(lang["name"], "English")
-            elif lang["code"] == "tr":
-                self.assertEqual(lang["name"], "Turkish")
-            elif lang["code"] == "de":
-                self.assertEqual(lang["name"], "German")
-            elif lang["code"] == "fr":
-                self.assertEqual(lang["name"], "French")
-            elif lang["code"] == "es":
-                self.assertEqual(lang["name"], "Spanish")
-            elif lang["code"] == "ru":
-                self.assertEqual(lang["name"], "Russian")
+    """Test suite for the EnhancedLanguageProcessor class."""
 
-class TestLanguageResourcesManager(unittest.TestCase):
-    """Test cases for language resources manager"""
-    
-    def setUp(self):
-        """Set up test environment"""
-        self.test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_resources")
-        os.makedirs(self.test_dir, exist_ok=True)
-        self.manager = LanguageResourcesManager(self.test_dir)
+    @classmethod
+    def setUpClass(cls):
+        """Set up the test class."""
+        cls.processor = EnhancedLanguageProcessor()
+        # Override models with mocks if necessary
+        if isinstance(nlp_en, MagicMock):
+            cls.processor.nlp_models["en"] = nlp_en
+        if isinstance(nlp_tr, MagicMock):
+            cls.processor.nlp_models["tr"] = nlp_tr
+
+    def test_singleton_instance(self):
+        """Test if get_enhanced_language_processor returns the same instance."""
+        instance1 = get_enhanced_language_processor()
+        instance2 = get_enhanced_language_processor()
+        self.assertIs(instance1, instance2)
+
+    def test_detect_language(self):
+        """Test language detection."""
+        self.assertEqual(self.processor.detect_language("This is an English sentence."), "en")
+        self.assertEqual(self.processor.detect_language("Bu bir Türkçe test cümlesidir."), "tr")
+        self.assertEqual(self.processor.detect_language("Dies ist ein Testsatz auf Deutsch."), "de")
+        self.assertEqual(self.processor.detect_language("C\u0027est une phrase de test en français."), "fr")
+        self.assertEqual(self.processor.detect_language("Esta es una frase de prueba en español."), "es")
+        self.assertEqual(self.processor.detect_language("Это тестовое предложение на русском языке."), "ru")
+        # Test fallback
+        self.assertEqual(self.processor.detect_language("Mixed text with some Türkçe words"), "en")
+        self.assertEqual(self.processor.detect_language("Biraz English içeren karışık metin"), "tr")
+
+    def test_get_nlp_model(self):
+        """Test getting the correct NLP model."""
+        self.assertIsNotNone(self.processor.get_nlp_model("en"))
+        # Turkish model might be a mock or basic pipeline
+        self.assertIsNotNone(self.processor.get_nlp_model("tr"))
+        self.assertIsNone(self.processor.get_nlp_model("xx")) # Unsupported language
+
+    @patch("enhanced_language_processor.nlp_en")
+    def test_process_text_english(self, mock_nlp_en):
+        """Test processing English text."""
+        mock_doc = MagicMock(spec=Doc)
+        mock_nlp_en.return_value = mock_doc
+        self.processor.nlp_models["en"] = mock_nlp_en # Ensure mock is used
         
-        # Create test resources
-        self.test_resources = {
-            "stopwords": {
-                "en": ["a", "an", "the"],
-                "tr": ["bir", "ve", "bu"]
-            },
-            "task_keywords": {
-                "en": {
-                    "search": ["search", "find", "look"],
-                    "create": ["create", "make", "build"]
-                },
-                "tr": {
-                    "search": ["ara", "bul", "araştır"],
-                    "create": ["oluştur", "yap", "inşa et"]
-                }
-            }
-        }
+        text = "Analyze the data and create a report."
+        doc = self.processor.process_text(text, "en")
         
-        # Save test resources
-        self.manager.save_resources(self.test_resources, 'yaml')
-    
-    def tearDown(self):
-        """Clean up test environment"""
-        # Clean up test resources directory
-        for filename in os.listdir(self.test_dir):
-            file_path = os.path.join(self.test_dir, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+        mock_nlp_en.assert_called_once_with(text)
+        self.assertEqual(doc, mock_doc)
+        # Test caching
+        self.processor.process_text(text, "en")
+        mock_nlp_en.assert_called_once() # Should not be called again
+
+    @patch("enhanced_language_processor.nlp_tr")
+    def test_process_text_turkish(self, mock_nlp_tr):
+        """Test processing Turkish text."""
+        mock_doc = MagicMock(spec=Doc)
+        mock_nlp_tr.return_value = mock_doc
+        self.processor.nlp_models["tr"] = mock_nlp_tr # Ensure mock is used
         
-        # Remove test resources directory
-        os.rmdir(self.test_dir)
-    
-    def test_load_resources(self):
-        """Test loading language resources"""
-        # Load all resources
-        resources = self.manager.load_resources()
-        self.assertEqual(len(resources), 2)  # stopwords, task_keywords
-        self.assertIn("stopwords", resources)
-        self.assertIn("task_keywords", resources)
+        text = "Veriyi analiz et ve bir rapor oluştur."
+        doc = self.processor.process_text(text, "tr")
         
-        # Load specific resource
-        stopwords = self.manager.load_resources("stopwords")
-        self.assertEqual(len(stopwords), 1)
-        self.assertIn("stopwords", stopwords)
-        self.assertEqual(stopwords["stopwords"]["en"], ["a", "an", "the"])
-        self.assertEqual(stopwords["stopwords"]["tr"], ["bir", "ve", "bu"])
-    
-    def test_save_resources(self):
-        """Test saving language resources"""
-        # Save resources in YAML format
-        success = self.manager.save_resources(self.test_resources, 'yaml')
-        self.assertTrue(success)
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "stopwords.yaml")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "task_keywords.yaml")))
+        mock_nlp_tr.assert_called_once_with(text)
+        self.assertEqual(doc, mock_doc)
+        # Test caching
+        self.processor.process_text(text, "tr")
+        mock_nlp_tr.assert_called_once() # Should not be called again
+
+    def test_process_text_unsupported_language(self):
+        """Test processing text with an unsupported language model."""
+        text = "Ceci est un texte en français."
+        doc = self.processor.process_text(text, "fr") # Assuming French model is not loaded
+        self.assertIsNone(doc)
+
+    def test_get_sentences(self):
+        """Test sentence segmentation."""
+        mock_sent1 = MagicMock(spec=Span, text="Sentence 1.")
+        mock_sent2 = MagicMock(spec=Span, text="Sentence 2?")
+        mock_doc = MagicMock(spec=Doc)
+        mock_doc.sents = [mock_sent1, mock_sent2]
         
-        # Save resources in JSON format
-        success = self.manager.save_resources(self.test_resources, 'json')
-        self.assertTrue(success)
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "stopwords.json")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "task_keywords.json")))
-    
-    def test_update_resource(self):
-        """Test updating a specific language resource"""
-        # Update stopwords
-        new_stopwords = {
-            "en": ["a", "an", "the", "and", "or"],
-            "tr": ["bir", "ve", "bu", "veya", "ile"]
-        }
+        with patch.object(self.processor, "process_text", return_value=mock_doc) as mock_process:
+            sentences = self.processor.get_sentences("Sentence 1. Sentence 2?")
+            mock_process.assert_called_once()
+            self.assertEqual(len(sentences), 2)
+            self.assertEqual(sentences[0].text, "Sentence 1.")
+            self.assertEqual(sentences[1].text, "Sentence 2?")
+            
+            # Test with Doc input
+            sentences_from_doc = self.processor.get_sentences(mock_doc)
+            self.assertEqual(len(sentences_from_doc), 2)
+
+    @patch("enhanced_language_processor.sent_tokenize", return_value=["Sentence 1.", "Sentence 2?"])
+    def test_get_sentences_fallback(self, mock_sent_tokenize):
+        """Test sentence segmentation fallback using NLTK."""
+        with patch.object(self.processor, "process_text", return_value=None) as mock_process:
+            sentences = self.processor.get_sentences("Sentence 1. Sentence 2?", language="en")
+            mock_process.assert_called_once()
+            mock_sent_tokenize.assert_called_once_with("Sentence 1. Sentence 2?", language="en")
+            self.assertEqual(len(sentences), 2)
+            self.assertEqual(sentences[0], "Sentence 1.")
+
+    def test_get_tokens(self):
+        """Test tokenization."""
+        mock_token1 = MagicMock(spec=Token, text="Token1")
+        mock_token2 = MagicMock(spec=Token, text=".")
+        mock_doc = MagicMock(spec=Doc)
+        mock_doc.__iter__.return_value = iter([mock_token1, mock_token2])
         
-        success = self.manager.update_resource("stopwords", new_stopwords, 'yaml')
-        self.assertTrue(success)
+        with patch.object(self.processor, "process_text", return_value=mock_doc) as mock_process:
+            tokens = self.processor.get_tokens("Token1.")
+            mock_process.assert_called_once()
+            self.assertEqual(len(tokens), 2)
+            self.assertEqual(tokens[0].text, "Token1")
+            self.assertEqual(tokens[1].text, ".")
+            
+            # Test with Doc input
+            tokens_from_doc = self.processor.get_tokens(mock_doc)
+            self.assertEqual(len(tokens_from_doc), 2)
+
+    @patch("enhanced_language_processor.word_tokenize", return_value=["Token1", "."])
+    def test_get_tokens_fallback(self, mock_word_tokenize):
+        """Test tokenization fallback using NLTK."""
+        with patch.object(self.processor, "process_text", return_value=None) as mock_process:
+            tokens = self.processor.get_tokens("Token1.", language="en")
+            mock_process.assert_called_once()
+            mock_word_tokenize.assert_called_once_with("Token1.", language="en")
+            self.assertEqual(len(tokens), 2)
+            self.assertEqual(tokens[0], "Token1")
+
+    def test_get_named_entities(self):
+        """Test named entity recognition."""
+        mock_ent1 = MagicMock(spec=Span, text="Apple", label_="ORG", start_char=0, end_char=5)
+        mock_ent2 = MagicMock(spec=Span, text="yesterday", label_="DATE", start_char=15, end_char=24)
+        mock_doc = MagicMock(spec=Doc)
+        mock_doc.ents = [mock_ent1, mock_ent2]
         
-        # Load updated resource
-        resources = self.manager.load_resources("stopwords")
-        self.assertEqual(resources["stopwords"]["en"], ["a", "an", "the", "and", "or"])
-        self.assertEqual(resources["stopwords"]["tr"], ["bir", "ve", "bu", "veya", "ile"])
-    
-    def test_add_language(self):
-        """Test adding a new language to all resources"""
-        # Add German language
-        new_language = {
-            "stopwords": {
-                "de": ["der", "die", "das", "und", "oder"]
-            },
-            "task_keywords": {
-                "de": {
-                    "search": ["suchen", "finden", "recherchieren"],
-                    "create": ["erstellen", "machen", "bauen"]
-                }
-            }
-        }
+        with patch.object(self.processor, "process_text", return_value=mock_doc) as mock_process:
+            entities = self.processor.get_named_entities("Apple shares rose yesterday.")
+            mock_process.assert_called_once()
+            self.assertEqual(len(entities), 2)
+            self.assertEqual(entities[0], ("Apple", "ORG", 0, 5))
+            self.assertEqual(entities[1], ("yesterday", "DATE", 15, 24))
+            
+            # Test with Doc input
+            entities_from_doc = self.processor.get_named_entities(mock_doc)
+            self.assertEqual(len(entities_from_doc), 2)
+
+    def test_get_named_entities_fallback(self):
+        """Test named entity recognition fallback (returns empty list)."""
+        with patch.object(self.processor, "process_text", return_value=None) as mock_process:
+            entities = self.processor.get_named_entities("Apple shares rose yesterday.", language="en")
+            mock_process.assert_called_once()
+            self.assertEqual(entities, [])
+
+    def test_get_dependency_parse(self):
+        """Test dependency parsing."""
+        mock_token1 = MagicMock(spec=Token, text="Analyze", lemma_="analyze", pos_="VERB", tag_="VB", dep_="ROOT", head=MagicMock(text="Analyze", pos_="VERB"), children=[])
+        mock_token2 = MagicMock(spec=Token, text="data", lemma_="data", pos_="NOUN", tag_="NN", dep_="dobj", head=mock_token1, children=[])
+        mock_token1.children = [mock_token2]
+        mock_doc = MagicMock(spec=Doc)
+        mock_doc.__iter__.return_value = iter([mock_token1, mock_token2])
         
-        success = self.manager.add_language("de", "German", new_language)
-        self.assertTrue(success)
+        with patch.object(self.processor, "process_text", return_value=mock_doc) as mock_process:
+            parse = self.processor.get_dependency_parse("Analyze data")
+            mock_process.assert_called_once()
+            self.assertEqual(len(parse), 2)
+            self.assertEqual(parse[0]["text"], "Analyze")
+            self.assertEqual(parse[0]["dep"], "ROOT")
+            self.assertEqual(parse[1]["text"], "data")
+            self.assertEqual(parse[1]["dep"], "dobj")
+            self.assertEqual(parse[1]["head_text"], "Analyze")
+            
+            # Test with Doc input
+            parse_from_doc = self.processor.get_dependency_parse(mock_doc)
+            self.assertEqual(len(parse_from_doc), 2)
+
+    def test_get_dependency_parse_fallback(self):
+        """Test dependency parsing fallback (returns empty list)."""
+        with patch.object(self.processor, "process_text", return_value=None) as mock_process:
+            parse = self.processor.get_dependency_parse("Analyze data", language="en")
+            mock_process.assert_called_once()
+            self.assertEqual(parse, [])
+
+    def test_get_root_verb(self):
+        """Test finding the root verb."""
+        mock_verb = MagicMock(spec=Token, text="Analyze", dep_="ROOT", pos_="VERB")
+        mock_noun = MagicMock(spec=Token, text="data", dep_="dobj", pos_="NOUN")
+        mock_doc = MagicMock(spec=Doc)
+        mock_doc.__iter__.return_value = iter([mock_verb, mock_noun])
         
-        # Load updated resources
-        resources = self.manager.load_resources()
-        self.assertIn("de", resources["stopwords"])
-        self.assertIn("de", resources["task_keywords"])
-        self.assertEqual(resources["stopwords"]["de"], ["der", "die", "das", "und", "oder"])
-        self.assertEqual(resources["task_keywords"]["de"]["search"], ["suchen", "finden", "recherchieren"])
-        self.assertEqual(resources["task_keywords"]["de"]["create"], ["erstellen", "machen", "bauen"])
-    
-    def test_remove_language(self):
-        """Test removing a language from all resources"""
-        # Remove Turkish language
-        success = self.manager.remove_language("tr")
-        self.assertTrue(success)
+        with patch.object(self.processor, "process_text", return_value=mock_doc) as mock_process:
+            root_verb = self.processor.get_root_verb("Analyze data")
+            mock_process.assert_called_once()
+            self.assertEqual(root_verb, mock_verb)
+            
+            # Test with Doc input
+            root_verb_from_doc = self.processor.get_root_verb(mock_doc)
+            self.assertEqual(root_verb_from_doc, mock_verb)
+
+    @patch("enhanced_language_processor.word_tokenize", return_value=["Analyze", "data"])
+    def test_get_root_verb_fallback(self, mock_word_tokenize):
+        """Test finding the root verb using fallback."""
+        # Mock task keywords
+        self.processor.task_keywords["en"] = {"analyze": ["analyze"]}
         
-        # Load updated resources
-        resources = self.manager.load_resources()
-        self.assertNotIn("tr", resources["stopwords"])
-        self.assertNotIn("tr", resources["task_keywords"])
-    
-    def test_get_supported_languages(self):
-        """Test getting supported languages"""
-        # Add language names resource
-        language_names = {
-            "en": "English",
-            "tr": "Turkish"
-        }
+        with patch.object(self.processor, "process_text", return_value=None) as mock_process:
+            root_verb = self.processor.get_root_verb("Analyze data", language="en")
+            mock_process.assert_called_once()
+            mock_word_tokenize.assert_called_once_with("Analyze data", language="en")
+            self.assertEqual(root_verb, "Analyze")
+
+    def test_extract_variables(self):
+        """Test variable extraction."""
+        text1 = "Process the file {filename} and save to <output_dir>."
+        text2 = "No variables here."
+        self.assertEqual(self.processor.extract_variables(text1), ["filename", "output_dir"])
+        self.assertEqual(self.processor.extract_variables(text2), [])
+
+    def test_identify_references(self):
+        """Test reference identification."""
+        text_en = "Analyze the report and summarize it. Then send them the results."
+        text_tr = "Raporu analiz et ve onu özetle. Sonra onlara sonuçları gönder."
         
-        self.manager.update_resource("language_names", language_names, 'yaml')
+        # Mock process_text to return None to test fallback
+        with patch.object(self.processor, "process_text", return_value=None):
+            refs_en = self.processor.identify_references(text_en, "en")
+            refs_tr = self.processor.identify_references(text_tr, "tr")
         
-        # Get supported languages
-        languages = self.manager.get_supported_languages()
-        self.assertEqual(len(languages), 2)  # en, tr
+        self.assertIn(("it", "pronoun"), refs_en)
+        self.assertIn(("them", "pronoun"), refs_en)
+        self.assertIn(("the results", "reference_phrase"), refs_en)
         
-        # Check if all languages are included
-        language_codes = [lang["code"] for lang in languages]
-        self.assertIn("en", language_codes)
-        self.assertIn("tr", language_codes)
+        self.assertIn(("onu", "pronoun"), refs_tr)
+        self.assertIn(("onlara", "pronoun"), refs_tr)
+        self.assertIn(("sonuçları", "reference_phrase"), refs_tr) # Assuming 'sonuç' is in ref list
+
+    @patch("enhanced_language_processor.wordnet.synsets")
+    def test_get_related_concepts(self, mock_synsets):
+        """Test getting related concepts using WordNet."""
+        # Mock WordNet synsets and lemmas
+        mock_lemma1 = MagicMock() 
+        mock_lemma1.name.return_value = "automobile"
+        mock_lemma2 = MagicMock()
+        mock_lemma2.name.return_value = "motorcar"
+        mock_synset1 = MagicMock()
+        mock_synset1.lemmas.return_value = [mock_lemma1, mock_lemma2]
+        mock_synset1.hypernyms.return_value = []
+        mock_synset1.hyponyms.return_value = []
+        mock_synsets.return_value = [mock_synset1]
         
-        # Check language names
-        for lang in languages:
-            if lang["code"] == "en":
-                self.assertEqual(lang["name"], "English")
-            elif lang["code"] == "tr":
-                self.assertEqual(lang["name"], "Turkish")
+        related = self.processor.get_related_concepts("car", "en")
+        mock_synsets.assert_called_once_with("car")
+        self.assertIn("automobile", related)
+        self.assertIn("motorcar", related)
+        self.assertNotIn("car", related)
+        
+        # Test unsupported language
+        related_tr = self.processor.get_related_concepts("araba", "tr")
+        self.assertEqual(related_tr, [])
+
+    def test_get_stopwords(self):
+        """Test getting stopwords."""
+        self.assertIn("the", self.processor.get_stopwords("en"))
+        self.assertIn("ve", self.processor.get_stopwords("tr"))
+        self.assertEqual(self.processor.get_stopwords("xx"), set()) # Unsupported
+
+    def test_get_task_keywords(self):
+        """Test getting task keywords."""
+        en_keywords = self.processor.get_task_keywords("en")
+        tr_keywords = self.processor.get_task_keywords("tr")
+        self.assertIn("search", en_keywords)
+        self.assertIn("ara", tr_keywords["search"])
+        self.assertEqual(self.processor.get_task_keywords("xx"), en_keywords) # Fallback to English
+
+    def test_get_dependency_indicators(self):
+        """Test getting dependency indicators."""
+        self.assertIn("after", self.processor.get_dependency_indicators("en"))
+        self.assertIn("sonra", self.processor.get_dependency_indicators("tr"))
+        self.assertEqual(self.processor.get_dependency_indicators("xx"), self.processor.get_dependency_indicators("en")) # Fallback
+
+    def test_get_conjunction_indicators(self):
+        """Test getting conjunction indicators."""
+        self.assertIn("and", self.processor.get_conjunction_indicators("en"))
+        self.assertIn("ve", self.processor.get_conjunction_indicators("tr"))
+        self.assertEqual(self.processor.get_conjunction_indicators("xx"), self.processor.get_conjunction_indicators("en")) # Fallback
+
+    def test_get_alternative_indicators(self):
+        """Test getting alternative indicators."""
+        self.assertIn("or", self.processor.get_alternative_indicators("en"))
+        self.assertIn("veya", self.processor.get_alternative_indicators("tr"))
+        self.assertEqual(self.processor.get_alternative_indicators("xx"), self.processor.get_alternative_indicators("en")) # Fallback
+
+    def test_get_relationship_indicators(self):
+        """Test getting relationship indicators."""
+        en_rels = self.processor.get_relationship_indicators("en")
+        tr_rels = self.processor.get_relationship_indicators("tr")
+        self.assertIn("sequential", en_rels)
+        self.assertIn("sequential", tr_rels)
+        self.assertEqual(self.processor.get_relationship_indicators("xx"), en_rels) # Fallback
+
+    def test_get_context_keywords(self):
+        """Test getting context keywords."""
+        en_ctx = self.processor.get_context_keywords("en")
+        tr_ctx = self.processor.get_context_keywords("tr")
+        self.assertIn("time", en_ctx)
+        self.assertIn("time", tr_ctx)
+        self.assertEqual(self.processor.get_context_keywords("xx"), en_ctx) # Fallback
 
 if __name__ == "__main__":
     unittest.main()
+

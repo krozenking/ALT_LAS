@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express'; // Import Request and Response
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware'; // Import authorization
 import logger from '../utils/logger';
@@ -90,7 +90,7 @@ router.use(authenticateJWT);
 router.post(
     '/', 
     authorizeRoles('service', 'admin'), // Only service or admin can trigger archiving
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       try {
         const { lastFile, metadata = {} } = req.body;
         if (!lastFile) {
@@ -111,8 +111,8 @@ router.post(
             archivedByRole: req.user?.roles?.[0] || 'unknown'
         };
 
-        // Call the Archive Service
-        const archiveResult = await archiveService.archiveLastFile(lastFile, archiveMetadata);
+        // Call the Archive Service using the correct method name
+        const archiveResult = await archiveService.archiveResult(lastFile, archiveMetadata); // Fixed method name
         
         logger.info(`Archive successful: ${archiveResult.id} for lastFile ${lastFile}`);
         
@@ -159,17 +159,18 @@ router.post(
 router.get(
     '/:id', 
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { id } = req.params;
       const userId = req.user?.id;
       const isAdmin = req.user?.roles?.includes('admin');
       
       logger.info(`Archive record query: ${id} by user ${userId}`);
       
-      // Fetch record from the Archive Service
-      const atlasRecord = await archiveService.getAtlasFile(id);
+      // Fetch record from the Archive Service using the correct method name
+      const atlasRecord = await archiveService.getArchiveItem(id); // Fixed method name
 
       // Authorization check: Ensure the user owns the record or is an admin
+      // Assuming metadata contains userId, adjust if needed based on actual service response
       if (!isAdmin && atlasRecord.metadata?.userId !== userId) {
         // throw new ForbiddenError('You are not authorized to view this archive record');
         return res.status(403).json({ message: 'You are not authorized to view this archive record' });
@@ -260,7 +261,7 @@ router.get(
 router.get(
     '/search',
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { query, userId: queryUserId, startDate, endDate, minSuccessRate, limit = 10, offset = 0 } = req.query;
       const requestorUserId = req.user?.id;
       const isAdmin = req.user?.roles?.includes('admin');
@@ -286,8 +287,8 @@ router.get(
       if (endDate) searchParams.endDate = endDate; // TODO: Validate date format
       if (minSuccessRate) searchParams.minSuccessRate = parseFloat(minSuccessRate as string);
 
-      // Call the Archive Service search function
-      const searchResults = await archiveService.searchAtlasFiles(searchParams);
+      // Call the Archive Service search function using the correct method name
+      const searchResults = await archiveService.searchArchive(searchParams); // Fixed method name
 
       logger.info(`Archive search completed for user ${effectiveUserId}. Found ${searchResults.total} results.`);
 

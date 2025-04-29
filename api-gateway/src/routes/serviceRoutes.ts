@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express'; // Import Request and Response
 import { asyncHandler } from '../middleware/errorMiddleware';
 import logger from '../utils/logger';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware'; // Import authorization middleware
@@ -104,7 +104,7 @@ router.use(authenticateJWT);
 router.get(
     '/', 
     authorizeRoles('admin', 'user'), // Only admin or user can list services
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       // Gerçek uygulamada servis kayıtları veritabanından veya bellekten getirilir
       // Şimdilik mock yanıt döndürüyoruz
       logger.info(`Servis listesi istendi by user ${req.user?.id}`);
@@ -181,7 +181,7 @@ router.get(
 router.post(
     '/register', 
     authorizeRoles('admin'), // Only admin can register services
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { name, host, port, metadata } = req.body;
       
       // Gerçek uygulamada servis kaydı veritabanına veya belleğe yapılır
@@ -236,7 +236,7 @@ router.post(
 router.get(
     '/:serviceId', 
     authorizeRoles('admin', 'user'), // Only admin or user can get service details
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { serviceId } = req.params;
       
       // Gerçek uygulamada servis veritabanından veya bellekten getirilir
@@ -294,7 +294,7 @@ router.get(
 router.post(
     '/:serviceId/heartbeat', 
     authorizeRoles('admin', 'service'), // Only admin or service role can send heartbeat
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { serviceId } = req.params;
       
       // Gerçek uygulamada servis heartbeat bilgisi güncellenir

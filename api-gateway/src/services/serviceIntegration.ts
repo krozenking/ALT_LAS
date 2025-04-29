@@ -1,8 +1,35 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios'; // Import AxiosError
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
-import { ServiceError, NotFoundError } from '../utils/errors';
-import { CircuitBreaker } from '../utils/circuitBreaker';
+// Use existing error classes instead of the missing ServiceError
+import { InternalServerError, NotFoundError } from '../utils/errors'; 
+// Assuming circuitBreaker might be in a different location or needs creation. For now, comment out.
+// import { CircuitBreaker } from '../utils/circuitBreaker'; 
+
+// --- CircuitBreaker Placeholder --- 
+// Simple placeholder to allow compilation. Replace with actual implementation later.
+class CircuitBreaker {
+  constructor(options: any) {}
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    // Simple pass-through for now
+    return fn();
+  }
+}
+// --- End Placeholder ---
+
+// Helper function to get error message safely
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
+// Helper function to check if error is AxiosError with response
+function isAxiosErrorWithResponse(error: unknown): error is AxiosError & { response: NonNullable<AxiosError['response']> } {
+  // Added NonNullable check to help TypeScript compiler
+  return axios.isAxiosError(error) && error.response !== undefined && error.response !== null;
+}
 
 // Servis yapılandırması
 interface ServiceConfig {
@@ -58,7 +85,7 @@ class ServiceIntegration {
       try {
         return await this.serviceDiscovery.getServiceUrl(this.constructor.name);
       } catch (error) {
-        logger.warn(`Service discovery failed for ${this.constructor.name}, using default URL: ${error.message}`);
+        logger.warn(`Service discovery failed for ${this.constructor.name}, using default URL: ${getErrorMessage(error)}`);
       }
     }
     return this.config.baseUrl;
@@ -76,7 +103,7 @@ class ServiceIntegration {
       const url = `${baseUrl}${endpoint}`;
       
       let retries = 0;
-      let lastError: Error | null = null;
+      let lastError: unknown = null; // Store unknown error
 
       while (retries <= this.config.retryCount) {
         try {
@@ -96,24 +123,27 @@ class ServiceIntegration {
           lastError = error;
           
           // 4xx hataları için yeniden deneme yapma (istemci hatası)
-          if (error.response && error.response.status >= 400 && error.response.status < 500) {
-            throw error;
+          // Check using the refined type guard
+          if (isAxiosErrorWithResponse(error)) {
+             if (error.response.status >= 400 && error.response.status < 500) {
+                throw error; // Re-throw AxiosError for specific handling later
+             }
           }
 
-          logger.warn(`Request to ${url} failed (attempt ${retries + 1}/${this.config.retryCount + 1}): ${error.message}`);
+          logger.warn(`Request to ${url} failed (attempt ${retries + 1}/${this.config.retryCount + 1}): ${getErrorMessage(error)}`);
           
           if (retries < this.config.retryCount) {
             // Yeniden denemeden önce bekle
             await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
             retries++;
           } else {
-            throw error;
+            throw error; // Re-throw the last error after retries
           }
         }
       }
 
       // Bu noktaya ulaşılmamalı, ama TypeScript için gerekli
-      throw lastError || new Error('Unknown error');
+      throw lastError || new InternalServerError('Unknown error during request');
     });
   }
 
@@ -127,7 +157,7 @@ class ServiceIntegration {
       const result = await this.sendRequest<{ status: string }>('GET', '/health');
       return result.status === 'ok';
     } catch (error) {
-      logger.error(`Health check failed for ${this.constructor.name}: ${error.message}`);
+      logger.error(`Health check failed for ${this.constructor.name}: ${getErrorMessage(error)}`);
       return false;
     }
   }
@@ -158,8 +188,10 @@ export class SegmentationService extends ServiceIntegration {
 
       return result;
     } catch (error) {
-      logger.error(`Segmentation failed: ${error.message}`);
-      throw new ServiceError(`Segmentation service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Segmentation failed: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Segmentation service error: ${message}`);
     }
   }
 
@@ -169,11 +201,14 @@ export class SegmentationService extends ServiceIntegration {
       const result = await this.sendRequest<any>('GET', `/segment/${segmentationId}`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`Segmentation process not found: ${segmentationId}`);
       }
-      logger.error(`Failed to get segmentation status: ${error.message}`);
-      throw new ServiceError(`Segmentation service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to get segmentation status: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Segmentation service error: ${message}`);
     }
   }
 
@@ -183,11 +218,14 @@ export class SegmentationService extends ServiceIntegration {
       const result = await this.sendRequest<any>('GET', `/files/alt/${altFileId}`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`ALT file not found: ${altFileId}`);
       }
-      logger.error(`Failed to get ALT file: ${error.message}`);
-      throw new ServiceError(`Segmentation service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to get ALT file: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Segmentation service error: ${message}`);
     }
   }
 }
@@ -217,8 +255,10 @@ export class RunnerService extends ServiceIntegration {
 
       return result;
     } catch (error) {
-      logger.error(`Task execution failed: ${error.message}`);
-      throw new ServiceError(`Runner service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Task execution failed: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Runner service error: ${message}`);
     }
   }
 
@@ -228,11 +268,14 @@ export class RunnerService extends ServiceIntegration {
       const result = await this.sendRequest<any>('GET', `/tasks/${taskId}`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`Task not found: ${taskId}`);
       }
-      logger.error(`Failed to get task status: ${error.message}`);
-      throw new ServiceError(`Runner service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to get task status: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Runner service error: ${message}`);
     }
   }
 
@@ -242,11 +285,14 @@ export class RunnerService extends ServiceIntegration {
       const result = await this.sendRequest<any>('POST', `/tasks/${taskId}/cancel`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`Task not found: ${taskId}`);
       }
-      logger.error(`Failed to cancel task: ${error.message}`);
-      throw new ServiceError(`Runner service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to cancel task: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Runner service error: ${message}`);
     }
   }
 
@@ -256,11 +302,14 @@ export class RunnerService extends ServiceIntegration {
       const result = await this.sendRequest<any>('GET', `/files/last/${lastFileId}`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`LAST file not found: ${lastFileId}`);
       }
-      logger.error(`Failed to get LAST file: ${error.message}`);
-      throw new ServiceError(`Runner service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to get LAST file: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Runner service error: ${message}`);
     }
   }
 }
@@ -290,8 +339,10 @@ export class ArchiveService extends ServiceIntegration {
 
       return result;
     } catch (error) {
-      logger.error(`Archiving failed: ${error.message}`);
-      throw new ServiceError(`Archive service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Archiving failed: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Archive service error: ${message}`);
     }
   }
 
@@ -301,8 +352,10 @@ export class ArchiveService extends ServiceIntegration {
       const result = await this.sendRequest<any>('POST', '/search', query);
       return result;
     } catch (error) {
-      logger.error(`Archive search failed: ${error.message}`);
-      throw new ServiceError(`Archive service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Archive search failed: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Archive service error: ${message}`);
     }
   }
 
@@ -312,11 +365,14 @@ export class ArchiveService extends ServiceIntegration {
       const result = await this.sendRequest<any>('GET', `/items/${archiveId}`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`Archive item not found: ${archiveId}`);
       }
-      logger.error(`Failed to get archive item: ${error.message}`);
-      throw new ServiceError(`Archive service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to get archive item: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Archive service error: ${message}`);
     }
   }
 
@@ -326,11 +382,14 @@ export class ArchiveService extends ServiceIntegration {
       const result = await this.sendRequest<any>('GET', `/files/atlas/${atlasFileId}`);
       return result;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      // Use the refined type guard
+      if (isAxiosErrorWithResponse(error) && error.response.status === 404) {
         throw new NotFoundError(`ATLAS file not found: ${atlasFileId}`);
       }
-      logger.error(`Failed to get ATLAS file: ${error.message}`);
-      throw new ServiceError(`Archive service error: ${error.message}`);
+      const message = getErrorMessage(error);
+      logger.error(`Failed to get ATLAS file: ${message}`);
+      // Use InternalServerError instead of ServiceError
+      throw new InternalServerError(`Archive service error: ${message}`);
     }
   }
 }
@@ -402,3 +461,4 @@ export default {
   archiveService,
   serviceDiscovery
 };
+

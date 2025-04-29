@@ -21,7 +21,7 @@ ALT_LAS, UI-TARS-desktop'ın kullanıcı arayüzü yetenekleri ile alt_last'ın 
 
 ALT_LAS, aşağıdaki ana bileşenlerden oluşmaktadır:
 
-- **API Gateway**: Tüm istekleri karşılar ve yönlendirir
+- **API Gateway**: Tüm istekleri karşılar, kimlik doğrulama/yetkilendirme yapar, servis keşfi ve yönlendirme sağlar, performansı izler.
 - **Segmentation Service**: Komutları alt görevlere böler
 - **Runner Service**: Alt görevleri işler ve sonuçları üretir
 - **Archive Service**: Başarılı sonuçları arşivler
@@ -59,7 +59,7 @@ docker-compose up -d
 
 Her bileşen kendi dizininde bulunur ve bağımsız olarak geliştirilebilir:
 
-- `api-gateway/`: API Gateway servisi (Node.js/Express)
+- `api-gateway/`: API Gateway servisi (Node.js/Express). **Worker 1 tarafından geliştirildi:** JWT token yenileme, çıkış, rol tabanlı erişim kontrolü (RBAC), gelişmiş servis keşfi (sağlık kontrolleri ile), performans izleme ve güncellenmiş Swagger dokümantasyonu eklendi. Detaylar için `api-gateway/CHANGELOG.md` dosyasına bakın.
 - `segmentation-service/`: Segmentation servisi (Python/FastAPI)
 - `runner-service/`: Runner servisi (Rust)
 - `archive-service/`: Archive servisi (Go)
@@ -78,7 +78,7 @@ Detaylı dokümantasyon için aşağıdaki belgelere bakın:
 - [Mimari Tasarım](architecture.md)
 - [Geliştirme Yol Haritası](roadmap.md)
 - [İşçi Görev Dağılımı](worker_tasks.md)
-- [API Referansı](docs/api-reference.md)
+- [API Referansı](docs/api-reference.md) (Güncellenmiş API Gateway dokümantasyonu için `api-gateway/swagger.yaml` dosyasına bakın)
 - [Geliştirici Kılavuzu](docs/developer-guide.md)
 - [Kullanıcı Kılavuzu](docs/user-guide.md)
 
@@ -104,3 +104,4 @@ Katkıda bulunmak için lütfen [İşçi Görev Dağılımı](worker_tasks.md) b
 ## İletişim
 
 Proje ile ilgili sorularınız için GitHub Issues kullanın veya ekip iletişim kanallarına başvurun.
+

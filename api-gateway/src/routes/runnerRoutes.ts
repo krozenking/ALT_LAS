@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express'; // Import Request and Response
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware'; // Import authorization
 import logger from '../utils/logger';
@@ -97,7 +97,7 @@ router.use(authenticateJWT);
 router.post(
     '/', 
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       try {
         const { altFile, options = {} } = req.body;
         if (!altFile) {
@@ -119,8 +119,8 @@ router.post(
             }
         };
 
-        // Call the Runner Service asynchronously
-        const runnerResponse = await runnerService.runCommand(altFile, runOptions);
+        // Call the Runner Service asynchronously using the correct method name
+        const runnerResponse = await runnerService.runTask(altFile, runOptions); // Fixed method name
         
         logger.info(`Runner process started: ${runnerResponse.id} for altFile ${altFile}`);
         
@@ -167,15 +167,15 @@ router.post(
 router.get(
     '/:id',
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { id } = req.params;
       const userId = req.user?.id;
       const isAdmin = req.user?.roles?.includes('admin');
 
       logger.info(`Runner status query: ${id} by user ${userId}`);
 
-      // Fetch status from the Runner Service
-      const statusResult = await runnerService.getCommandStatus(id);
+      // Fetch status from the Runner Service using the correct method name
+      const statusResult = await runnerService.getTaskStatus(id); // Fixed method name
 
       // Authorization check: Ensure the user owns the task or is an admin
       if (!isAdmin && statusResult.metadata?.userId !== userId) {
@@ -227,15 +227,15 @@ router.get(
 router.post(
     '/:id/cancel',
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => { // Added types
       const { id } = req.params;
       const userId = req.user?.id;
       const isAdmin = req.user?.roles?.includes('admin');
 
       logger.info(`Runner cancel request: ${id} by user ${userId}`);
 
-      // Fetch task details first to check ownership/status
-      const currentStatus = await runnerService.getCommandStatus(id);
+      // Fetch task details first to check ownership/status using the correct method name
+      const currentStatus = await runnerService.getTaskStatus(id); // Fixed method name
 
       // Authorization check
       if (!isAdmin && currentStatus.metadata?.userId !== userId) {
@@ -248,8 +248,8 @@ router.post(
           return res.status(400).json({ message: `Process cannot be cancelled in its current state: ${currentStatus.status}` });
       }
 
-      // Call the Runner Service to request cancellation
-      const cancelResult = await runnerService.cancelCommand(id);
+      // Call the Runner Service to request cancellation using the correct method name
+      const cancelResult = await runnerService.cancelTask(id); // Fixed method name
 
       logger.info(`Runner cancellation requested for ${id}`);
 

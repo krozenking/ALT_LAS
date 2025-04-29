@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware'; // Import authorization
 import logger from '../utils/logger';
@@ -104,7 +104,7 @@ router.use(authenticateJWT);
 router.post(
     '/', 
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       try {
         const { command, mode = 'Normal', persona = 'technical_expert', metadata = {} } = req.body;
         
@@ -195,7 +195,7 @@ router.post(
 router.get(
     '/:id',
     authorizeRoles('user', 'admin'), // Requires user or admin role
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       const { id } = req.params;
       const userId = req.user?.id;
       const isAdmin = req.user?.roles?.includes('admin');
@@ -230,4 +230,3 @@ router.get(
 );
 
 export default router;
-

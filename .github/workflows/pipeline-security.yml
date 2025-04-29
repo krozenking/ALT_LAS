@@ -85,7 +85,7 @@ jobs:
           tags: altlas/security-scan:${{ github.sha }}
       
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v6
         with:
           image: altlas/security-scan:${{ github.sha }}
           fail-build: true

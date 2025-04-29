@@ -7,6 +7,10 @@ export interface ResizeHandleProps extends BoxProps {
   onResizeStart?: (e: React.MouseEvent) => void;
   onResize?: (e: React.MouseEvent, delta: { x: number, y: number }) => void;
   onResizeEnd?: (e: React.MouseEvent) => void;
+  /**
+   * Accessible label for the resize handle
+   */
+  ariaLabel?: string;
 }
 
 export const ResizeHandle: React.FC<ResizeHandleProps> = ({
@@ -14,6 +18,7 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
   onResizeStart,
   onResize,
   onResizeEnd,
+  ariaLabel,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -103,14 +108,72 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
         };
     }
   };
+
+  // Keyboard handlers for resize
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const step = 5; // 5px step for keyboard navigation
+    let deltaX = 0;
+    let deltaY = 0;
+    
+    if (orientation === 'horizontal' || orientation === 'corner') {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        deltaX = -step;
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        deltaX = step;
+      }
+    }
+    
+    if (orientation === 'vertical' || orientation === 'corner') {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        deltaY = -step;
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        deltaY = step;
+      }
+    }
+    
+    if (deltaX !== 0 || deltaY !== 0) {
+      onResize?.(e as unknown as React.MouseEvent, { x: deltaX, y: deltaY });
+    }
+  };
+
+  // Get orientation-specific label
+  const getOrientationLabel = () => {
+    switch (orientation) {
+      case 'horizontal':
+        return 'Yatay yeniden boyutlandırma kolu';
+      case 'vertical':
+        return 'Dikey yeniden boyutlandırma kolu';
+      case 'corner':
+      default:
+        return 'Köşe yeniden boyutlandırma kolu';
+    }
+  };
+
+  // Accessibility attributes
+  const accessibilityProps = {
+    role: 'button',
+    'aria-label': ariaLabel || getOrientationLabel(),
+    'aria-pressed': isResizing,
+    tabIndex: 0,
+  };
   
   return (
     <Box
       position="absolute"
       cursor={getCursorStyle()}
       zIndex={10}
-      {...getPositionAndSize()}
+      _focus={{
+        boxShadow: 'outline',
+        outline: 'none',
+      }}
       onMouseDown={handleMouseDown}
+      onKeyDown={handleKeyDown}
+      {...getPositionAndSize()}
+      {...accessibilityProps}
       _before={orientation === 'corner' ? {
         content: '""',
         position: 'absolute',

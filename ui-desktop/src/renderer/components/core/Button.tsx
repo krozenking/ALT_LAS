@@ -1,17 +1,21 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 import { animations } from '@/styles/animations';
 
 export interface ButtonProps extends BoxProps {
-  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
+  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline' | 'high-contrast' | 'high-contrast-secondary' | 'high-contrast-outline';
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  onClick?: (e: React.MouseEvent) => void;
-  'aria-label'?: string; // Explicit aria-label for accessibility, especially for icon-only buttons
+  onClick?: (e: React.MouseEvent | React.KeyboardEvent) => void; // Allow keyboard events
+  /**
+   * Accessible label for the button when the content is not descriptive enough
+   * or for icon-only buttons.
+   */
+  'aria-label'?: string;
 }
 
 // Custom comparison function for memoization to optimize performance
@@ -57,8 +61,8 @@ export const Button: React.FC<ButtonProps> = memo(({
   isLoading = false,
   leftIcon,
   rightIcon,
-  onClick,
   children,
+  onClick,
   'aria-label': ariaLabel, // Destructure aria-label
   ...rest
 }) => {
@@ -66,7 +70,7 @@ export const Button: React.FC<ButtonProps> = memo(({
   const prefersReducedMotion = animations.performanceUtils.prefersReducedMotion();
 
   // Apply glassmorphism effect based on color mode and variant
-  const getGlassStyle = () => {
+  const getVariantStyle = useCallback(() => {
     if (variant === 'glass') {
       return colorMode === 'light'
         ? glassmorphism.create(0.7, 8, 1)
@@ -103,26 +107,78 @@ export const Button: React.FC<ButtonProps> = memo(({
         borderColor: colorMode === 'light' ? 'primary.500' : 'primary.400',
         color: colorMode === 'light' ? 'primary.500' : 'primary.400',
       };
+    } else if (variant === 'high-contrast') {
+      return {
+        bg: colorMode === 'light'
+          ? 'highContrast.light.primary'
+          : 'highContrast.dark.primary',
+        color: colorMode === 'light'
+          ? 'white'
+          : 'black',
+        border: '2px solid',
+        borderColor: colorMode === 'light'
+          ? 'black'
+          : 'white',
+      };
+    } else if (variant === 'high-contrast-secondary') {
+      return {
+        bg: colorMode === 'light'
+          ? 'highContrast.light.secondary'
+          : 'highContrast.dark.secondary',
+        color: colorMode === 'light'
+          ? 'white'
+          : 'black',
+        border: '2px solid',
+        borderColor: colorMode === 'light'
+          ? 'black'
+          : 'white',
+      };
+    } else if (variant === 'high-contrast-outline') {
+      return {
+        bg: 'transparent',
+        color: colorMode === 'light'
+          ? 'highContrast.light.text'
+          : 'highContrast.dark.text',
+        border: '3px solid',
+        borderColor: colorMode === 'light'
+          ? 'highContrast.light.primary'
+          : 'highContrast.dark.primary',
+      };
     }
 
     return {};
-  };
+  }, [variant, colorMode]);
 
   // Size styles - memoized to prevent recalculation
-  const getSizeStyle = React.useMemo(() => {
+  const getSizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
-        return { px: 3, py: 1, fontSize: 'sm' };
+        return {
+          px: 3,
+          py: 1,
+          fontSize: 'sm',
+          height: '32px',
+        };
       case 'lg':
-        return { px: 6, py: 3, fontSize: 'lg' };
+        return {
+          px: 6,
+          py: 3,
+          fontSize: 'lg',
+          height: '48px',
+        };
       case 'md':
       default:
-        return { px: 4, py: 2, fontSize: 'md' };
+        return {
+          px: 4,
+          py: 2,
+          fontSize: 'md',
+          height: '40px',
+        };
     }
   }, [size]);
 
   // Disabled styles - memoized to prevent recalculation
-  const disabledStyle = React.useMemo(() => isDisabled ? {
+  const disabledStyle = useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
     _hover: {},
@@ -131,7 +187,7 @@ export const Button: React.FC<ButtonProps> = memo(({
   } : {}, [isDisabled]);
 
   // Loading styles with GPU-accelerated animation - memoized to prevent recalculation
-  const loadingStyle = React.useMemo(() => isLoading ? {
+  const loadingStyle = useMemo(() => isLoading ? {
     position: 'relative',
     cursor: 'progress',
     _before: {
@@ -154,7 +210,7 @@ export const Button: React.FC<ButtonProps> = memo(({
 
   // Determine aria-label: Use provided label, or children if it's a string.
   // Warn in development if an icon-only button lacks an explicit aria-label.
-  const finalAriaLabel = React.useMemo(() => {
+  const finalAriaLabel = useMemo(() => {
     if (ariaLabel) {
       return ariaLabel;
     }
@@ -176,17 +232,17 @@ export const Button: React.FC<ButtonProps> = memo(({
   // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
   // Ensure focus ring color has sufficient contrast against button backgrounds (WCAG 1.4.11)
   // This might need adjustment based on the specific theme colors.
-  const focusStyles = React.useMemo(() => !isDisabled && !isLoading ? {
+  const focusStyles = useMemo(() => !isDisabled && !isLoading ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // High-contrast focus ring
     zIndex: 1, // Ensure focus style is visible above other elements
   } : {}, [isDisabled, isLoading, colorMode]);
 
-  // Memoize glass style to prevent recalculation on every render
-  const glassStyle = React.useMemo(() => getGlassStyle(), [variant, colorMode]);
+  // Memoize variant style to prevent recalculation on every render
+  const variantStyle = useMemo(() => getVariantStyle(), [getVariantStyle]);
 
   // Memoize hover and active styles with GPU acceleration
-  const interactionStyles = React.useMemo(() => {
+  const interactionStyles = useMemo(() => {
     // If user prefers reduced motion, use simpler animations or none
     if (prefersReducedMotion) {
       return {
@@ -198,7 +254,7 @@ export const Button: React.FC<ButtonProps> = memo(({
         } : {},
       };
     }
-    
+
     // Use GPU-accelerated animations for standard experience
     return {
       _hover: !isDisabled && !isLoading ? {
@@ -215,6 +271,21 @@ export const Button: React.FC<ButtonProps> = memo(({
 
   // Apply GPU acceleration utilities
   const gpuAcceleration = animations.performanceUtils.forceGPU;
+
+  // Handle click event with useCallback to prevent recreation on every render
+  const handleClick = useCallback((e: React.MouseEvent | React.KeyboardEvent) => {
+    if (!isDisabled && !isLoading && onClick) {
+      onClick(e);
+    }
+  }, [isDisabled, isLoading, onClick]);
+
+  // Handle keydown event for Enter/Space activation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isDisabled && !isLoading && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      handleClick(e);
+    }
+  }, [isDisabled, isLoading, handleClick]);
 
   return (
     <Box
@@ -233,12 +304,13 @@ export const Button: React.FC<ButtonProps> = memo(({
         ...focusStyles
       }}
       {...interactionStyles}
-      {...glassStyle}
+      {...variantStyle}
       {...getSizeStyle}
       {...disabledStyle}
       {...loadingStyle}
       {...gpuAcceleration} // Apply GPU acceleration
-      onClick={!isDisabled && !isLoading ? onClick : undefined}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown} // Add keyboard handler
       // ARIA attributes for accessibility
       aria-disabled={isDisabled}
       aria-busy={isLoading}

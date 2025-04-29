@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 import Panel from './Panel';
@@ -8,12 +8,23 @@ import DropZone from './DropZone';
 export interface SplitViewProps extends BoxProps {
   direction?: 'horizontal' | 'vertical';
   initialRatio?: number;
-  minSize?: number;
-  maxSize?: number;
+  minSize?: number; // Minimum size in pixels for either panel
+  maxSize?: number; // Maximum size in pixels for the first panel
   leftOrTopContent: React.ReactNode;
   rightOrBottomContent: React.ReactNode;
   resizable?: boolean;
-  resizeStep?: number; // Keyboard resize step (percentage)
+  /**
+   * Accessible label for the split view container
+   */
+  ariaLabel?: string;
+  /**
+   * ID for the split view, used for aria attributes
+   */
+  id?: string; // Allow external ID override
+  /**
+   * Keyboard resize step (percentage)
+   */
+  resizeStep?: number;
 }
 
 export const SplitView: React.FC<SplitViewProps> = ({
@@ -24,6 +35,8 @@ export const SplitView: React.FC<SplitViewProps> = ({
   leftOrTopContent,
   rightOrBottomContent,
   resizable = true,
+  ariaLabel,
+  id: externalId,
   resizeStep = 5, // Default to 5% step for keyboard resize
   ...rest
 }) => {
@@ -31,6 +44,11 @@ export const SplitView: React.FC<SplitViewProps> = ({
   const [ratio, setRatio] = useState(initialRatio);
   const containerRef = useRef<HTMLDivElement>(null);
   const isHorizontal = direction === 'horizontal';
+  const generatedId = useId();
+  const splitViewId = externalId || generatedId;
+  const leftOrTopId = `${splitViewId}-left-top`;
+  const rightOrBottomId = `${splitViewId}-right-bottom`;
+  const dividerId = `${splitViewId}-divider`;
 
   // Function to update ratio, handling constraints
   const updateRatio = useCallback((newRatio: number) => {
@@ -40,20 +58,18 @@ export const SplitView: React.FC<SplitViewProps> = ({
       ? containerRef.current.offsetWidth
       : containerRef.current.offsetHeight;
 
-    // Apply min/max pixel constraints
-    if (minSize) {
-      const minRatio = minSize / containerSize;
-      newRatio = Math.max(newRatio, minRatio);
-    }
+    // Calculate min/max ratios based on pixel constraints
+    const minRatio = minSize / containerSize;
+    // maxSize applies to the first panel, so maxRatio is maxSize / containerSize
+    // The second panel also needs minSize, so the max ratio for the first panel is 1 - (minSize / containerSize)
+    const maxRatioConstraint = 1 - (minSize / containerSize);
+    let effectiveMaxRatio = maxSize ? maxSize / containerSize : maxRatioConstraint;
+    effectiveMaxRatio = Math.min(effectiveMaxRatio, maxRatioConstraint); // Ensure second panel also respects minSize
 
-    if (maxSize) {
-      const maxRatio = maxSize / containerSize;
-      newRatio = Math.min(newRatio, maxRatio);
-    }
+    // Ensure ratio is within calculated bounds, defaulting to 0.1-0.9 if no constraints
+    const lowerBound = Math.max(0.1, minRatio);
+    const upperBound = Math.min(0.9, effectiveMaxRatio);
 
-    // Ensure ratio is between 0.1 and 0.9 (or min/max if stricter)
-    const lowerBound = minSize ? minSize / containerSize : 0.1;
-    const upperBound = maxSize ? maxSize / containerSize : 0.9;
     newRatio = Math.max(lowerBound, Math.min(upperBound, newRatio));
 
     setRatio(newRatio);
@@ -61,6 +77,7 @@ export const SplitView: React.FC<SplitViewProps> = ({
 
   // Handle mouse resize
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!resizable) return;
     e.preventDefault();
     const initialPos = isHorizontal ? e.clientX : e.clientY;
     const initialRatio = ratio;
@@ -72,6 +89,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
       const containerSize = isHorizontal
         ? containerRef.current.offsetWidth
         : containerRef.current.offsetHeight;
+
+      if (containerSize === 0) return; // Avoid division by zero
+
       const deltaRatio = deltaPx / containerSize;
       updateRatio(initialRatio + deltaRatio);
     };
@@ -87,6 +107,7 @@ export const SplitView: React.FC<SplitViewProps> = ({
 
   // Handle keyboard resize
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!resizable) return;
     let newRatio = ratio;
     const stepRatio = resizeStep / 100;
 
@@ -121,6 +142,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
       position="relative"
       height="100%"
       width="100%"
+      role="group" // Use group role for the container
+      aria-label={ariaLabel || `${isHorizontal ? 'Horizontal' : 'Vertical'} split view`}
+      id={splitViewId}
       {...rest}
     >
       {/* Left/Top Panel */}
@@ -129,7 +153,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
         height={isHorizontal ? '100%' : `${ratio * 100}%`}
         width={isHorizontal ? `${ratio * 100}%` : '100%'}
         overflow="hidden"
-        // Add role group if needed, or let content define semantics
+        id={leftOrTopId}
+        role="region" // Use region role for panels
+        aria-label={`${isHorizontal ? 'Left' : 'Top'} panel`}
       >
         {leftOrTopContent}
       </Box>
@@ -158,9 +184,10 @@ export const SplitView: React.FC<SplitViewProps> = ({
           tabIndex={0} // Make it focusable
           aria-valuenow={Math.round(ratio * 100)}
           aria-valuemin={Math.round((minSize && containerRef.current ? minSize / (isHorizontal ? containerRef.current.offsetWidth : containerRef.current.offsetHeight) : 0.1) * 100)}
-          aria-valuemax={Math.round((maxSize && containerRef.current ? maxSize / (isHorizontal ? containerRef.current.offsetWidth : containerRef.current.offsetHeight) : 0.9) * 100)}
-          aria-label="Resize splitter" // Consider making more descriptive if needed
-          aria-controls={rest['aria-controls']} // Pass through aria-controls if provided
+          aria-valuemax={Math.round((maxSize && containerRef.current ? 1 - (minSize / (isHorizontal ? containerRef.current.offsetWidth : containerRef.current.offsetHeight)) : 0.9) * 100)} // Max value considers minSize of second panel
+          aria-label={`${isHorizontal ? 'Horizontal' : 'Vertical'} resize splitter`}
+          aria-controls={`${leftOrTopId} ${rightOrBottomId}`}
+          id={dividerId}
           onMouseDown={handleMouseDown}
           onKeyDown={handleKeyDown} // Add keyboard handler
         />
@@ -172,7 +199,9 @@ export const SplitView: React.FC<SplitViewProps> = ({
         height={isHorizontal ? '100%' : 'auto'}
         width={isHorizontal ? 'auto' : '100%'}
         overflow="hidden"
-        // Add role group if needed, or let content define semantics
+        id={rightOrBottomId}
+        role="region" // Use region role for panels
+        aria-label={`${isHorizontal ? 'Right' : 'Bottom'} panel`}
       >
         {rightOrBottomContent}
       </Box>

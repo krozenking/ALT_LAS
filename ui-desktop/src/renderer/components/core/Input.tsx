@@ -1,10 +1,14 @@
-import React, { useId, memo, useMemo, useEffect } from 'react';
-import { Box, BoxProps, useColorMode, Input as ChakraInput, FormLabel, FormHelperText, FormErrorMessage, FormControl } from '@chakra-ui/react';
+import React, { useId, memo, useMemo, useEffect, useCallback } from 'react';
+import {
+  Box, BoxProps, useColorMode, Input as ChakraInput, InputProps as ChakraInputProps,
+  FormLabel, FormHelperText, FormErrorMessage, FormControl
+} from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 import { animations } from '@/styles/animations'; // Import animations
 
+// Combine props from both versions, prioritizing the FormControl structure
 export interface InputProps extends BoxProps {
-  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
+  variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline' | 'high-contrast'; // Added high-contrast
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
   isReadOnly?: boolean;
@@ -12,15 +16,15 @@ export interface InputProps extends BoxProps {
   isRequired?: boolean;
   label?: string;
   placeholder?: string;
-  helperText?: string;
-  errorMessage?: string;
+  helperText?: string; // Use helperText instead of description
+  errorMessage?: string; // Use errorMessage instead of error
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   type?: string;
   name?: string;
-  id?: string;
+  id?: string; // Allow external ID override
   autoComplete?: string;
   leftElement?: React.ReactNode;
   rightElement?: React.ReactNode;
@@ -60,7 +64,7 @@ const areEqual = (prevProps: InputProps, nextProps: InputProps) => {
     }
   }
 
-  // Deep comparison is expensive, so we'll assume elements changed if they're provided
+  // Assume elements changed if they're provided (shallow compare)
   if (
     (prevProps.leftElement && !nextProps.leftElement) ||
     (!prevProps.leftElement && nextProps.leftElement) ||
@@ -91,7 +95,7 @@ export const Input: React.FC<InputProps> = memo(({
   onBlur,
   type = 'text',
   name,
-  id: propId,
+  id: propId, // Rename prop to avoid conflict with internal id
   autoComplete,
   leftElement,
   rightElement,
@@ -114,8 +118,9 @@ export const Input: React.FC<InputProps> = memo(({
   } : {}, [isDisabled, colorMode]);
 
   // Apply glassmorphism effect based on color mode and variant
-  const getGlassStyle = () => {
+  const getVariantStyle = useCallback(() => {
     const baseFocusVisible = { _focusVisible: { ...focusStyles } }; // Use _focusVisible for keyboard focus
+
     if (variant === 'glass') {
       return {
         ...(colorMode === 'light'
@@ -161,21 +166,53 @@ export const Input: React.FC<InputProps> = memo(({
         color: colorMode === 'light' ? 'gray.800' : 'white',
         ...baseFocusVisible,
       };
+    } else if (variant === 'high-contrast') { // Added high-contrast variant
+      return {
+        border: '2px solid',
+        borderColor: colorMode === 'light'
+          ? 'highContrast.light.border'
+          : 'highContrast.dark.border',
+        bg: colorMode === 'light'
+          ? 'white'
+          : 'black',
+        color: colorMode === 'light'
+          ? 'black'
+          : 'white',
+        _hover: {
+          borderColor: colorMode === 'light'
+            ? 'highContrast.light.primary'
+            : 'highContrast.dark.primary',
+        },
+        _focus: { // Use _focus for high-contrast as _focusVisible might not be enough
+          borderColor: colorMode === 'light'
+            ? 'highContrast.light.focus'
+            : 'highContrast.dark.focus',
+          boxShadow: 'high-contrast-focus',
+          outline: 'none',
+        },
+        _focusVisible: { // Keep _focusVisible consistent
+          borderColor: colorMode === 'light'
+            ? 'highContrast.light.focus'
+            : 'highContrast.dark.focus',
+          boxShadow: 'high-contrast-focus',
+          outline: 'none',
+        }
+      };
     }
 
     return {};
-  };
+  }, [variant, colorMode, focusStyles]);
 
   // Size styles - memoized to prevent recalculation
   const sizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
-        return { px: 3, py: 1, fontSize: 'sm' };
+        return { px: 3, py: 1, fontSize: 'sm', height: '32px' }; // Added height
       case 'lg':
-        return { px: 4, py: 3, fontSize: 'lg' };
+        return { px: 4, py: 3, fontSize: 'lg', height: '48px' }; // Added height
       case 'md':
       default:
-        return { px: 4, py: 2, fontSize: 'md' };
+        return { px: 4, py: 2, fontSize: 'md', height: '40px' }; // Added height
     }
   }, [size]);
 
@@ -198,7 +235,7 @@ export const Input: React.FC<InputProps> = memo(({
     _hover: {
       borderColor: 'red.500',
     },
-    _focus: {
+    _focus: { // Keep _focus for consistency if needed, but _focusVisible is preferred
       borderColor: 'red.500',
       boxShadow: `0 0 0 1px var(--chakra-colors-red-500)`,
     },
@@ -208,8 +245,8 @@ export const Input: React.FC<InputProps> = memo(({
     }
   } : {}, [isInvalid, colorMode]);
 
-  // Memoize glass style to prevent recalculation on every render
-  const glassStyle = useMemo(() => getGlassStyle(), [variant, colorMode]);
+  // Memoize variant style to prevent recalculation on every render
+  const variantStyle = useMemo(() => getVariantStyle(), [getVariantStyle]);
 
   // Memoize hover and active styles with GPU acceleration
   const interactionStyles = useMemo(() => {
@@ -249,32 +286,61 @@ export const Input: React.FC<InputProps> = memo(({
       return {}; // No animation for reduced motion
     }
 
+    // Basic floating label effect (can be enhanced)
+    const isFilled = value && value.toString().length > 0;
     return {
-      transition: animations.createAdaptiveTransition(['transform', 'color', 'font-size'], 'normal', animations.easings.easeOut),
-      _focusWithin: {
-        transform: 'translate3d(0, -12px, 0) scale(0.85)',
+      position: 'absolute',
+      left: 4,
+      top: '50%',
+      transform: isFilled ? 'translate3d(0, -140%, 0) scale(0.85)' : 'translate3d(0, -50%, 0) scale(1)',
+      transformOrigin: 'top left',
+      pointerEvents: 'none',
+      color: colorMode === 'light' ? 'gray.600' : 'gray.400',
+      transition: animations.createAdaptiveTransition(['transform', 'color'], 'normal', animations.easings.easeOut),
+      _groupFocusWithin: {
+        transform: 'translate3d(0, -140%, 0) scale(0.85)',
         color: colorMode === 'light' ? 'blue.500' : 'blue.300',
       },
     };
-  }, [prefersReducedMotion, colorMode]);
+  }, [prefersReducedMotion, colorMode, value]);
 
   // Determine aria-describedby value
   const describedBy = [errorId, helperId].filter(Boolean).join(' ') || undefined;
+
+  // Optimize event handlers with useCallback
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange?.(e);
+  }, [onChange]);
+
+  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    onFocus?.(e);
+  }, [onFocus]);
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    onBlur?.(e);
+  }, [onBlur]);
 
   return (
     <FormControl
       isDisabled={isDisabled}
       isInvalid={isInvalid}
       isRequired={isRequired}
+      position="relative" // Needed for label positioning
+      role="group" // For _groupFocusWithin
       {...rest}
     >
       {label && (
         <FormLabel
           htmlFor={id}
           id={labelId}
-          position="relative"
-          {...labelAnimationStyles}
-          {...gpuAcceleration} // Apply GPU acceleration to label animations
+          // {...labelAnimationStyles} // Apply label animation styles
+          // {...gpuAcceleration} // Apply GPU acceleration to label animations
+          // Basic label styling for now, animation needs refinement
+          fontSize="sm"
+          fontWeight="medium"
+          mb={1}
+          display="block"
+          color={colorMode === 'light' ? 'gray.700' : 'gray.300'}
         >
           {label}
         </FormLabel>
@@ -288,40 +354,42 @@ export const Input: React.FC<InputProps> = memo(({
             top="50%"
             transform="translate3d(0, -50%, 0)" // GPU-accelerated transform
             zIndex={2}
+            display="flex"
+            alignItems="center"
+            aria-hidden="true"
             {...gpuAcceleration} // Apply GPU acceleration
           >
             {leftElement}
           </Box>
         )}
 
-        <Box
-          as="input"
+        <ChakraInput // Use ChakraInput directly
           id={id}
           name={name}
           type={type}
           value={value}
-          onChange={onChange}
-          onFocus={onFocus}
-          onBlur={onBlur}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
-          readOnly={isReadOnly}
-          disabled={isDisabled}
-          required={isRequired}
+          isReadOnly={isReadOnly}
+          isDisabled={isDisabled}
+          isRequired={isRequired} // Pass isRequired to ChakraInput
           autoComplete={autoComplete}
           borderRadius="md"
           width="100%"
           transition={animations.createAdaptiveTransition(['border-color', 'box-shadow', 'transform'], 'normal', animations.easings.easeOut)}
           {...interactionStyles}
-          {...glassStyle} // Includes _focusVisible
+          {...variantStyle} // Includes _focusVisible
           {...sizeStyle}
           {...disabledStyle}
           {...invalidStyle} // Includes invalid focus/focusVisible
           {...gpuAcceleration} // Apply GPU acceleration
-          paddingLeft={leftElement ? 10 : undefined}
-          paddingRight={rightElement ? 10 : undefined}
+          pl={leftElement ? 10 : undefined} // Use pl instead of paddingLeft
+          pr={rightElement ? 10 : undefined} // Use pr instead of paddingRight
           // ARIA attributes for accessibility
           aria-invalid={isInvalid}
-          aria-required={isRequired} // Explicitly set aria-required
+          // aria-required={isRequired} // ChakraInput handles this based on isRequired prop
           aria-describedby={describedBy} // Link to error/helper message if present
           aria-labelledby={labelId} // Associate label if exists
         />
@@ -333,6 +401,9 @@ export const Input: React.FC<InputProps> = memo(({
             top="50%"
             transform="translate3d(0, -50%, 0)" // GPU-accelerated transform
             zIndex={2}
+            display="flex"
+            alignItems="center"
+            aria-hidden="true"
             {...gpuAcceleration} // Apply GPU acceleration
           >
             {rightElement}

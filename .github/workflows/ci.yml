@@ -129,7 +129,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Build API Gateway
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./api-gateway
           push: false
@@ -139,7 +139,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build Segmentation Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./segmentation-service
           push: false
@@ -149,7 +149,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build Runner Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./runner-service
           push: false
@@ -159,7 +159,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build Archive Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./archive-service
           push: false

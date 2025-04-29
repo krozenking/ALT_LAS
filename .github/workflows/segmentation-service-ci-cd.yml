@@ -50,7 +50,7 @@ jobs:
         python -m pytest test_*.py --cov=. --cov-report=xml --cov-report=term
         
     - name: Upload coverage report
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./segmentation-service/coverage.xml
         flags: segmentation-service
@@ -158,7 +158,7 @@ jobs:
           latest
           
     - name: Build and push Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ./segmentation-service
         push: ${{ github.event_name != 'pull_request' }}

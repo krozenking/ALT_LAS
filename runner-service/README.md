@@ -2,225 +2,135 @@
 
 ## Overview
 
-The Runner Service is a key component of the ALT_LAS system, responsible for processing ALT files, managing parallel task execution, integrating with AI services, and producing LAST files. This document provides detailed information about the Runner Service implementation, architecture, and usage.
+The Runner Service is a core component of the ALT_LAS system responsible for executing ALT files, managing task execution, interacting with AI services, and generating LAST files containing execution results. It is implemented in Rust for performance, safety, and reliability.
 
 ## Architecture
 
-The Runner Service is built using a modular architecture with the following components:
+The Runner Service consists of the following main components:
 
-1. **ALT File Processing**: Handles parsing, validation, and processing of ALT files
-2. **Task Management**: Manages parallel execution of tasks with dependency resolution
-3. **AI Service Integration**: Communicates with the AI Orchestrator for AI-related tasks
-4. **LAST File Production**: Generates and writes LAST files based on task execution results
-5. **Performance Monitoring**: Tracks and optimizes service performance
+1.  **ALT File Processing (`alt_file`)**: Handles parsing, validation, and processing of ALT files.
+2.  **Task Management (`task_manager`)**: Manages asynchronous task execution, dependencies, and scheduling.
+3.  **AI Service Integration (`ai_service`)**: Communicates with AI services (like AI Orchestrator) for task execution.
+4.  **LAST File Generation (`last_file`)**: Creates LAST files from execution results, including artifacts and reports.
+5.  **FFI Layer (`ffi`)**: Provides a secure interface for other languages to interact with the Runner Service (details in existing README).
 
-## Components
+## ALT File Processing (`alt_file`)
 
-### ALT File Processing
+The `alt_file` module handles the parsing and validation of ALT files. ALT files are JSON documents that define a series of tasks to be executed.
 
-The ALT file processing module handles the parsing and validation of ALT files. It includes:
+### Key Features:
+- **Flexible Parsing**: Uses `serde_json` for robust JSON parsing.
+- **`AltParser` Struct**: Provides a configurable parser (`with_schema`, `with_default_dir`, `with_strict_validation`).
+- **Comprehensive Validation (`validator.rs`)**: 
+    - Checks for empty fields (ID, title, version, task ID, description).
+    - Detects duplicate task IDs.
+    - Validates dependency existence and checks for self-dependencies.
+    - Implements robust circular dependency detection using Depth-First Search (DFS).
+    - Includes warnings for potentially problematic configurations (e.g., zero timeout, high retry count, isolated tasks).
+    - Validates proposed execution sequences against dependencies.
+- **Schema Validation**: Supports optional JSON schema validation (placeholder, requires external crate like `jsonschema`).
+- **File Merging**: Provides functionality to merge multiple ALT files into one, handling potential task ID conflicts.
+- **Error Handling**: Defines `AltParseError` enum for detailed error reporting.
+- **Sample File Generation**: Includes `create_sample_alt_file` for testing.
 
-- **Models**: Data structures for ALT files and tasks
-- **Parser**: Functions for parsing ALT files from JSON
-- **Validator**: Functions for validating ALT file structure and content
+## Task Management (`task_manager`)
 
-### Task Management
+The `task_manager` module is responsible for scheduling and executing tasks defined in ALT files asynchronously, respecting dependencies and concurrency limits.
 
-The task management module handles the execution of tasks in parallel, respecting dependencies. It includes:
+### Key Features:
+- **Asynchronous Execution**: Uses `tokio` for non-blocking task execution.
+- **Dependency-Based Scheduling**: Ensures tasks run only after their dependencies are successfully completed.
+- **Concurrency Control**: Limits the number of tasks running simultaneously (`max_concurrency`).
+- **Status Tracking**: Maintains the status of each task (`Pending`, `Running`, `Completed`, `Failed`).
+- **Communication Channel**: Uses `tokio::sync::mpsc` channels to communicate task completion/failure back to the main execution loop.
+- **Robust Loop**: The main execution loop manages the task queue, spawns tasks, and processes results until all reachable tasks are finished.
 
-- **Models**: Data structures for task execution and results
-- **Scheduler**: Manages task scheduling based on dependencies
-- **Executor**: Executes individual tasks
+## AI Service Integration (`ai_service`)
 
-### AI Service Integration
+The `ai_service` module provides communication with external AI services for task execution.
 
-The AI service integration module handles communication with the AI Orchestrator. It includes:
+### Key Features:
+- **`AiServiceClient`**: An asynchronous HTTP client built using `reqwest`.
+- **Configurable**: Supports setting base URL, API key, timeout, retries, model, temperature, etc. (`AiServiceConfig`).
+- **Task Execution**: Implements `execute_task` method to send task details to the AI service.
+- **Retry Logic**: Includes exponential backoff for retrying failed requests.
+- **Error Handling**: Captures and reports errors from network requests and API responses.
+- **API Endpoint (`/execute`)**: Provides an `actix-web` handler to receive ALT file execution requests via HTTP.
+- **Request Handling**: Parses `ExecuteAltRequest` (containing ALT file path or content and optional AI parameters).
+- **Dynamic Client Configuration**: Allows overriding default AI client settings per request.
+- **Integration with Task Manager**: The `/execute` handler uses the `TaskManager` to run the ALT file tasks.
+- **Response Generation**: Returns `ExecuteAltResponse` with details about the generated LAST file and execution summary.
 
-- **Client**: HTTP client for communicating with the AI Orchestrator
-- **Processor**: Processes AI-related tasks
+## LAST File Generation (`last_file`)
 
-### LAST File Production
+The `last_file` module creates LAST files from execution results. LAST files contain the results of executing an ALT file, including task outputs, execution statistics, and artifacts.
 
-The LAST file production module handles the generation and writing of LAST files. It includes:
+### Key Features:
+- **`LastFile` Struct**: Defines the structure for storing execution results, including metadata, task results, success rate, and timing.
+- **`TaskResult` Struct**: Represents the outcome of a single task execution (status, output, error, timing, artifacts).
+- **`Artifact` Struct**: Defines the structure for artifacts generated by tasks.
+- **`LastFileGenerator`**: Manages the creation and saving of LAST files.
+- **Comprehensive Result Tracking**: Stores detailed results for each executed task.
+- **Success Rate Calculation**: Automatically calculates the overall success rate.
+- **Execution Graph Visualization**: Generates a DOT file representing the task dependency graph and execution status. Attempts to create a PNG image using GraphViz (`dot` command) if available.
+- **HTML Report Generation**: Creates a user-friendly HTML report summarizing the execution and detailing each task result and artifact.
+- **Structured Output**: Saves the LAST file (`result.last`), HTML report (`report.html`), and graph (`<last_id>.png`, if generated) in a dedicated directory named after the LAST file ID.
+- **Artifact Management (Placeholder)**: The `Artifact` struct is defined, but artifact generation/linking needs integration with actual task execution logic.
 
-- **Models**: Data structures for LAST files
-- **Generator**: Functions for generating LAST files from task results
-- **Writer**: Functions for writing LAST files to disk
+### LAST File Structure
 
-### Performance Monitoring
+A LAST file (`result.last`) contains the following information in JSON format:
+- `id`: Unique ID for the LAST file.
+- `alt_file_id`: ID of the source ALT file.
+- `title`, `description`: Metadata about the execution.
+- `execution_started`, `execution_completed`: Timestamps.
+- `mode`, `persona`: Execution parameters from the ALT file.
+- `task_results`: An array of `TaskResult` objects.
+- `success_rate`: Overall success rate (0.0 to 1.0).
+- `total_execution_time_ms`: Total duration of the execution.
+- `execution_graph_path`: Relative path to the generated graph image (optional).
+- `metadata`: Additional metadata.
 
-The performance monitoring module tracks and optimizes service performance. It includes:
+## FFI Layer (`ffi`)
 
-- **Metrics**: Tracks task execution metrics
-- **Timer**: Measures execution time
-- **Memory Tracker**: Monitors memory usage
+(Existing documentation for FFI remains valid - provides C and Python examples for interacting with the Runner Service.)
 
-## API Endpoints
+## Building and Testing
 
-The Runner Service exposes the following API endpoints:
+### Prerequisites
+- Rust (check `rust-toolchain.toml` or project docs for specific version)
+- Cargo
+- GraphViz (`dot` command, optional, for execution graph visualization)
 
-- **GET /**: Returns a simple welcome message
-- **GET /health**: Returns the health status of the service
-- **POST /run**: Runs a task based on an ALT file
-- **GET /task/{id}**: Gets the status of a task
-
-### POST /run
-
-This endpoint runs a task based on an ALT file.
-
-**Request Body**:
-```json
-{
-  "alt_file": "JSON string containing the ALT file",
-  "mode": "Optional mode (normal, dream, explore, chaos)",
-  "persona": "Optional persona",
-  "metadata": "Optional metadata object"
-}
+### Building
+```bash
+cargo build --release
 ```
 
-**Response**:
-```json
-{
-  "id": "Task ID",
-  "status": "processing",
-  "alt_file": "ALT file ID",
-  "last_file": "LAST file name",
-  "metadata": {
-    "timestamp": "ISO timestamp",
-    "task_id": "Task ID",
-    "alt_file_id": "ALT file ID"
-  }
-}
+### Testing
+*Note: Automated tests require a properly configured Rust environment with Cargo.*
+```bash
+cargo test
 ```
+*(If `cargo` is unavailable, manual code review and verification based on the implemented tests within the code (`#[cfg(test)]` blocks) are necessary.)*
 
-### GET /task/{id}
-
-This endpoint gets the status of a task.
-
-**Response**:
-```json
-{
-  "id": "Task ID",
-  "status": "completed|partial_success|failed|processing|error",
-  "alt_file": "ALT file ID",
-  "last_file": "LAST file name",
-  "metadata": {
-    "timestamp": "ISO timestamp",
-    "task_id": "Task ID",
-    "alt_file_id": "ALT file ID",
-    "success_rate": "Success rate (0.0-1.0)",
-    "execution_time_ms": "Execution time in milliseconds"
-  }
-}
+### Building FFI Library
+```bash
+cargo build --release --features ffi
 ```
 
 ## Configuration
 
-The Runner Service can be configured using environment variables:
+The Runner Service can be configured through environment variables or a configuration file (implementation details may vary).
 
-- **OUTPUT_DIR**: Directory for output files (default: /tmp/runner-service/output)
-- **AI_SERVICE_URL**: URL of the AI Orchestrator service (default: http://ai-orchestrator:8000)
-- **AI_TIMEOUT_SECONDS**: Timeout for AI service requests in seconds (default: 60)
-- **MAX_CONCURRENT_TASKS**: Maximum number of concurrent tasks (default: 4)
-- **USE_MOCK_AI**: Whether to use mock AI service (default: false)
+- `RUNNER_LOG_LEVEL`: Log level (e.g., `trace`, `debug`, `info`, `warn`, `error`). Default: `info`.
+- `RUNNER_MAX_CONCURRENT_TASKS`: Maximum number of tasks to run in parallel. Default: Number of CPU cores.
+- `RUNNER_OUTPUT_DIR`: Default base directory for saving LAST file outputs. Default: `./output`.
+- `RUNNER_AI_SERVICE_URL`: Base URL of the AI Orchestrator or compatible service. Default: `http://localhost:8000`.
+- `RUNNER_AI_API_KEY`: Optional API key for the AI service.
+- `RUNNER_AI_TIMEOUT_SECONDS`: Timeout for AI service requests. Default: `60`.
+- `RUNNER_AI_MAX_RETRIES`: Maximum number of retries for failed AI requests. Default: `3`.
+- `RUNNER_AI_DEFAULT_MODEL`: Default AI model to use if not specified in the request.
+- `RUNNER_GENERATE_GRAPHS`: Enable execution graph generation (`true`/`false`). Default: `true`.
+- `RUNNER_COMPRESS_ARTIFACTS`: Enable artifact compression (`true`/`false`). Default: `true` (feature may require additional implementation).
 
-## File Formats
-
-### ALT File Format
-
-ALT files are JSON files with the following structure:
-
-```json
-{
-  "id": "Unique ID",
-  "version": "Version string",
-  "created_at": "ISO timestamp",
-  "title": "Title string",
-  "description": "Optional description",
-  "mode": "normal|dream|explore|chaos",
-  "persona": "Optional persona",
-  "tasks": [
-    {
-      "id": "Task ID",
-      "description": "Task description",
-      "dependencies": ["Optional array of task IDs"],
-      "parameters": "Optional parameters object",
-      "timeout_seconds": "Optional timeout in seconds",
-      "retry_count": "Optional retry count"
-    }
-  ],
-  "metadata": "Optional metadata object"
-}
-```
-
-### LAST File Format
-
-LAST files are JSON files with the following structure:
-
-```json
-{
-  "id": "Unique ID",
-  "version": "Version string",
-  "created_at": "ISO timestamp",
-  "alt_file_id": "ALT file ID",
-  "alt_file_title": "ALT file title",
-  "execution_id": "Execution ID",
-  "status": "success|partial_success|failure",
-  "mode": "normal|dream|explore|chaos",
-  "persona": "Optional persona",
-  "task_results": {
-    "task_id": {
-      "task_id": "Task ID",
-      "execution_id": "Execution ID",
-      "status": "pending|running|completed|failed|cancelled|timeout",
-      "start_time": "ISO timestamp",
-      "end_time": "Optional ISO timestamp",
-      "duration_ms": "Optional duration in milliseconds",
-      "output": "Optional output object",
-      "error": "Optional error string",
-      "metadata": "Optional metadata object"
-    }
-  },
-  "summary": "Optional summary string",
-  "success_rate": "Success rate (0.0-1.0)",
-  "execution_time_ms": "Execution time in milliseconds",
-  "metadata": "Optional metadata object"
-}
-```
-
-## Performance Considerations
-
-The Runner Service is designed to handle parallel task execution efficiently. Here are some performance considerations:
-
-- **Task Scheduling**: Tasks are scheduled based on their dependencies, with independent tasks executed in parallel.
-- **Resource Usage**: The service monitors memory usage and execution time to optimize resource usage.
-- **Concurrency**: The maximum number of concurrent tasks can be configured to match available resources.
-- **Timeouts**: Tasks have configurable timeouts to prevent resource exhaustion.
-- **Retries**: Tasks can be configured to retry on failure, with a configurable retry count.
-
-## Error Handling
-
-The Runner Service includes comprehensive error handling:
-
-- **ALT File Validation**: ALT files are validated before processing, with detailed error messages for invalid files.
-- **Task Execution**: Task execution errors are captured and reported in the LAST file.
-- **AI Service Integration**: AI service errors are handled gracefully, with fallback to mock responses when necessary.
-- **LAST File Generation**: LAST file generation errors are logged and reported.
-
-## Testing
-
-The Runner Service includes comprehensive tests:
-
-- **Unit Tests**: Each component has unit tests to verify its functionality.
-- **Integration Tests**: Integration tests verify that components work together correctly.
-- **Performance Tests**: Performance tests verify that the service meets performance requirements.
-
-## Future Improvements
-
-Potential future improvements for the Runner Service include:
-
-- **Distributed Task Execution**: Support for distributed task execution across multiple nodes.
-- **Advanced Scheduling**: More advanced task scheduling algorithms based on resource usage and priority.
-- **Real-time Monitoring**: Real-time monitoring of task execution status.
-- **Enhanced AI Integration**: More advanced AI integration with support for multiple AI models.
-- **Improved Error Recovery**: More sophisticated error recovery mechanisms.

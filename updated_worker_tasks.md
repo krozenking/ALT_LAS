@@ -436,6 +436,8 @@ Bu belge, ALT_LAS projesinin 8 işçisi için güncellenmiş ve daha detaylı g�
 
 ## İşçi 3: Runner Geliştirici - Runner Service Geliştirme
 
+**ÖNEMLİ NOT:** Bu göreve başlamadan önce lütfen `/home/ubuntu/ALT_LAS_project/worker3_handover.md` ve `/home/ubuntu/ALT_LAS_project/runner-service/remaining_warnings.md` dosyalarını inceleyin. Bu belgeler, önceki çalışanın tamamladığı işleri, mevcut durumu ve kalan görevleri (özellikle derleyici uyarılarının giderilmesi) detaylandırmaktadır.
+
 ### Temel Sorumluluklar
 - Segmentlerin paralel ve asenkron işlenmesi
 - AI servis entegrasyonları ve adaptörleri

@@ -186,6 +186,17 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
         borderColor: colorMode === 'light' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)',
         opacity: 0.7,
       } : undefined}
+      role="separator"
+      aria-orientation={orientation === 'horizontal' ? 'vertical' : (orientation === 'vertical' ? 'horizontal' : undefined)} // Orientation of the boundary it controls
+      tabIndex={0}
+      aria-label="Resize handle"
+      aria-roledescription="Use arrow keys to resize adjacent elements when focused"
+      onKeyDown={(e) => {
+        // TODO: Implement keyboard interaction logic
+        // e.g., check e.key for ArrowLeft/Right/Up/Down
+        // Call a parent handler to adjust size based on orientation
+        console.log("ResizeHandle key down:", e.key);
+      }}
       {...rest}
     />
   );

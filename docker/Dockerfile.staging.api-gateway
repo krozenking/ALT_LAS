@@ -1,0 +1,58 @@
+# Staging Dockerfile for API Gateway Service
+# Created by Worker 8 (Security and DevOps Specialist)
+
+# Build stage
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache --virtual .build-deps python3 make g++
+
+# Copy package files
+COPY api-gateway/package.json api-gateway/package-lock.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY api-gateway /app/
+
+# Build application (if necessary)
+# RUN npm run build
+
+# Remove build dependencies
+RUN apk del .build-deps
+
+# Runtime stage
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copy dependencies and application code from builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app /app
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 3000
+
+# Add health check with more frequent checks for staging
+HEALTHCHECK --interval=15s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Environment variables for staging
+ENV NODE_ENV=staging
+
+# Command to run the application
+CMD ["node", "server.js"]

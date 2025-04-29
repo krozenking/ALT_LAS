@@ -1,54 +1,86 @@
-# İşçi 7: AI Uzmanı - Görev Listesi
+## Worker 1: API Gateway - Kalan Görevler
 
-## Yeni Görevler
-
-### Yüksek Öncelikli
-- [ ] **Dağıtık Model Çalıştırma**: Modellerin birden fazla makine üzerinde dağıtık olarak çalıştırılması
-  - [ ] Dağıtık model çalıştırma mimarisi tasarımı
-  - [ ] Makine keşif ve yönetim mekanizması
-  - [ ] İş dağıtım algoritması
-  - [ ] Sonuç birleştirme mekanizması
-  - [ ] Hata toleransı ve yük dengeleme
-
-### Orta Öncelikli
-- [ ] **Gelişmiş Model İnce Ayarı**: Modellerin özel kullanım senaryolarına göre ince ayarlanması
-  - [ ] İnce ayar pipeline tasarımı
-  - [ ] Veri hazırlama ve ön işleme
-  - [ ] Hiperparametre optimizasyonu
-  - [ ] Model değerlendirme metrikleri
-  - [ ] İnce ayar sonuçlarının kaydedilmesi ve versiyonlanması
-
-### Düşük Öncelikli
-- [ ] **Ek AI Model Tipleri Entegrasyonu**: Yeni model tiplerinin sisteme entegrasyonu
-  - [ ] Model entegrasyon framework tasarımı
-  - [ ] Yeni model adaptörleri
-  - [ ] Model metadata şeması
-  - [ ] Model dönüştürme araçları
-  - [ ] Model performans karşılaştırma
-
-## Mevcut Kalan Görevler
-
-### Core AI Orchestrator (%10)
-- [ ] Model seçimi algoritması (%5)
-- [ ] Paralel model çalıştırma (%2.5)
-- [ ] Sonuç birleştirme (%2.5)
-
-### Computer Vision Service (%25)
-- [ ] OpenCV entegrasyonu (%5)
-- [ ] Tesseract OCR entegrasyonu (%5)
-- [ ] Nesne tanıma (%5)
-- [ ] Görüntü analizi (%5)
-- [ ] Computer Vision testleri (%5)
-
-### Voice Processing Service (%15)
-- [ ] Ses tanıma (%7.5)
-- [ ] Ses sentezi (%7.5)
-
-### Performans ve Stabilizasyon (%10)
-- [ ] GPU optimizasyonu (%2.5)
-- [ ] Bellek optimizasyonu (%2.5)
-- [ ] Yük testi ve ölçeklendirme (%2.5)
-- [ ] Dokümantasyon güncellemesi (%2.5)
-
-## Sonraki Adım
-Model seçim algoritmasının geliştirilmesi ve paralel model çalıştırma mekanizmasının implementasyonu
+- [ ] **Görev 1.10:** Güvenlik testleri
+  - [x] Kimlik doğrulama testleri
+  - [x] Yetkilendirme testleri
+  - [x] Token yönetimi testleri
+  - [x] Güvenlik açığı taraması
+- [ ] **Görev 1.15:** Servis sağlık kontrolü ve izleme
+  - [x] Temel sağlık kontrolü endpoint'i (/health)
+  - [x] Prometheus metrikleri endpoint'i (/metrics)
+  - [x] Alarm ve bildirim mekanizması (Kritik hata sayacı eklendi)
+- [x] **Görev 1.16:** Komut işleme API'leri
+  - [x] Komut gönderme endpoint'i
+  - [x] Komut durumu sorgulama
+  - [x] Komut iptal etme
+  - [ ] Komut geçmişi
+- [ ] **Görev 1.17:** Dosya yönetimi API'leri (*.alt, *.last, *.atlas)
+  - [ ] Dosya yükleme endpoint'i
+  - [ ] Dosya indirme endpoint'i
+  - [ ] Dosya listeleme ve arama
+  - [ ] Dosya metadata yönetimi
+- [ ] **Görev 1.18:** Performans optimizasyonu ve caching
+  - [ ] Response caching stratejisi
+  - [ ] Redis cache entegrasyonu
+  - [ ] Query optimizasyonu
+  - [ ] Payload sıkıştırma
+- [ ] **Görev 1.19:** API versiyonlama stratejisi
+  - [ ] URL/header tabanlı versiyonlama
+  - [ ] Versiyon geçiş stratejisi
+  - [ ] Geriye dönük uyumluluk
+  - [ ] Versiyon dokümantasyonu
+- [ ] **Görev 1.20:** Kapsamlı API testleri
+  - [ ] Birim testleri
+  - [ ] Entegrasyon testleri
+  - [ ] Performans testleri
+  - [ ] Yük testleri
+- [ ] **Görev 1.21:** WebSocket desteği
+  - [ ] WebSocket sunucu yapılandırması
+  - [ ] Bağlantı yönetimi
+  - [ ] Mesaj formatları ve protokol
+  - [ ] Oda ve kanal yönetimi
+- [ ] **Görev 1.22:** Gerçek zamanlı bildirim sistemi
+  - [ ] Bildirim modeli ve tipleri
+  - [ ] Bildirim gönderme mekanizması
+  - [ ] Bildirim aboneliği
+  - [ ] Okunmamış bildirim yönetimi
+- [ ] **Görev 1.23:** API kullanım analitikleri
+  - [ ] Kullanım metriklerinin toplanması
+  - [ ] Analitik raporlama
+  - [ ] Kullanım trendleri ve istatistikler
+  - [ ] Performans izleme
+- [ ] **Görev 1.24:** API dokümantasyonunun genişletilmesi
+  - [ ] Detaylı endpoint açıklamaları
+  - [ ] Örnek istek ve yanıtlar
+  - [ ] Hata kodları ve açıklamaları
+  - [ ] Kullanım senaryoları
+- [ ] **Görev 1.25:** Yük testi ve ölçeklendirme
+  - [ ] Yük testi senaryoları
+  - [ ] Performans darboğazlarının tespiti
+  - [ ] Ölçeklendirme stratejisi
+  - [ ] Otomatik ölçeklendirme yapılandırması
+- [ ] **Görev 1.26:** UI entegrasyonu
+  - [ ] UI gereksinimlerine göre API uyarlamaları
+  - [ ] UI-spesifik endpoint'ler
+  - [ ] UI performans optimizasyonu
+  - [ ] CORS ve güvenlik yapılandırması
+- [ ] **Görev 1.27:** E2E testleri
+  - [ ] E2E test senaryoları
+  - [ ] Test otomasyonu
+  - [ ] Test raporlama
+  - [ ] Hata ayıklama ve düzeltme
+- [ ] **Görev 1.28:** Hata ayıklama ve performans iyileştirmeleri
+  - [ ] Profiling ve darboğaz analizi
+  - [ ] Bellek sızıntısı tespiti ve düzeltme
+  - [ ] CPU kullanımı optimizasyonu
+  - [ ] I/O optimizasyonu
+- [ ] **Görev 1.29:** Dokümantasyon güncellemesi
+  - [ ] API dokümantasyonu güncellemesi
+  - [ ] Deployment dokümantasyonu
+  - [ ] Geliştirici kılavuzu
+  - [ ] Sorun giderme kılavuzu
+- [ ] **Görev 1.30:** Dağıtım ve CI/CD entegrasyonu
+  - [ ] Docker yapılandırması
+  - [ ] CI/CD pipeline entegrasyonu
+  - [ ] Deployment scriptleri
+  - [ ] Ortam yapılandırması (dev, test, prod)

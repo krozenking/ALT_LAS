@@ -1,0 +1,57 @@
+{
+  "id": "alt_example_001",
+  "version": "1.0",
+  "created_at": "2025-04-26T19:32:00Z",
+  "title": "Example ALT File for Testing",
+  "description": "This is an example ALT file that demonstrates the format and features",
+  "mode": "normal",
+  "persona": "technical_expert",
+  "tasks": [
+    {
+      "id": "task_001",
+      "description": "Fetch data from external API",
+      "dependencies": null,
+      "parameters": {
+        "url": "https://api.example.com/data",
+        "method": "GET",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer example_token"
+        }
+      },
+      "timeout_seconds": 30,
+      "retry_count": 3
+    },
+    {
+      "id": "task_002",
+      "description": "Process fetched data",
+      "dependencies": ["task_001"],
+      "parameters": {
+        "format": "json",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        }
+      },
+      "timeout_seconds": 60,
+      "retry_count": 2
+    },
+    {
+      "id": "task_003",
+      "description": "Generate report",
+      "dependencies": ["task_002"],
+      "parameters": {
+        "template": "standard_report",
+        "output_format": "pdf"
+      },
+      "timeout_seconds": 120,
+      "retry_count": 1
+    }
+  ],
+  "metadata": {
+    "priority": "high",
+    "tags": ["example", "test", "documentation"],
+    "source": "manual",
+    "expected_completion_time": 300
+  }
+}

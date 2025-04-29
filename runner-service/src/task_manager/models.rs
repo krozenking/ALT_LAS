@@ -73,18 +73,19 @@ impl TaskResult {
     }
 
     /// Marks the task as cancelled
-    pub fn mark_cancelled(&mut self) {
+    pub fn mark_cancelled(&mut self, error: String) {
         self.status = TaskStatus::Cancelled;
         self.end_time = Some(Utc::now());
         self.duration_ms = Some(self.calculate_duration());
+        self.error = Some(error);
     }
 
     /// Marks the task as timed out
-    pub fn mark_timeout(&mut self) {
+    pub fn mark_timeout(&mut self, error: String) {
         self.status = TaskStatus::Timeout;
         self.end_time = Some(Utc::now());
         self.duration_ms = Some(self.calculate_duration());
-        self.error = Some("Task execution timed out".to_string());
+        self.error = Some(error);
     }
 
     /// Calculates the duration of the task execution in milliseconds

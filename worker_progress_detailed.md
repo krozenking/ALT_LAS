@@ -28,7 +28,7 @@
 - **Sonraki Adım**: Docker yapılandırmasının güncellenmesi ve CI/CD pipeline entegrasyonu
 
 ## İşçi 2: Segmentation Service Geliştirme Uzmanı
-- **Mevcut İlerleme**: %70
+- **Mevcut İlerleme**: %95
 - **Tamamlanan Görevler**: 
   - Temel Python/FastAPI yapısı
   - Dockerfile oluşturma
@@ -42,13 +42,15 @@
   - Mod ve persona parametreleri entegrasyonu
   - FastAPI uygulaması güncellemesi (updated_main.py)
   - Bağımlılıkların güncellenmesi (requirements_updated.txt)
+  - Görev önceliklendirme sistemi (task_prioritization.py)
+  - Hata işleme ve loglama iyileştirmeleri (error_handling.py)
+  - Birim ve entegrasyon testleri (test_*.py)
+  - Performans optimizasyonu (performance_optimizer.py, performance_improvements.md)
+  - Dağıtım ve CI/CD entegrasyonu (ci_cd_config.py, deployment_config.py, deploy.py)
+  - Kapsamlı dokümantasyon (README.md)
 - **Kalan Görevler ve Yüzdeleri**:
-  - Görev önceliklendirme (%10)
-  - Hata işleme ve loglama iyileştirmeleri (%5)
-  - Birim ve entegrasyon testleri (%5)
-  - Performans optimizasyonu (%5)
-  - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: Birim ve entegrasyon testlerinin yazılması ve görev önceliklendirme sisteminin geliştirilmesi
+  - Diğer servislerle entegrasyon testleri (%5)
+- **Sonraki Adım**: Diğer servislerle entegrasyon testlerinin tamamlanması ve genel sistem testleri
 
 ## İşçi 3: Runner Service Geliştirme Uzmanı
 - **Mevcut İlerleme**: %15
@@ -70,21 +72,22 @@
 - **Sonraki Adım**: Serde kütüphanesi kullanarak *.alt dosyalarını işleme modülünün geliştirilmesi
 
 ## İşçi 4: Archive Service Geliştirme Uzmanı
-- **Mevcut İlerleme**: %10
+- **Mevcut İlerleme**: %75
 - **Tamamlanan Görevler**: 
   - Temel Go yapısı
   - go.mod yapılandırması
   - Dockerfile oluşturma
+  - NATS kullanarak *.last dinleme modülü
+  - Başarı oranı kontrolü ve analizi
+  - *.atlas veritabanı entegrasyonu
+  - PostgreSQL şema tasarımı ve migrasyonlar
+  - Arşiv indeksleme ve arama API'leri
+  - Kapsamlı hata işleme ve loglama sistemi
+  - Birim ve entegrasyon testleri
 - **Kalan Görevler ve Yüzdeleri**:
-  - *.last dinleme modülü (%15)
-  - Başarı oranı kontrolü (%15)
-  - *.atlas veritabanı entegrasyonu (%20)
-  - Arşiv indeksleme ve arama (%15)
-  - Hata işleme ve loglama (%10)
-  - Birim ve entegrasyon testleri (%5)
-  - Performans optimizasyonu (%5)
-  - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: NATS kullanarak *.last dinleme modülünün geliştirilmesi
+  - Performans optimizasyonu (%10)
+  - Dağıtım ve CI/CD entegrasyonu (%15)
+- **Sonraki Adım**: Performans optimizasyonu ve CI/CD pipeline entegrasyonu
 
 ## İşçi 5: UI Geliştirme Uzmanı
 - **Mevcut İlerleme**: %0
@@ -116,26 +119,17 @@
 - **Sonraki Adım**: Electron/React kullanarak Desktop UI için temel uygulama yapısının oluşturulması
 
 ## İşçi 6: OS Entegrasyon Uzmanı
-- **Mevcut İlerleme**: %25
+- **Mevcut İlerleme**: %70
 - **Tamamlanan Görevler**: 
   - OS Integration Service projesinin kurulumu (Rust/C++)
   - Temel API yapılandırması
   - Loglama ve hata işleme
   - Platform algılama mekanizması
   - Git LFS yapılandırması
+  - Windows entegrasyon modülü (API, Dosya Sistemi, Uygulama Kontrolü)
+  - macOS entegrasyon modülü (API, Dosya Sistemi, Uygulama Kontrolü)
+  - Linux entegrasyon modülü (API, Dosya Sistemi, Uygulama Kontrolü)
 - **Kalan Görevler ve Yüzdeleri**:
-  - Windows entegrasyon modülü (%20 tamamlandı, kalan %15)
-    - Windows API entegrasyonu (%5)
-    - Dosya sistemi erişimi (%5)
-    - Uygulama kontrolü (%5)
-  - macOS entegrasyon modülü (%15 tamamlandı, kalan %15)
-    - Cocoa framework entegrasyonu (%5)
-    - Dosya sistemi erişimi (%5)
-    - Uygulama kontrolü (%5)
-  - Linux entegrasyon modülü (%15 tamamlandı, kalan %15)
-    - X11/Wayland entegrasyonu (%5)
-    - Dosya sistemi erişimi (%5)
-    - Uygulama kontrolü (%5)
   - CUDA hızlandırmalı ekran yakalama (%10)
   - Bölgesel ekran yakalama (%5)
   - Fare ve klavye kontrolü (%5)
@@ -143,7 +137,7 @@
   - Birim ve entegrasyon testleri (%5)
   - Performans optimizasyonu (%5)
   - Dağıtım ve CI/CD entegrasyonu (%5)
-- **Sonraki Adım**: Windows API entegrasyonunun tamamlanması ve FFI sorunlarının çözülmesi
+- **Sonraki Adım**: CUDA hızlandırmalı ekran yakalama modülünün geliştirilmesi
 
 ## İşçi 7: AI Uzmanı
 - **Mevcut İlerleme**: %50
@@ -206,7 +200,7 @@
 - **Sonraki Adım**: Rust kullanarak Policy Enforcement için temel yapının oluşturulması
 
 ## Genel Proje İlerlemesi
-- **Mevcut İlerleme**: %30
+- **Mevcut İlerleme**: %42
 - **Tamamlanan Görevler**: 
   - Proje mimarisi ve dokümantasyonu
   - Temel mikroservis yapıları
@@ -216,12 +210,13 @@
   - AI Orchestrator temel işlevselliği
   - Runner Service temel yapısı
   - Segmentation Service gelişmiş işlevselliği
+  - Archive Service temel işlevselliği
 - **Kalan Görevler ve Yüzdeleri**:
-  - Çekirdek Mikroservisler (%10)
+  - Çekirdek Mikroservisler (%6)
     - API Gateway (%1.5)
-    - Segmentation Service (%1.5)
+    - Segmentation Service (%0.5)
     - Runner Service (%4.5)
-    - Archive Service (%4.5)
+    - Archive Service (%0.5)
   - Kullanıcı Arayüzleri (%20)
     - Desktop UI (%8)
     - Web Dashboard (%6)

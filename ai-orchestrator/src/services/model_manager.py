@@ -10,12 +10,16 @@ This service is responsible for managing AI models, including:
 import os
 import logging
 import asyncio
+import time
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from functools import lru_cache
 
 from ..models.model import ModelInfo, ModelStatus, ModelType
 from ..core.config import settings
+from ..core.model_loader import ModelLoader, get_model_loader
+from ..core.model_registry import ModelRegistry, get_model_registry
+from ..core.performance_monitor import PerformanceMonitor, get_performance_monitor # Import PerformanceMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -23,70 +27,37 @@ class ModelManager:
     """
     Model manager service for handling AI models.
     """
-    def __init__(self):
+    def __init__(self, model_loader: ModelLoader, model_registry: ModelRegistry, performance_monitor: PerformanceMonitor):
         """Initialize the model manager."""
-        self.models: Dict[str, ModelInfo] = {}
+        self.model_loader = model_loader
+        self.model_registry = model_registry
+        self.performance_monitor = performance_monitor # Inject PerformanceMonitor
         self.loaded_models: Dict[str, Any] = {}
         self.model_statuses: Dict[str, ModelStatus] = {}
         self.model_locks: Dict[str, asyncio.Lock] = {}
-        self.load_model_configs()
+        asyncio.create_task(self.initialize_models()) # Initialize models asynchronously
         
-    def load_model_configs(self):
-        """Load model configurations from settings."""
-        logger.info("Loading model configurations")
-        for model_id, config in settings.MODEL_CONFIGS.items():
-            model_type = self._get_model_type(config.get("type", ""))
-            
-            # Create model info
-            model_info = ModelInfo(
-                model_id=model_id,
-                name=config.get("name", model_id),
-                type=model_type,
-                description=config.get("description", ""),
-                version=config.get("version", "1.0"),
-                size=config.get("size"),
-                parameters=config.get("parameters"),
-                context_length=config.get("context_length"),
-                quantization=config.get("quantization"),
-                supports_gpu=config.get("supports_gpu", True),
-                supports_cpu=config.get("supports_cpu", True),
-                tags=config.get("tags", []),
-                metadata=config.get("metadata", {})
-            )
-            
+    async def initialize_models(self):
+        """Load model configurations from registry and initialize statuses."""
+        logger.info("Initializing models from registry")
+        models = await self.model_registry.list_models()
+        for model_info in models:
+            model_id = model_info.model_id
             # Create model status
-            model_status = ModelStatus(
+            self.model_statuses[model_id] = ModelStatus(
                 model_id=model_id,
                 loaded=False,
                 status="not_loaded",
                 instances=0
             )
-            
-            # Store model info and status
-            self.models[model_id] = model_info
-            self.model_statuses[model_id] = model_status
+            # Create lock
             self.model_locks[model_id] = asyncio.Lock()
             
-        logger.info(f"Loaded {len(self.models)} model configurations")
-    
-    def _get_model_type(self, type_str: str) -> ModelType:
-        """Convert string type to ModelType enum."""
-        type_map = {
-            "llama.cpp": ModelType.LLM,
-            "onnx": ModelType.LLM,
-            "whisper": ModelType.AUDIO,
-            "yolo": ModelType.VISION,
-            "tesseract": ModelType.VISION,
-            "llm": ModelType.LLM,
-            "vision": ModelType.VISION,
-            "audio": ModelType.AUDIO,
-            "multimodal": ModelType.MULTIMODAL
-        }
-        return type_map.get(type_str, ModelType.LLM)
+        logger.info(f"Initialized {len(models)} models")
     
     async def list_models(self, type_filter: Optional[str] = None) -> List[ModelInfo]:
         """
-        List all available models.
+        List all available models from the registry.
         
         Args:
             type_filter: Optional filter by model type
@@ -94,22 +65,17 @@ class ModelManager:
         Returns:
             List of model info objects
         """
-        result = []
-        for model_id, model_info in self.models.items():
-            # Apply type filter if specified
-            if type_filter and model_info.type.value != type_filter:
-                continue
-                
-            # Update model info with current status
-            updated_info = model_info.copy()
-            updated_info.status = self.model_statuses.get(model_id)
-            result.append(updated_info)
+        models = await self.model_registry.list_models(type_filter=type_filter)
+        
+        # Update model info with current status
+        for model_info in models:
+            model_info.status = self.model_statuses.get(model_info.model_id)
             
-        return result
+        return models
     
     async def get_model(self, model_id: str) -> Optional[ModelInfo]:
         """
-        Get information about a specific model.
+        Get information about a specific model from the registry.
         
         Args:
             model_id: ID of the model
@@ -117,10 +83,10 @@ class ModelManager:
         Returns:
             Model info object or None if not found
         """
-        if model_id not in self.models:
+        model_info = await self.model_registry.get_model_info(model_id)
+        if not model_info:
             return None
             
-        model_info = self.models[model_id].copy()
         model_info.status = self.model_statuses.get(model_id)
         return model_info
     
@@ -134,11 +100,26 @@ class ModelManager:
         Returns:
             Model status object or None if not found
         """
+        # Ensure status is initialized
+        if model_id not in self.model_statuses:
+            # Check registry if model exists
+            model_info = await self.model_registry.get_model_info(model_id)
+            if model_info:
+                self.model_statuses[model_id] = ModelStatus(
+                    model_id=model_id,
+                    loaded=False,
+                    status="not_loaded",
+                    instances=0
+                )
+                self.model_locks[model_id] = asyncio.Lock()
+            else:
+                return None
+                
         return self.model_statuses.get(model_id)
     
     async def load_model(self, model_id: str) -> ModelStatus:
         """
-        Load a model into memory.
+        Load a model into memory using the ModelLoader.
         
         Args:
             model_id: ID of the model
@@ -150,8 +131,15 @@ class ModelManager:
             ValueError: If model not found
             RuntimeError: If loading fails
         """
-        if model_id not in self.models:
-            raise ValueError(f"Model {model_id} not found")
+        start_time = time.time()
+        model_info = await self.model_registry.get_model_info(model_id)
+        if not model_info:
+            raise ValueError(f"Model {model_id} not found in registry")
+            
+        # Ensure status and lock exist
+        if model_id not in self.model_statuses:
+            self.model_statuses[model_id] = ModelStatus(model_id=model_id, loaded=False, status="not_loaded", instances=0)
+            self.model_locks[model_id] = asyncio.Lock()
             
         # Acquire lock for this model
         async with self.model_locks[model_id]:
@@ -164,35 +152,75 @@ class ModelManager:
             self.model_statuses[model_id].status = "loading"
             
             try:
-                # TODO: Implement actual model loading based on model type
-                # This is a placeholder for the actual implementation
-                logger.info(f"Loading model {model_id}")
+                # Get model config from registry (using metadata)
+                active_version = await self.model_registry.get_active_version(model_id)
+                if not active_version:
+                    raise RuntimeError(f"No active version found for model {model_id}")
                 
-                # Simulate loading delay
-                await asyncio.sleep(1)
+                versions = await self.model_registry.get_model_versions(model_id)
+                version_data = versions.get(active_version, {})
+                model_path = version_data.get("path")
+                if not model_path:
+                    raise RuntimeError(f"Path not found for active version {active_version} of model {model_id}")
+                
+                # Create config dict for loader
+                model_config = {
+                    "type": model_info.type.value,
+                    "path": model_path,
+                    "context_length": model_info.context_length,
+                    "max_tokens": model_info.metadata.get("max_tokens"),
+                    "language": model_info.metadata.get("language"),
+                    "confidence": model_info.metadata.get("confidence")
+                }
+                
+                # Load model using ModelLoader
+                model, metadata = await self.model_loader.load_model(model_id, model_config)
+                
+                # Store loaded model instance
+                self.loaded_models[model_id] = model
                 
                 # Update status
                 self.model_statuses[model_id].loaded = True
                 self.model_statuses[model_id].status = "ready"
                 self.model_statuses[model_id].instances = 1
                 self.model_statuses[model_id].last_used = datetime.now().isoformat()
-                self.model_statuses[model_id].uptime = 0
+                self.model_statuses[model_id].uptime = 0 # Reset uptime on load
                 
-                # TODO: Measure actual memory usage
-                self.model_statuses[model_id].memory_usage = 1024  # Placeholder
+                memory_usage_mb = metadata.get("memory_usage_mb", 1024) # Placeholder
+                self.model_statuses[model_id].memory_usage = memory_usage_mb
                 
-                logger.info(f"Model {model_id} loaded successfully")
+                # Record performance stats
+                load_time_ms = (time.time() - start_time) * 1000
+                await self.performance_monitor.record_inference_stats(
+                    model_id=model_id,
+                    latency_ms=load_time_ms, # Record load time as a stat
+                    memory_usage=memory_usage_mb * 1024 * 1024, # Convert MB to bytes
+                    success=True
+                )
+                
+                logger.info(f"Model {model_id} (version {active_version}) loaded successfully in {load_time_ms:.2f} ms")
                 return self.model_statuses[model_id]
                 
             except Exception as e:
                 logger.error(f"Error loading model {model_id}: {str(e)}")
                 self.model_statuses[model_id].status = "error"
                 self.model_statuses[model_id].error = str(e)
+                # Remove from loaded models if loading failed
+                if model_id in self.loaded_models:
+                    del self.loaded_models[model_id]
+                
+                # Record failure
+                load_time_ms = (time.time() - start_time) * 1000
+                await self.performance_monitor.record_inference_stats(
+                    model_id=model_id,
+                    latency_ms=load_time_ms,
+                    success=False
+                )
                 raise RuntimeError(f"Failed to load model {model_id}: {str(e)}")
     
     async def unload_model(self, model_id: str) -> ModelStatus:
         """
-        Unload a model from memory.
+        Unload a model from memory using the ModelLoader.
         
         Args:
             model_id: ID of the model
@@ -204,8 +232,14 @@ class ModelManager:
             ValueError: If model not found
             RuntimeError: If unloading fails
         """
-        if model_id not in self.models:
-            raise ValueError(f"Model {model_id} not found")
+        model_info = await self.model_registry.get_model_info(model_id)
+        if not model_info:
+            raise ValueError(f"Model {model_id} not found in registry")
+            
+        # Ensure status and lock exist
+        if model_id not in self.model_statuses:
+            self.model_statuses[model_id] = ModelStatus(model_id=model_id, loaded=False, status="not_loaded", instances=0)
+            self.model_locks[model_id] = asyncio.Lock()
             
         # Acquire lock for this model
         async with self.model_locks[model_id]:
@@ -218,12 +252,12 @@ class ModelManager:
             self.model_statuses[model_id].status = "unloading"
             
             try:
-                # TODO: Implement actual model unloading
-                # This is a placeholder for the actual implementation
-                logger.info(f"Unloading model {model_id}")
+                # Unload model using ModelLoader
+                metadata = await self.model_loader.unload_model(model_id)
                 
-                # Simulate unloading delay
-                await asyncio.sleep(0.5)
+                # Remove from internal tracking
+                if model_id in self.loaded_models:
+                    del self.loaded_models[model_id]
                 
                 # Update status
                 self.model_statuses[model_id].loaded = False
@@ -244,11 +278,21 @@ class ModelManager:
 
 
 @lru_cache()
-def get_model_manager() -> ModelManager:
+def get_model_manager(
+    model_loader: ModelLoader = get_model_loader(),
+    model_registry: ModelRegistry = get_model_registry(),
+    performance_monitor: PerformanceMonitor = get_performance_monitor() # Inject PerformanceMonitor
+) -> ModelManager:
     """
     Factory function to get or create a model manager instance.
     
+    Args:
+        model_loader: ModelLoader instance
+        model_registry: ModelRegistry instance
+        performance_monitor: PerformanceMonitor instance
+        
     Returns:
         ModelManager instance
     """
-    return ModelManager()
+    return ModelManager(model_loader, model_registry, performance_monitor)
+

@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  labels:
+    app: api-gateway
+    app.kubernetes.io/component: backend # Added label for network policy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        app.kubernetes.io/component: backend # Added label for network policy
+    spec:
+      # Pod level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # Match the UID used in the Dockerfile (appuser)
+        runAsGroup: 1000 # Match the GID used in the Dockerfile (appgroup)
+        fsGroup: 1000 # Volume access group
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: api-gateway
+        image: your-registry/alt-las-api-gateway:latest # Replace with actual image path
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production" # Or staging, test, dev based on namespace
+        # Add other environment variables, potentially from Secrets or ConfigMaps
+        # - name: DB_PASSWORD
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: db-credentials
+        #       key: password
+        # Container level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE # If running as non-root and binding to port < 1024 (not needed for 3000)
+        volumeMounts:
+        - name: tmp-data
+          mountPath: /tmp # Writable temporary directory
+        # Add other volume mounts if needed (e.g., for config, secrets)
+        # - name: config-volume
+        #   mountPath: /app/config
+        #   readOnly: true
+        # - name: secret-volume
+        #   mountPath: /etc/secrets
+        #   readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: tmp-data
+        emptyDir: {} # Temporary volume for /tmp
+      # Define other volumes (ConfigMaps, Secrets, PersistentVolumes)
+      # - name: config-volume
+      #   configMap:
+      #     name: api-gateway-config
+      # - name: secret-volume
+      #   secret:
+      #     secretName: api-gateway-secrets
+

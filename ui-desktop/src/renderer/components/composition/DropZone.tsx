@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
+import { Box, BoxProps, useColorMode, VisuallyHidden } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 import Panel from './Panel';
 import ResizeHandle from './ResizeHandle';
@@ -17,6 +17,10 @@ export interface DropZoneProps extends BoxProps {
    * Description for screen readers about what can be dropped here
    */
   ariaDescription?: string;
+  /**
+   * Custom label for the drop zone visual text
+   */
+  dropLabel?: string;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -26,16 +30,19 @@ export const DropZone: React.FC<DropZoneProps> = ({
   children,
   ariaLabel,
   ariaDescription,
+  dropLabel = "Paneli buraya sürükleyin", // Default label
   ...rest
 }) => {
   const { colorMode } = useColorMode();
+  const dropZoneId = `dropzone-${id}`;
+  const labelId = `${dropZoneId}-label`;
   const descriptionId = `${id}-description`;
-  
+
   // Apply glassmorphism effect based on color mode
-  const glassStyle = colorMode === 'light' 
+  const glassStyle = colorMode === 'light'
     ? glassmorphism.create(0.4, 5, 1)
     : glassmorphism.createDark(0.4, 5, 1);
-  
+
   // Active state styles
   const activeStyle = isActive ? {
     borderColor: 'primary.500',
@@ -43,17 +50,18 @@ export const DropZone: React.FC<DropZoneProps> = ({
     transform: 'scale(1.02)',
   } : {};
 
-  // Accessibility attributes
-  const accessibilityProps = {
-    role: 'region',
-    'aria-label': ariaLabel || 'Bırakma bölgesi',
-    'aria-describedby': ariaDescription ? descriptionId : undefined,
-    'aria-dropeffect': 'move',
-    tabIndex: 0,
+  // Focus style
+  const focusStyle = {
+    _focus: {
+      outline: 'none',
+      boxShadow: 'outline',
+      zIndex: 1,
+    }
   };
-  
+
   return (
     <Box
+      id={dropZoneId}
       borderRadius="md"
       border="2px dashed"
       borderColor={colorMode === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'}
@@ -63,27 +71,37 @@ export const DropZone: React.FC<DropZoneProps> = ({
       justifyContent="center"
       minHeight="100px"
       p={4}
-      _focus={{
-        boxShadow: 'outline',
-        outline: 'none',
-      }}
       {...glassStyle}
       {...activeStyle}
-      {...accessibilityProps}
+      {...focusStyle}
+      role="region" // Use region role for container
+      aria-labelledby={labelId} // Reference the label ID
+      aria-describedby={ariaDescription ? descriptionId : undefined}
+      aria-dropeffect={isActive ? "move" : "none"} // Indicate drop effect
+      aria-busy={isActive} // Indicate busy state when active
+      tabIndex={0} // Make focusable
       {...rest}
     >
+      {/* Hidden label for screen readers */}
+      <VisuallyHidden id={labelId}>
+        {ariaLabel || (isActive ? "Bırakmak için hazır" : dropLabel)}
+      </VisuallyHidden>
+
+      {/* Optional hidden description */}
       {ariaDescription && (
-        <Box id={descriptionId} className="sr-only">
+        <VisuallyHidden id={descriptionId}>
           {ariaDescription}
-        </Box>
+        </VisuallyHidden>
       )}
+
       {children || (
-        <Box 
-          textAlign="center" 
+        <Box
+          textAlign="center"
           color={colorMode === 'light' ? 'gray.500' : 'gray.400'}
           fontSize="sm"
+          aria-hidden="true" // Hide visual text from screen readers since we have the visually hidden label
         >
-          Paneli buraya sürükleyin
+          {dropLabel}
         </Box>
       )}
     </Box>
@@ -91,3 +109,4 @@ export const DropZone: React.FC<DropZoneProps> = ({
 };
 
 export default DropZone;
+

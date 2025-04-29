@@ -80,19 +80,36 @@ const colors = {
   },
   success: {
     500: '#4CAF50',
+    highContrast: '#00FF00', // High Contrast Green
   },
   warning: {
     500: '#FF9800',
+    highContrast: '#FFA500', // High Contrast Orange
   },
   error: {
     500: '#F44336',
+    highContrast: '#FF0000', // High Contrast Red
   },
   info: {
     500: '#2196F3',
+    highContrast: '#00FFFF', // High Contrast Cyan
+  },
+  text: {
+    highContrast: '#FFFFFF', // High Contrast White Text
+  },
+  primaryHc: { // High Contrast Primary (Yellow)
+    500: '#FFFF00',
+  },
+  secondaryHc: { // High Contrast Secondary (Cyan)
+    500: '#00FFFF',
+  },
+  borderHc: { // High Contrast Borders (White)
+    500: '#FFFFFF',
   },
   background: {
     light: '#F0EEE5',
     dark: '#1A202C',
+<<<<<<< HEAD
     highContrastLight: '#FFFFFF',
     highContrastDark: '#000000',
   },
@@ -126,6 +143,9 @@ const colors = {
       warning: '#FFFF00', // Yellow
       info: '#00FFFF', // Cyan
     }
+=======
+    highContrast: '#000000', // High Contrast Black Background
+>>>>>>> main
   }
 };
 
@@ -136,6 +156,7 @@ const typography = {
     heading: 'Inter, system-ui, sans-serif',
     mono: 'JetBrains Mono, monospace',
   },
+  // ... other typography settings remain the same
   fontSizes: {
     xs: '0.75rem',
     sm: '0.875rem',
@@ -248,13 +269,20 @@ const shadows = {
   lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  outline: '0 0 0 3px rgba(66, 153, 225, 0.6)',
+  // Use high contrast outline for focus
+  outline: `0 0 0 3px ${colors.primaryHc[500]}`, // Yellow outline
   inner: 'inset 0 2px 4px 0 rgba(0,0,0,0.06)',
   none: 'none',
   'dark-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.25)',
+<<<<<<< HEAD
   glass: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
   'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
   'high-contrast-focus': '0 0 0 4px rgba(255, 128, 0, 0.8)', // Orange focus ring for high contrast
+=======
+  // Remove glass shadows in high contrast
+  glass: 'none',
+  'glass-dark': 'none',
+>>>>>>> main
 };
 
 // Component styles
@@ -263,58 +291,200 @@ const components = {
     baseStyle: {
       fontWeight: 'medium',
       borderRadius: 'lg',
+      _focus: {
+        boxShadow: 'outline', // Use high contrast outline
+        zIndex: 1,
+      },
     },
     variants: {
       glass: (props) => ({
-        ...(props.colorMode === 'light' 
-          ? createGlassmorphism(0.7, 8, 1) 
-          : createDarkGlassmorphism(0.7, 8, 1)),
-        color: props.colorMode === 'light' ? 'primary.600' : 'white',
-        _hover: {
-          transform: 'translateY(-2px)',
-          boxShadow: 'lg',
-        },
-        _active: {
-          transform: 'translateY(0)',
-        },
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'transparent',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              _hover: {
+                bg: 'secondaryHc.500',
+                color: 'background.highContrast',
+              },
+              _active: {
+                bg: 'primaryHc.500',
+                color: 'background.highContrast',
+              },
+            }
+          : props.colorMode === 'light'
+            ? createGlassmorphism(0.7, 8, 1)
+            : createDarkGlassmorphism(0.7, 8, 1)),
+        color: props.colorMode === 'highContrast'
+          ? 'text.highContrast'
+          : props.colorMode === 'light' ? 'primary.600' : 'white',
+        _hover: props.colorMode === 'highContrast'
+          ? {
+              bg: 'secondaryHc.500',
+              color: 'background.highContrast',
+            }
+          : {
+              transform: 'translateY(-2px)',
+              boxShadow: 'lg',
+            },
+        _active: props.colorMode === 'highContrast'
+          ? {
+              bg: 'primaryHc.500',
+              color: 'background.highContrast',
+            }
+          : {
+              transform: 'translateY(0)',
+            },
       }),
       'glass-primary': (props) => ({
-        ...(props.colorMode === 'light' 
-          ? createGlassmorphism(0.7, 8, 1) 
-          : createDarkGlassmorphism(0.7, 8, 1)),
-        bg: props.colorMode === 'light' 
-          ? 'rgba(62, 92, 118, 0.8)' 
-          : 'rgba(62, 92, 118, 0.6)',
-        color: 'white',
-        _hover: {
-          transform: 'translateY(-2px)',
-          boxShadow: 'lg',
-          bg: props.colorMode === 'light' 
-            ? 'rgba(62, 92, 118, 0.9)' 
-            : 'rgba(62, 92, 118, 0.7)',
-        },
-        _active: {
-          transform: 'translateY(0)',
-        },
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'primaryHc.500',
+              color: 'background.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              _hover: {
+                bg: 'text.highContrast',
+                color: 'background.highContrast',
+                borderColor: 'primaryHc.500',
+              },
+              _active: {
+                bg: 'secondaryHc.500',
+                color: 'background.highContrast',
+              },
+            }
+          : props.colorMode === 'light'
+            ? createGlassmorphism(0.7, 8, 1)
+            : createDarkGlassmorphism(0.7, 8, 1)),
+        bg: props.colorMode === 'highContrast'
+          ? 'primaryHc.500'
+          : props.colorMode === 'light'
+            ? 'rgba(62, 92, 118, 0.8)'
+            : 'rgba(62, 92, 118, 0.6)',
+        color: props.colorMode === 'highContrast'
+          ? 'background.highContrast'
+          : 'white',
+        _hover: props.colorMode === 'highContrast'
+          ? {
+              bg: 'text.highContrast',
+              color: 'background.highContrast',
+              borderColor: 'primaryHc.500',
+            }
+          : {
+              transform: 'translateY(-2px)',
+              boxShadow: 'lg',
+              bg: props.colorMode === 'light'
+                ? 'rgba(62, 92, 118, 0.9)'
+                : 'rgba(62, 92, 118, 0.7)',
+            },
+        _active: props.colorMode === 'highContrast'
+          ? {
+              bg: 'secondaryHc.500',
+              color: 'background.highContrast',
+            }
+          : {
+              transform: 'translateY(0)',
+            },
       }),
       'glass-secondary': (props) => ({
-        ...(props.colorMode === 'light' 
-          ? createGlassmorphism(0.7, 8, 1) 
-          : createDarkGlassmorphism(0.7, 8, 1)),
-        bg: props.colorMode === 'light' 
-          ? 'rgba(199, 144, 96, 0.8)' 
-          : 'rgba(199, 144, 96, 0.6)',
-        color: 'white',
-        _hover: {
-          transform: 'translateY(-2px)',
-          boxShadow: 'lg',
-          bg: props.colorMode === 'light' 
-            ? 'rgba(199, 144, 96, 0.9)' 
-            : 'rgba(199, 144, 96, 0.7)',
-        },
-        _active: {
-          transform: 'translateY(0)',
-        },
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'secondaryHc.500',
+              color: 'background.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              _hover: {
+                bg: 'text.highContrast',
+                color: 'background.highContrast',
+                borderColor: 'secondaryHc.500',
+              },
+              _active: {
+                bg: 'primaryHc.500',
+                color: 'background.highContrast',
+              },
+            }
+          : props.colorMode === 'light'
+            ? createGlassmorphism(0.7, 8, 1)
+            : createDarkGlassmorphism(0.7, 8, 1)),
+        bg: props.colorMode === 'highContrast'
+          ? 'secondaryHc.500'
+          : props.colorMode === 'light'
+            ? 'rgba(199, 144, 96, 0.8)'
+            : 'rgba(199, 144, 96, 0.6)',
+        color: props.colorMode === 'highContrast'
+          ? 'background.highContrast'
+          : 'white',
+        _hover: props.colorMode === 'highContrast'
+          ? {
+              bg: 'text.highContrast',
+              color: 'background.highContrast',
+              borderColor: 'secondaryHc.500',
+            }
+          : {
+              transform: 'translateY(-2px)',
+              boxShadow: 'lg',
+              bg: props.colorMode === 'light'
+                ? 'rgba(199, 144, 96, 0.9)'
+                : 'rgba(199, 144, 96, 0.7)',
+            },
+        _active: props.colorMode === 'highContrast'
+          ? {
+              bg: 'primaryHc.500',
+              color: 'background.highContrast',
+            }
+          : {
+              transform: 'translateY(0)',
+            },
+      }),
+      // Add solid and outline variants for high contrast
+      solid: (props) => ({
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'primaryHc.500',
+              color: 'background.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              _hover: {
+                bg: 'text.highContrast',
+                color: 'background.highContrast',
+                borderColor: 'primaryHc.500',
+              },
+              _active: {
+                bg: 'secondaryHc.500',
+                color: 'background.highContrast',
+              },
+            }
+          : {
+              bg: 'primary.500',
+              color: 'white',
+              _hover: { bg: 'primary.600' },
+              _active: { bg: 'primary.700' },
+            }),
+      }),
+      outline: (props) => ({
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'transparent',
+              color: 'text.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              _hover: {
+                bg: 'secondaryHc.500',
+                color: 'background.highContrast',
+              },
+              _active: {
+                bg: 'primaryHc.500',
+                color: 'background.highContrast',
+              },
+            }
+          : {
+              bg: 'transparent',
+              border: '1px solid',
+              borderColor: 'primary.500',
+              color: 'primary.500',
+              _hover: { bg: 'primary.50' },
+              _active: { bg: 'primary.100' },
+            }),
       }),
       // High contrast variants
       'high-contrast': (props) => ({
@@ -408,6 +578,7 @@ const components = {
     },
   },
   Card: {
+<<<<<<< HEAD
     baseStyle: (props) => {
       // Check if high contrast mode is active
       const isHighContrast = props.colorScheme === 'highContrast';
@@ -667,11 +838,296 @@ const components = {
       // Default style
       return {};
     },
+=======
+    baseStyle: (props) => ({
+      container: {
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'background.highContrast',
+              color: 'text.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              borderRadius: 'lg', // Keep consistent radius or remove for sharper contrast
+              boxShadow: 'none', // Remove shadow in high contrast
+            }
+          : props.colorMode === 'light'
+            ? createGlassmorphism(0.7, 10, 1)
+            : createDarkGlassmorphism(0.7, 10, 1)),
+        transition: 'none', // Disable transitions in high contrast
+        _hover: props.colorMode === 'highContrast' ? {} : { transform: 'translateY(-4px)', boxShadow: 'lg' },
+      },
+      body: {
+        padding: '6',
+      },
+      header: {
+        padding: '6',
+        borderBottom: props.colorMode === 'highContrast' ? '1px solid' : 'none',
+        borderColor: props.colorMode === 'highContrast' ? 'borderHc.500' : 'transparent',
+      },
+      footer: {
+        padding: '6',
+        borderTop: props.colorMode === 'highContrast' ? '1px solid' : 'none',
+        borderColor: props.colorMode === 'highContrast' ? 'borderHc.500' : 'transparent',
+      },
+    }),
   },
+  Panel: {
+    baseStyle: (props) => ({
+      container: {
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'background.highContrast',
+              color: 'text.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+              borderRadius: 'lg',
+              boxShadow: 'none',
+            }
+          : props.colorMode === 'light'
+            ? createGlassmorphism(0.75, 15, 1)
+            : createDarkGlassmorphism(0.75, 15, 1)),
+        padding: '0', // Remove base padding, apply to header/body
+        transition: 'none', // Disable transitions in high contrast
+        _hover: props.colorMode === 'highContrast' ? {} : { boxShadow: 'lg' },
+      },
+      header: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '2',
+        borderBottom: '1px solid',
+        borderColor: props.colorMode === 'highContrast'
+          ? 'borderHc.500'
+          : props.colorMode === 'light'
+            ? 'rgba(255, 255, 255, 0.3)'
+            : 'rgba(255, 255, 255, 0.1)',
+        cursor: 'grab',
+        userSelect: 'none',
+        color: props.colorMode === 'highContrast' ? 'text.highContrast' : 'inherit',
+        _focus: {
+          boxShadow: 'outline',
+          zIndex: 1,
+        },
+      },
+      body: {
+        padding: '4',
+        height: '100%',
+        overflow: 'auto',
+        color: props.colorMode === 'highContrast' ? 'text.highContrast' : 'inherit',
+      },
+    }),
+>>>>>>> main
+  },
+  Input: {
+    baseStyle: {
+      field: {
+        borderRadius: 'md',
+        transition: 'none', // Disable transitions in high contrast
+      },
+    },
+    variants: {
+      glass: (props) => ({
+        field: {
+          ...(props.colorMode === 'highContrast'
+            ? {
+                bg: 'background.highContrast',
+                color: 'text.highContrast',
+                border: '1px solid',
+                borderColor: 'borderHc.500',
+                _hover: {
+                  borderColor: 'primaryHc.500',
+                },
+                _focus: {
+                  borderColor: 'primaryHc.500',
+                  boxShadow: `0 0 0 1px ${colors.primaryHc[500]}`,
+                  zIndex: 1,
+                },
+                _invalid: {
+                  borderColor: 'error.highContrast',
+                  boxShadow: `0 0 0 1px ${colors.error.highContrast}`,
+                },
+              }
+            : props.colorMode === 'light'
+              ? createGlassmorphism(0.5, 8, 1)
+              : createDarkGlassmorphism(0.5, 8, 1)),
+          _focus: props.colorMode !== 'highContrast' ? {
+            borderColor: 'primary.500',
+            boxShadow: `0 0 0 1px ${props.colorMode === 'light' ? 'rgba(62, 92, 118, 0.6)' : 'rgba(62, 92, 118, 0.4)'}`,
+            zIndex: 1,
+          } : {},
+          _invalid: props.colorMode !== 'highContrast' ? {
+            borderColor: 'error.500',
+            boxShadow: `0 0 0 1px ${props.colorMode === 'light' ? 'rgba(244, 67, 54, 0.6)' : 'rgba(244, 67, 54, 0.4)'}`,
+          } : {},
+        },
+      }),
+      solid: (props) => ({
+        field: {
+          ...(props.colorMode === 'highContrast'
+            ? {
+                bg: 'background.highContrast',
+                color: 'text.highContrast',
+                border: '1px solid',
+                borderColor: 'borderHc.500',
+                _hover: {
+                  borderColor: 'primaryHc.500',
+                },
+                _focus: {
+                  borderColor: 'primaryHc.500',
+                  boxShadow: `0 0 0 1px ${colors.primaryHc[500]}`,
+                  zIndex: 1,
+                },
+                _invalid: {
+                  borderColor: 'error.highContrast',
+                  boxShadow: `0 0 0 1px ${colors.error.highContrast}`,
+                },
+              }
+            : {
+                bg: props.colorMode === 'light' ? 'white' : 'gray.800',
+                border: '1px solid',
+                borderColor: props.colorMode === 'light' ? 'gray.200' : 'gray.700',
+                _hover: {
+                  borderColor: props.colorMode === 'light' ? 'gray.300' : 'gray.600',
+                },
+                _focus: {
+                  borderColor: 'primary.500',
+                  boxShadow: `0 0 0 1px ${props.colorMode === 'light' ? 'rgba(62, 92, 118, 0.6)' : 'rgba(62, 92, 118, 0.4)'}`,
+                  zIndex: 1,
+                },
+                _invalid: {
+                  borderColor: 'error.500',
+                  boxShadow: `0 0 0 1px ${props.colorMode === 'light' ? 'rgba(244, 67, 54, 0.6)' : 'rgba(244, 67, 54, 0.4)'}`,
+                },
+              }),
+        },
+      }),
+      outline: (props) => ({
+        field: {
+          ...(props.colorMode === 'highContrast'
+            ? {
+                bg: 'background.highContrast',
+                color: 'text.highContrast',
+                border: '1px solid',
+                borderColor: 'borderHc.500',
+                _hover: {
+                  borderColor: 'primaryHc.500',
+                },
+                _focus: {
+                  borderColor: 'primaryHc.500',
+                  boxShadow: `0 0 0 1px ${colors.primaryHc[500]}`,
+                  zIndex: 1,
+                },
+                _invalid: {
+                  borderColor: 'error.highContrast',
+                  boxShadow: `0 0 0 1px ${colors.error.highContrast}`,
+                },
+              }
+            : {
+                bg: 'transparent',
+                border: '1px solid',
+                borderColor: props.colorMode === 'light' ? 'gray.300' : 'gray.600',
+                _hover: {
+                  borderColor: props.colorMode === 'light' ? 'gray.400' : 'gray.500',
+                },
+                _focus: {
+                  borderColor: 'primary.500',
+                  boxShadow: `0 0 0 1px ${props.colorMode === 'light' ? 'rgba(62, 92, 118, 0.6)' : 'rgba(62, 92, 118, 0.4)'}`,
+                  zIndex: 1,
+                },
+                _invalid: {
+                  borderColor: 'error.500',
+                  boxShadow: `0 0 0 1px ${props.colorMode === 'light' ? 'rgba(244, 67, 54, 0.6)' : 'rgba(244, 67, 54, 0.4)'}`,
+                },
+              }),
+        },
+      }),
+    },
+  },
+  Badge: {
+    baseStyle: {
+      borderRadius: 'full',
+      px: 2,
+      py: 1,
+      textTransform: 'none',
+      fontWeight: 'medium',
+    },
+    variants: {
+      solid: (props) => ({
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'secondaryHc.500',
+              color: 'background.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+            }
+          : {
+              bg: `${props.colorScheme}.500`,
+              color: 'white',
+            }),
+      }),
+      outline: (props) => ({
+        ...(props.colorMode === 'highContrast'
+          ? {
+              bg: 'transparent',
+              color: 'text.highContrast',
+              border: '1px solid',
+              borderColor: 'borderHc.500',
+            }
+          : {
+              color: `${props.colorScheme}.500`,
+              boxShadow: `inset 0 0 0px 1px ${props.theme.colors[props.colorScheme][500]}`,
+            }),
+      }),
+      // Add high contrast for other variants if needed
+    },
+  },
+  Drawer: {
+    baseStyle: (props) => ({
+      dialog: {
+        bg: props.colorMode === 'highContrast'
+          ? 'background.highContrast'
+          : props.colorMode === 'light' ? 'white' : 'gray.800',
+        color: props.colorMode === 'highContrast' ? 'text.highContrast' : 'inherit',
+        border: props.colorMode === 'highContrast' ? '1px solid' : 'none',
+        borderColor: props.colorMode === 'highContrast' ? 'borderHc.500' : 'transparent',
+      },
+      header: {
+        borderBottom: props.colorMode === 'highContrast' ? '1px solid' : '1px solid',
+        borderColor: props.colorMode === 'highContrast' ? 'borderHc.500' : 'inherit',
+      },
+      // Add styles for body, footer, closeButton if needed
+    }),
+  },
+  Menu: {
+    baseStyle: (props) => ({
+      list: {
+        bg: props.colorMode === 'highContrast'
+          ? 'background.highContrast'
+          : props.colorMode === 'light' ? 'white' : 'gray.700',
+        color: props.colorMode === 'highContrast' ? 'text.highContrast' : 'inherit',
+        border: '1px solid',
+        borderColor: props.colorMode === 'highContrast' ? 'borderHc.500' : 'inherit',
+      },
+      item: {
+        bg: 'transparent',
+        color: props.colorMode === 'highContrast' ? 'text.highContrast' : 'inherit',
+        _hover: {
+          bg: props.colorMode === 'highContrast' ? 'secondaryHc.500' : props.colorMode === 'light' ? 'gray.100' : 'gray.600',
+          color: props.colorMode === 'highContrast' ? 'background.highContrast' : 'inherit',
+        },
+        _focus: {
+          bg: props.colorMode === 'highContrast' ? 'secondaryHc.500' : props.colorMode === 'light' ? 'gray.100' : 'gray.600',
+          color: props.colorMode === 'highContrast' ? 'background.highContrast' : 'inherit',
+        },
+      },
+    }),
+  },
+  // Add high contrast styles for other components like SplitView handle, DropZone, ProgressBar etc. if needed
 };
 
 // Global styles
 const styles = {
+<<<<<<< HEAD
   global: (props) => {
     // Check if high contrast mode is active
     const isHighContrast = props.colorScheme === 'highContrast';
@@ -709,6 +1165,49 @@ const styles = {
       },
     };
   },
+=======
+  global: (props) => ({
+    body: {
+      bg: props.colorMode === 'highContrast' 
+        ? 'background.highContrast' 
+        : props.colorMode === 'light' 
+          ? 'background.light' 
+          : 'background.dark',
+      color: props.colorMode === 'highContrast' 
+        ? 'text.highContrast' 
+        : props.colorMode === 'light' 
+          ? 'neutral.800' 
+          : 'neutral.100',
+      transition: 'none', // Disable transitions globally in high contrast
+    },
+    // High contrast focus outline
+    '*:focus-visible': {
+      outline: props.colorMode === 'highContrast' ? `2px solid ${colors.primaryHc[500]}` : 'none',
+      outlineOffset: props.colorMode === 'highContrast' ? '2px' : '0',
+      boxShadow: props.colorMode === 'highContrast' ? 'none' : 'outline', // Use default outline shadow otherwise
+    },
+    // High contrast selection
+    '::selection': {
+      background: props.colorMode === 'highContrast' ? 'primaryHc.500' : 'primary.500',
+      color: props.colorMode === 'highContrast' ? 'background.highContrast' : 'white',
+    },
+    // High contrast scrollbars (basic)
+    '::-webkit-scrollbar': {
+      width: props.colorMode === 'highContrast' ? '10px' : '8px',
+      height: props.colorMode === 'highContrast' ? '10px' : '8px',
+    },
+    '::-webkit-scrollbar-track': {
+      background: props.colorMode === 'highContrast' ? 'background.highContrast' : props.colorMode === 'light' ? '#f1f1f1' : '#2d3748',
+    },
+    '::-webkit-scrollbar-thumb': {
+      background: props.colorMode === 'highContrast' ? 'borderHc.500' : '#888',
+      border: props.colorMode === 'highContrast' ? `2px solid ${colors.background.highContrast}` : 'none',
+    },
+    '::-webkit-scrollbar-thumb:hover': {
+      background: props.colorMode === 'highContrast' ? 'primaryHc.500' : '#555',
+    },
+  }),
+>>>>>>> main
 };
 
 // Theme config
@@ -759,3 +1258,4 @@ export const createHighContrastTheme = (colorMode: 'light' | 'dark'): ThemeOverr
     colorScheme: 'highContrast',
   };
 };
+

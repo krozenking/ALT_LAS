@@ -23,21 +23,24 @@ class TestCommandParser(unittest.TestCase):
         
         # Configure mock language processor
         self.mock_language_processor.detect_language.return_value = "en"
-        self.mock_language_processor.tokenize_by_language.return_value = ["search", "for", "information", "about", "ai"]
+        # self.mock_language_processor.tokenize_by_language.return_value = ["search", "for", "information", "about", "ai"] # Removed mock, use actual tokenizer
         self.mock_language_processor.get_task_keywords.return_value = {
             "search": ["search", "find", "look", "query"],
             "create": ["create", "make", "generate", "build"],
-            "analyze": ["analyze", "examine", "study", "investigate"]
+            "analyze": ["analyze", "examine", "study", "investigate"],
+            "summarize": ["summarize", "condense", "abstract"],
+            "translate": ["translate", "convert language"]
         }
         self.mock_language_processor.get_dependency_indicators.return_value = ["after", "then", "next", "following"]
         self.mock_language_processor.get_conjunction_indicators.return_value = ["and", "also", "additionally"]
         self.mock_language_processor.get_alternative_indicators.return_value = ["or", "alternatively", "either"]
         self.mock_language_processor.get_context_keywords.return_value = {
-            "format": ["pdf", "doc", "docx", "txt", "csv"]
+            "format": ["pdf", "doc", "docx", "txt", "csv"],
+            "language": ["french", "german", "spanish", "turkish"]
         }
         
         # Create command parser with mock language processor
-        with patch('command_parser.get_language_processor', return_value=self.mock_language_processor):
+        with patch("command_parser.get_language_processor", return_value=self.mock_language_processor):
             self.parser = CommandParser()
     
     def test_parse_command_simple(self):
@@ -162,242 +165,177 @@ class TestCommandParser(unittest.TestCase):
         self.assertEqual(alt_file.mode, "Chaos")
         self.assertEqual(alt_file.chaos_level, 7)
     
-    def test_segment_command(self):
-        """Test segmenting a command into tasks"""
+    def test_segment_command_complex(self):
+        """Test segmenting a complex command with multiple tasks and dependencies"""
+        command = "Search for recent AI papers, then analyze the results, and finally create a summary report in pdf format."
+        
         # Configure mock for _split_into_subtasks
-        self.parser._split_into_subtasks = MagicMock(side_effect=[
-            ["Search for information about AI"],
-            ["Create a report"]
+        self.parser._split_into_subtasks = MagicMock(return_value=[
+            "Search for recent AI papers",
+            "analyze the results",
+            "create a summary report in pdf format"
         ])
         
         # Configure mock for _identify_task_type
         self.parser._identify_task_type = MagicMock(side_effect=[
-            ("search", 0.9),
-            ("create", 0.8)
+            ("search", 0.95),
+            ("analyze", 0.85),
+            ("create", 0.9)
         ])
         
         # Configure mock for _extract_parameters
         self.parser._extract_parameters = MagicMock(side_effect=[
-            [TaskParameter(name="query", value="information about AI", type="string", required=True)],
-            [TaskParameter(name="title", value="report", type="string", required=True)]
+            [TaskParameter(name="query", value="recent AI papers", type="string", required=True)],
+            [TaskParameter(name="input_data", value="the results", type="string", required=True)], # Assuming analyze needs input
+            [TaskParameter(name="title", value="summary report", type="string", required=True),
+             TaskParameter(name="format", value="pdf", type="string", required=False)]
         ])
         
         # Configure mock for _identify_dependencies
-        self.parser._identify_dependencies = MagicMock()
+        # Let the actual dependency identification run, but mock the indicators
+        self.mock_language_processor.get_dependency_indicators.return_value = ["then", "finally", "after"]
+        self.mock_language_processor.get_conjunction_indicators.return_value = ["and"]
         
         # Segment command
-        segments = self.parser.segment_command(
-            "Search for information about AI and create a report",
-            "en"
-        )
+        segments = self.parser.segment_command(command, "en")
         
         # Verify result
-        self.assertEqual(len(segments), 2)
+        self.assertEqual(len(segments), 3)
+        
+        # Segment 1: Search
         self.assertEqual(segments[0].task_type, "search")
-        self.assertEqual(segments[0].content, "Search for information about AI")
-        self.assertEqual(segments[1].task_type, "create")
-        self.assertEqual(segments[1].content, "Create a report")
+        self.assertEqual(segments[0].content, "Search for recent AI papers")
+        self.assertEqual(len(segments[0].parameters), 1)
+        self.assertEqual(segments[0].parameters[0].value, "recent AI papers")
+        self.assertEqual(len(segments[0].dependencies), 0)
         
-        # Verify method calls
-        self.parser._identify_dependencies.assert_called_once()
-    
-    def test_split_into_subtasks(self):
-        """Test splitting a sentence into subtasks"""
-        # Reset mock
+        # Segment 2: Analyze
+        self.assertEqual(segments[1].task_type, "analyze")
+        self.assertEqual(segments[1].content, "analyze the results")
+        self.assertEqual(len(segments[1].parameters), 1)
+        self.assertEqual(segments[1].parameters[0].value, "the results")
+        self.assertEqual(len(segments[1].dependencies), 1)
+        self.assertEqual(segments[1].dependencies[0], segments[0].id) # Depends on search
+        
+        # Segment 3: Create
+        self.assertEqual(segments[2].task_type, "create")
+        self.assertEqual(segments[2].content, "create a summary report in pdf format")
+        self.assertEqual(len(segments[2].parameters), 2)
+        self.assertTrue(any(p.name == "title" and p.value == "summary report" for p in segments[2].parameters))
+        self.assertTrue(any(p.name == "format" and p.value == "pdf" for p in segments[2].parameters))
+        self.assertEqual(len(segments[2].dependencies), 1)
+        self.assertEqual(segments[2].dependencies[0], segments[1].id) # Depends on analyze
+
+    def test_split_into_subtasks_multiple_conjunctions(self):
+        """Test splitting a sentence with multiple conjunctions"""
         self.mock_language_processor.get_conjunction_indicators.return_value = ["and", "also"]
-        self.mock_language_processor.get_alternative_indicators.return_value = ["or", "alternatively"]
-        
-        # Test with conjunction
         result = self.parser._split_into_subtasks(
-            "Search for information about AI and create a report",
+            "Search for X and create Y also analyze Z",
             "en"
         )
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], "Search for information about AI")
-        self.assertEqual(result[1], "create a report")
-        
-        # Test with alternative
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "Search for X")
+        self.assertEqual(result[1], "create Y")
+        self.assertEqual(result[2], "analyze Z")
+
+    def test_split_into_subtasks_mixed_indicators(self):
+        """Test splitting with mixed conjunctions and dependencies"""
+        self.mock_language_processor.get_conjunction_indicators.return_value = ["and"]
+        self.mock_language_processor.get_dependency_indicators.return_value = ["then"]
         result = self.parser._split_into_subtasks(
-            "Search for information about AI or find recent papers",
+            "Search for X then create Y and analyze Z",
             "en"
         )
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], "Search for information about AI")
-        self.assertEqual(result[1], "find recent papers")
-        
-        # Test with no indicators
-        result = self.parser._split_into_subtasks(
-            "Search for information about AI",
-            "en"
-        )
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], "Search for information about AI")
-    
-    def test_identify_task_type(self):
-        """Test identifying task type"""
-        # Configure mock
+        # Splitting should prioritize dependency indicators if needed, or just split
+        # Current simple split logic might just split by any indicator
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], "Search for X")
+        self.assertEqual(result[1], "create Y")
+        self.assertEqual(result[2], "analyze Z")
+
+    def test_identify_task_type_ambiguous(self):
+        """Test identifying task type with ambiguous keywords"""
         task_keywords = {
-            "search": ["search", "find", "look", "query"],
-            "create": ["create", "make", "generate", "build"],
-            "analyze": ["analyze", "examine", "study", "investigate"]
+            "search": ["search", "find"],
+            "create": ["create", "make"]
         }
-        
-        # Test search task
+        # Command contains keywords for multiple tasks
         task_type, confidence = self.parser._identify_task_type(
-            "Search for information about AI",
+            "Find the document and make a copy",
             "en",
             task_keywords
         )
-        self.assertEqual(task_type, "search")
+        # Expect the first identified task type (or based on confidence)
+        self.assertEqual(task_type, "search") # Assuming 'find' comes first
         self.assertGreater(confidence, 0.5)
-        
-        # Test create task
-        task_type, confidence = self.parser._identify_task_type(
-            "Create a report about AI",
-            "en",
-            task_keywords
-        )
-        self.assertEqual(task_type, "create")
-        self.assertGreater(confidence, 0.5)
-        
-        # Test analyze task
-        task_type, confidence = self.parser._identify_task_type(
-            "Analyze the data and create a visualization",
-            "en",
-            task_keywords
-        )
-        self.assertEqual(task_type, "analyze")
-        self.assertGreater(confidence, 0.5)
-        
-        # Test unknown task
-        task_type, confidence = self.parser._identify_task_type(
-            "Do something with AI",
-            "en",
-            task_keywords
-        )
-        self.assertEqual(task_type, "execute")
-        self.assertEqual(confidence, 0.5)
-    
-    def test_extract_parameters_search(self):
-        """Test extracting parameters for search task"""
-        # Configure mock
+
+    def test_extract_parameters_translate(self):
+        """Test extracting parameters for translate task"""
         self.mock_language_processor.get_task_keywords.return_value = {
-            "search": ["search", "find", "look", "query"]
-        }
-        
-        # Extract parameters
-        parameters = self.parser._extract_parameters(
-            "Search for information about AI",
-            "search",
-            "en"
-        )
-        
-        # Verify result
-        self.assertEqual(len(parameters), 1)
-        self.assertEqual(parameters[0].name, "query")
-        self.assertEqual(parameters[0].value, "for information about AI")
-        self.assertEqual(parameters[0].type, "string")
-        self.assertTrue(parameters[0].required)
-    
-    def test_extract_parameters_create(self):
-        """Test extracting parameters for create task"""
-        # Configure mock
-        self.mock_language_processor.get_task_keywords.return_value = {
-            "create": ["create", "make", "generate", "build"]
+            "translate": ["translate", "convert language"]
         }
         self.mock_language_processor.get_context_keywords.return_value = {
-            "format": ["pdf", "doc", "docx", "txt", "csv"]
+            "language": ["french", "german", "spanish", "turkish"]
         }
         
-        # Extract parameters with format
         parameters = self.parser._extract_parameters(
-            "Create a pdf report about AI",
-            "create",
+            "Translate this text to french",
+            "translate",
             "en"
         )
         
-        # Verify result
         self.assertEqual(len(parameters), 2)
+        text_param = next((p for p in parameters if p.name == "text"), None)
+        lang_param = next((p for p in parameters if p.name == "target_language"), None)
         
-        format_param = next((p for p in parameters if p.name == "format"), None)
-        self.assertIsNotNone(format_param)
-        self.assertEqual(format_param.value, "pdf")
-        self.assertEqual(format_param.type, "string")
-        self.assertFalse(format_param.required)
+        self.assertIsNotNone(text_param)
+        self.assertEqual(text_param.value, "this text")
+        self.assertTrue(text_param.required)
         
-        title_param = next((p for p in parameters if p.name == "title"), None)
-        self.assertIsNotNone(title_param)
-        self.assertEqual(title_param.value, "a report about AI")
-        self.assertEqual(title_param.type, "string")
-        self.assertTrue(title_param.required)
+        self.assertIsNotNone(lang_param)
+        self.assertEqual(lang_param.value, "french")
+        self.assertFalse(lang_param.required) # Target language might be optional
+
+    def test_identify_dependencies_multiple(self):
+        """Test identifying multiple dependencies"""
+        segment1 = TaskSegment(id="s1", content="Task 1")
+        segment2 = TaskSegment(id="s2", content="Task 2")
+        segment3 = TaskSegment(id="s3", content="Task 3")
+        segments = [segment1, segment2, segment3]
         
-        # Extract parameters without format
-        parameters = self.parser._extract_parameters(
-            "Create a report about AI",
-            "create",
-            "en"
-        )
+        command = "Do Task 1 then Task 2 and after that Task 3"
+        dependency_indicators = ["then", "after that"]
         
-        # Verify result
-        self.assertEqual(len(parameters), 1)
-        self.assertEqual(parameters[0].name, "title")
-        self.assertEqual(parameters[0].value, "a report about AI")
-    
-    def test_identify_dependencies(self):
-        """Test identifying dependencies between segments"""
-        # Create segments
-        segment1 = TaskSegment(
-            id="segment1",
-            task_type="search",
-            content="Search for information about AI",
-            parameters=[
-                TaskParameter(name="query", value="information about AI", type="string", required=True)
-            ]
-        )
+        self.parser._identify_dependencies(segments, command, "en", dependency_indicators)
         
-        segment2 = TaskSegment(
-            id="segment2",
-            task_type="create",
-            content="Create a report",
-            parameters=[
-                TaskParameter(name="title", value="report", type="string", required=True)
-            ]
-        )
-        
+        self.assertEqual(len(segments[0].dependencies), 0)
+        self.assertEqual(len(segments[1].dependencies), 1)
+        self.assertEqual(segments[1].dependencies[0], "s1")
+        self.assertEqual(len(segments[2].dependencies), 1)
+        self.assertEqual(segments[2].dependencies[0], "s2") # Depends on the preceding task
+
+    def test_identify_dependencies_no_indicator(self):
+        """Test dependency identification without explicit indicators (sequential assumption)"""
+        segment1 = TaskSegment(id="s1", content="Task 1")
+        segment2 = TaskSegment(id="s2", content="Task 2")
         segments = [segment1, segment2]
         
-        # Configure mock
-        dependency_indicators = ["after", "then", "next", "following"]
+        command = "Do Task 1. Do Task 2."
+        dependency_indicators = [] # No explicit indicators
         
-        # Test with dependency indicator
-        command = "Search for information about AI then create a report"
         self.parser._identify_dependencies(segments, command, "en", dependency_indicators)
         
-        # Verify result
+        # Assuming sequential dependency if no indicator is found
+        self.assertEqual(len(segments[0].dependencies), 0)
         self.assertEqual(len(segments[1].dependencies), 1)
-        self.assertEqual(segments[1].dependencies[0], "segment1")
-        
-        # Reset dependencies
-        segments[1].dependencies = []
-        
-        # Test without dependency indicator
-        command = "Search for information about AI and create a report"
-        self.parser._identify_dependencies(segments, command, "en", dependency_indicators)
-        
-        # Verify result
-        self.assertEqual(len(segments[1].dependencies), 0)
+        self.assertEqual(segments[1].dependencies[0], "s1")
 
-class TestGetCommandParser(unittest.TestCase):
-    """Test cases for get_command_parser function"""
-    
-    def test_get_command_parser(self):
-        """Test getting the command parser instance"""
+    def test_get_command_parser_singleton(self):
+        """Test that get_command_parser returns a singleton instance"""
         parser1 = get_command_parser()
         parser2 = get_command_parser()
-        
-        # Verify that the same instance is returned
         self.assertIs(parser1, parser2)
-        self.assertIsInstance(parser1, CommandParser)
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -1,152 +1,259 @@
-# Distributed Model Execution and Enhanced Model Selection
+# Distributed Model Execution
 
-This document provides an overview of the distributed model execution and enhanced model selection features implemented for the AI Orchestrator component of the ALT_LAS project.
+This document provides an overview of the distributed model execution system in the AI Orchestrator.
 
-## Distributed Model Execution
+## Overview
 
-The distributed model execution system allows AI models to be run across multiple machines, enabling more efficient resource utilization and the ability to handle larger models that may not fit on a single machine.
+The distributed model execution system allows AI models to be run across multiple machines, enabling:
 
-### Key Components
+- Horizontal scaling for handling larger workloads
+- Efficient resource utilization across a cluster
+- Fault tolerance and high availability
+- Specialized hardware utilization (e.g., GPU nodes for specific models)
 
-#### DistributedModelOrchestrator
+## Architecture
 
-The main orchestrator class that manages distributed model execution across multiple nodes. It provides the following functionality:
+The system follows a distributed architecture with the following components:
 
-- **Node Discovery**: Automatically discovers other nodes in the network that can run models
-- **Workload Distribution**: Intelligently distributes model execution tasks across available nodes
-- **Result Aggregation**: Collects and aggregates results from distributed model executions
+1. **Nodes**: Individual machines that can run AI models
+2. **Orchestrator**: Central component that manages nodes and distributes workloads
+3. **Tasks**: Individual inference requests that are distributed to nodes
+4. **Strategies**: Algorithms for node selection and result aggregation
 
-#### Node Management
+### Node Discovery and Management
 
-The system tracks information about each node in the distributed network:
+Nodes can dynamically join and leave the cluster. The system includes:
 
-- **NodeInfo**: Contains details about each compute node, including:
-  - Hardware capabilities (CPU, memory, GPU)
-  - Available models
-  - Current load and status
-  - Performance metrics
+- Automatic node discovery using network protocols
+- Health monitoring with heartbeat mechanisms
+- Resource monitoring (CPU, memory, GPU usage)
+- Dynamic model availability tracking
 
-#### Distribution Strategies
+### Workload Distribution
 
-Several strategies are available for distributing workloads:
+The system supports multiple strategies for distributing workloads:
 
-- **ROUND_ROBIN**: Simple round-robin distribution across nodes
-- **LEAST_LOADED**: Sends tasks to the node with the fewest current tasks
-- **MODEL_SPECIFIC**: Prioritizes nodes that already have the required model loaded
-- **CAPABILITY_BASED**: Selects nodes based on their hardware capabilities
-- **LATENCY_OPTIMIZED**: Prioritizes nodes with lower average response times
+- **Round Robin**: Simple rotation among available nodes
+- **Least Loaded**: Select node with fewest current tasks
+- **Capability Based**: Match models to nodes with appropriate hardware
+- **Latency Optimized**: Select nodes with lowest response times
+- **Model Specific**: Direct models to nodes specialized for them
 
-### Usage Examples
+### Execution Patterns
+
+The system supports several execution patterns:
+
+1. **Single Model Inference**: Run a single model on the most appropriate node
+2. **Parallel Inference**: Run the same input through multiple models simultaneously
+3. **Batch Processing**: Process multiple inputs efficiently across the cluster
+4. **Pipeline Processing**: Chain models together with dependencies between stages
+
+### Result Aggregation
+
+When using parallel inference, results can be aggregated in various ways:
+
+- **First Response**: Return as soon as any model responds
+- **All Responses**: Return all model outputs
+- **Majority Vote**: Use voting for classification tasks
+- **Weighted Average**: Weighted combination of numeric outputs
+- **Ensemble**: Sophisticated combination of model outputs
+
+## Usage Examples
+
+### Basic Distributed Inference
 
 ```python
-# Get the distributed orchestrator
-from ai_orchestrator.core.distributed import get_distributed_orchestrator
+# Get orchestrator
+orchestrator = get_distributed_model_orchestrator()
 
-orchestrator = get_distributed_orchestrator()
+# Start the orchestrator
+await orchestrator.start()
 
-# Run inference on a distributed node
-response = await orchestrator.run_distributed_inference(
-    request,
-    strategy=DistributionStrategy.CAPABILITY_BASED
+# Create a request
+request = InferenceRequest(
+    model_id="llama-7b",
+    inputs="What is the capital of France?",
+    parameters={"temperature": 0.7}
 )
 
-# Run parallel inference across multiple nodes
+# Run distributed inference
+response = await orchestrator.run_distributed_inference(request)
+
+print(response.outputs)
+```
+
+### Parallel Model Execution
+
+```python
+# Create a request
+request = InferenceRequest(
+    inputs="What is the capital of France?",
+    parameters={"temperature": 0.7}
+)
+
+# Run parallel inference with multiple models
 responses = await orchestrator.run_distributed_parallel_inference(
     request,
-    model_ids=["model1", "model2", "model3"]
+    model_ids=["llama-7b", "gpt-j-6b", "bloom-7b1"],
+    aggregation_strategy=ResultAggregationStrategy.ALL_RESPONSES
 )
+
+# Process all responses
+for response in responses:
+    print(f"Model {response.model_id}: {response.outputs}")
 ```
 
-## Enhanced Model Selection
-
-The enhanced model selection system provides advanced algorithms for selecting the most appropriate model(s) for a given task, considering factors beyond basic model capabilities.
-
-### Key Components
-
-#### EnhancedModelOrchestrator
-
-Extends the base ModelOrchestrator with advanced selection strategies and optimized parallel execution:
-
-- **Advanced Selection Strategies**: More sophisticated algorithms for model selection
-- **Performance Tracking**: Monitors and learns from model performance over time
-- **Optimized Parallel Execution**: Improved parallel execution with features like early stopping and timeouts
-
-#### Advanced Selection Strategies
-
-Several advanced strategies are available:
-
-- **MULTI_OBJECTIVE**: Balances multiple objectives like accuracy, speed, and cost
-- **ADAPTIVE**: Learns from historical performance to improve selection over time
-- **CONTEXT_AWARE**: Considers input context (e.g., input length, language) when selecting models
-- **HYBRID**: Combines multiple strategies for better results
-- **SPECIALIZED**: Selects models specialized for specific task subtypes
-
-### Usage Examples
+### Batch Processing
 
 ```python
-# Get the enhanced orchestrator
-from ai_orchestrator.core.model_selection import get_enhanced_orchestrator
+# Create multiple requests
+requests = [
+    InferenceRequest(model_id="llama-7b", inputs="Question 1"),
+    InferenceRequest(model_id="llama-7b", inputs="Question 2"),
+    InferenceRequest(model_id="gpt-j-6b", inputs="Question 3"),
+    InferenceRequest(model_id="bloom-7b1", inputs="Question 4")
+]
 
-orchestrator = get_enhanced_orchestrator()
+# Process batch of requests
+responses = await orchestrator.run_distributed_batch_inference(requests)
 
-# Select models using advanced strategies
-model_ids = await orchestrator.select_models_advanced(
-    task_type="text-generation",
-    strategy=AdvancedModelSelectionStrategy.CONTEXT_AWARE,
-    context={"input_length": 5000, "language": "en"}
-)
-
-# Run optimized parallel inference
-responses = await orchestrator.run_optimized_parallel_inference(
-    request,
-    model_ids=["model1", "model2", "model3"],
-    timeout=5.0,
-    early_stopping=True
-)
+# Process responses
+for i, response in enumerate(responses):
+    print(f"Request {i+1}: {response.outputs}")
 ```
 
-## Integration with Existing System
+### Pipeline Processing
 
-Both the distributed model execution and enhanced model selection systems integrate seamlessly with the existing AI Orchestrator:
+```python
+# Create requests for a pipeline
+requests = [
+    InferenceRequest(model_id="whisper-small", inputs="audio_data.wav"),  # Speech to text
+    InferenceRequest(model_id="llama-7b", inputs=""),  # Will be filled with output from first stage
+    InferenceRequest(model_id="stable-diffusion", inputs="")  # Will be filled with output from second stage
+]
 
-- They use the same model manager for model information and loading
-- They follow the same request/response patterns
-- They can be used alongside the existing orchestration functionality
+# Define dependencies (which stage depends on which previous stages)
+dependencies = [
+    [],     # First stage has no dependencies
+    [0],    # Second stage depends on first stage
+    [1]     # Third stage depends on second stage
+]
+
+# Run pipeline
+responses = await orchestrator.run_distributed_pipeline_inference(requests, dependencies)
+
+# Process final output
+print(f"Final image generated from speech: {responses[-1].outputs}")
+```
+
+## Node Management
+
+Administrators can manually register, update, and unregister nodes:
+
+```python
+# Register a new node
+new_node = NodeInfo(
+    node_id="gpu-node-1",
+    hostname="gpu-server",
+    ip_address="192.168.1.100",
+    status=NodeStatus.ONLINE,
+    capabilities={"cuda_available": True, "cuda_devices": 4},
+    available_models=["stable-diffusion", "llama-7b"]
+)
+
+await orchestrator.register_node(new_node)
+
+# Update node status
+await orchestrator.update_node_status("gpu-node-1", NodeStatus.BUSY)
+
+# Update available models
+await orchestrator.update_node_models("gpu-node-1", ["stable-diffusion", "llama-7b", "whisper-large"])
+
+# Unregister node
+await orchestrator.unregister_node("gpu-node-1")
+```
+
+## Task Management
+
+Administrators can monitor and manage tasks:
+
+```python
+# List all tasks
+all_tasks = await orchestrator.list_tasks()
+
+# List running tasks
+running_tasks = await orchestrator.list_tasks(status_filter="running")
+
+# Get specific task
+task = await orchestrator.get_task("task-123")
+
+# Cancel a task
+await orchestrator.cancel_task("task-123")
+```
+
+## Configuration
+
+The distributed execution system can be configured through settings:
+
+- `DISCOVERY_INTERVAL`: How often to discover new nodes (seconds)
+- `HEARTBEAT_TIMEOUT`: How long before a node is considered offline (seconds)
+- `DEFAULT_DISTRIBUTION_STRATEGY`: Default strategy for node selection
+- `DEFAULT_AGGREGATION_STRATEGY`: Default strategy for result aggregation
+
+## Implementation Details
+
+### Node Status Lifecycle
+
+Nodes can be in one of the following states:
+- `ONLINE`: Node is available and ready to accept tasks
+- `OFFLINE`: Node is not responding or has been explicitly taken offline
+- `BUSY`: Node is online but currently at capacity
+- `ERROR`: Node is experiencing errors
+
+### Task Status Lifecycle
+
+Tasks go through the following states:
+- `pending`: Task has been created but not yet started
+- `running`: Task is currently being executed
+- `completed`: Task has finished successfully
+- `error`: Task encountered an error during execution
+- `cancelled`: Task was cancelled before completion
+
+### Fault Tolerance
+
+The system includes several fault tolerance mechanisms:
+
+1. **Node Failure Detection**: Heartbeat monitoring detects when nodes go offline
+2. **Task Retry**: Failed tasks can be automatically retried on different nodes
+3. **Graceful Degradation**: System continues to function with fewer nodes
+4. **Result Validation**: Outputs can be validated before being returned
 
 ## Performance Considerations
 
-### Distributed Execution
+For optimal performance:
 
-- **Network Overhead**: Distributed execution introduces network latency
-- **Load Balancing**: The system attempts to balance load across nodes
-- **Fault Tolerance**: The system handles node failures gracefully
+1. Match models to appropriate hardware (GPU vs CPU)
+2. Use batch processing for high-throughput scenarios
+3. Consider network latency when distributing tasks
+4. Monitor resource usage across the cluster
+5. Use appropriate distribution strategies for your workload
 
-### Enhanced Selection
+## Security Considerations
 
-- **Selection Overhead**: More sophisticated selection strategies may take longer to select models
-- **Learning Curve**: Adaptive strategies improve over time as they learn from performance history
-- **Memory Usage**: Tracking performance history and usage statistics requires additional memory
+When deploying in production:
+
+1. Implement proper authentication between nodes
+2. Encrypt network traffic between nodes
+3. Apply access controls to node registration
+4. Monitor for unusual patterns that might indicate security issues
+5. Isolate nodes in appropriate network segments
 
 ## Future Enhancements
 
-Potential future enhancements include:
+Planned enhancements to the distributed execution system:
 
-- **Improved Node Discovery**: Using industry-standard service discovery mechanisms
-- **Model Sharding**: Splitting large models across multiple nodes
-- **Federated Learning**: Distributed model training and fine-tuning
-- **More Advanced Selection Strategies**: Incorporating reinforcement learning for model selection
-- **User Feedback Integration**: Learning from user feedback on model outputs
-
-## Testing
-
-Comprehensive test suites are provided for both systems:
-
-- **test_distributed.py**: Tests for distributed model execution
-- **test_model_selection.py**: Tests for enhanced model selection
-
-Run the tests using pytest:
-
-```bash
-cd ai-orchestrator
-python -m pytest src/tests/test_distributed.py src/tests/test_model_selection.py -v
-```
+1. Integration with Kubernetes for container orchestration
+2. Dynamic scaling based on workload
+3. More sophisticated load balancing algorithms
+4. Enhanced monitoring and observability
+5. Support for federated learning across nodes

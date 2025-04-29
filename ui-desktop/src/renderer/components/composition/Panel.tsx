@@ -1,16 +1,17 @@
-import React from 'react';
-import { Box, BoxProps, useColorMode } from '@chakra-ui/react';
+import React, { useId, useState } from 'react';
+import { Box, BoxProps, useColorMode, Heading } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
 export interface PanelProps extends BoxProps {
   title?: string;
+  headerLevel?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'; // Allow specifying header level
   headerActions?: React.ReactNode;
   isDraggable?: boolean;
   isResizable?: boolean;
   minWidth?: string | number;
   minHeight?: string | number;
-  onDragStart?: (e: React.MouseEvent) => void;
-  onDragEnd?: (e: React.MouseEvent) => void;
+  onDragStart?: (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => void; // Allow touch and keyboard events
+  onDragEnd?: (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => void; // Allow touch and keyboard events
   /**
    * Accessible label for the panel when the title is not provided
    */
@@ -18,11 +19,12 @@ export interface PanelProps extends BoxProps {
   /**
    * ID for the panel, used for aria-labelledby
    */
-  id?: string;
+  id?: string; // Allow external ID override
 }
 
 export const Panel: React.FC<PanelProps> = ({
   title,
+  headerLevel = 'h3', // Default header level
   headerActions,
   isDraggable = true,
   isResizable = true,
@@ -32,51 +34,70 @@ export const Panel: React.FC<PanelProps> = ({
   onDragEnd,
   children,
   ariaLabel,
-  id,
+  id: externalId,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
-  const panelId = id || `panel-${Math.random().toString(36).substr(2, 9)}`;
-  const headerId = `${panelId}-header`;
+  const generatedId = useId();
+  const panelId = externalId || generatedId;
+  const headerId = title ? `${panelId}-header` : undefined;
   const contentId = `${panelId}-content`;
-  
+  const [isDragging, setIsDragging] = useState(false);
+
   // Apply glassmorphism effect based on color mode
-  const glassStyle = colorMode === 'light' 
+  const glassStyle = colorMode === 'light'
     ? glassmorphism.create(0.75, 15, 1)
     : glassmorphism.createDark(0.75, 15, 1);
 
-  // Accessibility attributes
-  const accessibilityProps = {
-    role: 'region',
-    'aria-labelledby': title ? headerId : undefined,
-    'aria-label': !title && ariaLabel ? ariaLabel : undefined,
-    id: panelId,
+  // Focus style for the panel itself (if made focusable)
+  const focusStyle = {
+    _focus: {
+        outline: 'none', // Remove default outline
+        boxShadow: 'outline', // Use Chakra's focus outline style
+        zIndex: 1, // Ensure focus style is visible
+    }
   };
+
+  // Focus style for the header (important for draggable indication)
+  const headerFocusStyle = isDraggable ? {
+    _focus: {
+        outline: 'none',
+        boxShadow: 'outline',
+        zIndex: 1,
+    }
+  } : {};
 
   // Keyboard handlers for draggable header
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
     if (!isDraggable) return;
-    
-    // Space or Enter to start dragging
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      onDragStart?.(e as unknown as React.MouseEvent);
-    }
+    setIsDragging(true);
+    onDragStart?.(e);
   };
 
-  const handleKeyUp = (e: React.KeyboardEvent) => {
+  const handleDragEnd = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
+    if (!isDraggable || !isDragging) return;
+    setIsDragging(false);
+    onDragEnd?.(e);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isDraggable) return;
-    
-    // Space or Enter to end dragging
+    // Space or Enter to start/stop dragging
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
-      onDragEnd?.(e as unknown as React.MouseEvent);
+      if (isDragging) {
+        handleDragEnd(e);
+      } else {
+        handleDragStart(e);
+      }
     }
+    // TODO: Implement arrow key movement logic when dragging via keyboard
   };
 
   return (
     <Box
       {...glassStyle}
+      // {...focusStyle} // Only apply if panel itself needs focus
       display="flex"
       flexDirection="column"
       minWidth={minWidth}
@@ -84,9 +105,10 @@ export const Panel: React.FC<PanelProps> = ({
       position="relative"
       transition="all 0.2s ease-in-out"
       _hover={{ boxShadow: 'lg' }}
-      _focus={{ boxShadow: 'outline', outline: 'none' }}
-      tabIndex={0}
-      {...accessibilityProps}
+      role="region"
+      aria-labelledby={headerId}
+      aria-label={!title && ariaLabel ? ariaLabel : undefined}
+      id={panelId}
       {...rest}
     >
       {/* Panel Header */}
@@ -100,23 +122,29 @@ export const Panel: React.FC<PanelProps> = ({
           p={2}
           borderBottom="1px solid"
           borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
-          cursor={isDraggable ? 'grab' : 'default'}
+          cursor={isDraggable ? (isDragging ? 'grabbing' : 'grab') : 'default'}
           userSelect="none"
-          onMouseDown={isDraggable ? onDragStart : undefined}
-          onMouseUp={isDraggable ? onDragEnd : undefined}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
+          onMouseDown={isDraggable ? handleDragStart : undefined}
+          onMouseUp={isDraggable ? handleDragEnd : undefined}
+          onMouseLeave={isDraggable ? handleDragEnd : undefined} // End drag if mouse leaves header
+          onTouchStart={isDraggable ? handleDragStart : undefined} // Add touch support
+          onTouchEnd={isDraggable ? handleDragEnd : undefined} // Add touch support
+          onKeyDown={handleKeyDown} // Add keyboard support
           className="panel-header"
-          role="heading"
-          aria-level={2}
-          tabIndex={isDraggable ? 0 : -1}
-          aria-grabbed={isDraggable ? false : undefined}
+          tabIndex={isDraggable ? 0 : -1} // Make header focusable if draggable
+          aria-roledescription={isDraggable ? "draggable header" : undefined}
+          aria-grabbed={isDraggable ? isDragging : undefined}
+          {...headerFocusStyle} // Apply focus style to header
         >
-          {title && <Box fontWeight="medium">{title}</Box>}
+          {title && (
+            <Heading as={headerLevel} size="sm" id={headerId} flex="1" mr={2}>
+              {title}
+            </Heading>
+          )}
           {headerActions && <Box>{headerActions}</Box>}
         </Box>
       )}
-      
+
       {/* Panel Content */}
       <Box
         id={contentId}
@@ -124,11 +152,12 @@ export const Panel: React.FC<PanelProps> = ({
         p={4}
         overflow="auto"
         className="panel-content"
+        role="document" // Role document might be appropriate for main content area
       >
         {children}
       </Box>
-      
-      {/* Resize Handle */}
+
+      {/* Accessible Resize Handle Implementation Needed */}
       {isResizable && (
         <Box
           position="absolute"
@@ -138,20 +167,23 @@ export const Panel: React.FC<PanelProps> = ({
           height="15px"
           cursor="nwse-resize"
           className="resize-handle"
-          role="button"
-          aria-label="Resize panel"
-          tabIndex={0}
+          role="button" // Use button role for interaction
+          aria-label="Resize panel" // Accessible label
+          tabIndex={0} // Make it focusable
           _focus={{
             outline: '2px solid',
             outlineColor: 'primary.500',
+            zIndex: 1,
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              // In a real implementation, this would trigger resize mode
-              // and allow arrow keys to resize the panel
+              // TODO: Implement keyboard resize activation/logic
+              console.log('Activate resize mode');
             }
+            // TODO: Implement arrow key resize logic
           }}
+          // TODO: Add onMouseDown/onTouchStart for visual handle dragging
           _before={{
             content: '""',
             position: 'absolute',
@@ -165,9 +197,11 @@ export const Panel: React.FC<PanelProps> = ({
             opacity: 0.7,
           }}
         />
+        // Consider using a dedicated library or more robust implementation for resizing
       )}
     </Box>
   );
 };
 
 export default Panel;
+

@@ -6,6 +6,7 @@ use std::env;
 use std::path::Path;
 use std::fs;
 
+// Modül tanımlamaları
 mod platform;
 mod api;
 mod error;
@@ -20,7 +21,7 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     
     // Sunucu adresini ve portunu al
-    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string()); // Listen on all interfaces
     let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let server_url = format!("{}:{}", host, port);
     
@@ -64,6 +65,25 @@ async fn main() -> std::io::Result<()> {
             .route("/api/screenshot", web::get().to(api::screenshot::capture_screen))
             .route("/api/screenshot/region", web::post().to(api::screenshot::capture_region))
             .route("/api/screenshot/cuda", web::get().to(api::screenshot::capture_screen_cuda))
+            
+            // Dosya Sistemi İzleme API'leri (Yeni)
+            .route("/api/monitor/start", web::post().to(api::filesystem_monitor::start_monitoring))
+            .route("/api/monitor/stop", web::post().to(api::filesystem_monitor::stop_monitoring))
+            .route("/api/monitor/events", web::get().to(api::filesystem_monitor::get_events))
+            
+            // Uygulama Kontrol API'leri (Yeni)
+            .route("/api/app/find", web::post().to(api::app_control::find_window))
+            .route("/api/app/send_message", web::post().to(api::app_control::send_message))
+            .route("/api/app/post_message", web::post().to(api::app_control::post_message))
+            .route("/api/app/close", web::post().to(api::app_control::close_window))
+            .route("/api/app/list", web::get().to(api::app_control::list_windows))
+            
+            // Kayıt Defteri (Registry) API'leri (Yeni - Windows Only)
+            .route("/api/registry/read_string", web::post().to(api::registry::read_registry_string))
+            .route("/api/registry/read_dword", web::post().to(api::registry::read_registry_dword))
+            .route("/api/registry/write_string", web::post().to(api::registry::write_registry_string))
+            .route("/api/registry/write_dword", web::post().to(api::registry::write_registry_dword))
+            .route("/api/registry/delete_value", web::post().to(api::registry::delete_registry_value))
     })
     .bind(&server_url)?
     .run()
@@ -97,3 +117,4 @@ fn setup_logging() {
     
     builder.init();
 }
+

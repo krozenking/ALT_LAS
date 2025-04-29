@@ -59,7 +59,7 @@
     "eslint-plugin-storybook": "^0.6.15",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "jest-axe": "^10.0.0",
-    "jsdom": "^23.0.1",
+    "jsdom": "^26.1.0",
     "license-checker": "^25.0.1",
     "node-loader": "^2.0.0",
     "storybook": "^8.6.12",

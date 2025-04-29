@@ -38,7 +38,7 @@ jobs:
             type=sha,format=short
       
       - name: Build and push API Gateway
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./api-gateway
           push: true
@@ -47,7 +47,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build and push Segmentation Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./segmentation-service
           push: true
@@ -56,7 +56,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build and push Runner Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./runner-service
           push: true
@@ -65,7 +65,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build and push Archive Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./archive-service
           push: true

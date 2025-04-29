@@ -101,10 +101,50 @@ describe('Authentication API (/api/auth)', () => {
             });
         expect(res.statusCode).toEqual(400); // Or 409 Conflict
         expect(res.body.success).toBe(false);
-        expect(res.body).toHaveProperty('message', 'Bu e-posta adresi zaten kullanılıyor');
+        expect(res.body).toHaveProperty("message", "Bu e-posta adresi zaten kullanılıyor");
     });
 
-    it('POST /login - should log in the registered user', async () => {
+    it("POST /register - should fail with invalid email format", async () => {
+        const res = await request(app)
+            .post("/api/auth/register")
+            .send({
+                username: `invalidemail_${Date.now()}`,
+                password: "password123",
+                email: "invalid-email-format",
+            });
+        expect(res.statusCode).toEqual(400);
+        expect(res.body.success).toBe(false);
+        // Add specific error message check if available, e.g.:
+        // expect(res.body.message).toContain("Geçersiz e-posta formatı");
+    });
+
+    it("POST /register - should fail with short password", async () => {
+        const res = await request(app)
+            .post("/api/auth/register")
+            .send({
+                username: `shortpass_${Date.now()}`,
+                password: "short",
+                email: `shortpass_${Date.now()}@example.com`,
+            });
+        expect(res.statusCode).toEqual(400);
+        expect(res.body.success).toBe(false);
+        // Add specific error message check if available, e.g.:
+        // expect(res.body.message).toContain("Şifre çok kısa");
+    });
+
+    it("POST /register - should fail with missing required fields", async () => {
+        const res = await request(app)
+            .post("/api/auth/register")
+            .send({
+                username: `missing_${Date.now()}`,
+                // Missing password and email
+            });
+        expect(res.statusCode).toEqual(400);
+        expect(res.body.success).toBe(false);
+        // Add specific error message check if available
+    });
+
+    it("POST /login - should log in the registered user", async () => {
         const res = await request(app)
             .post('/api/auth/login')
             .send({
@@ -134,10 +174,37 @@ describe('Authentication API (/api/auth)', () => {
             });
         expect(res.statusCode).toEqual(401);
         expect(res.body.success).toBe(false);
-        expect(res.body).toHaveProperty('message', 'Geçersiz kullanıcı adı veya şifre ya da kullanıcı aktif değil');
+        expect(res.body).toHaveProperty("message", "Geçersiz kullanıcı adı veya şifre ya da kullanıcı aktif değil");
     });
 
-    it('GET /profile - should get current user details with valid token', async () => {
+    it("POST /login - should trigger rate limiting after multiple failed attempts", async () => {
+        const username = `ratelimit_user_${Date.now()}`;
+        const email = `${username}@example.com`;
+        // Register user first
+        await request(app)
+            .post("/api/auth/register")
+            .send({ username, password: "correctpassword", email });
+
+        // Simulate multiple failed login attempts (adjust limit based on actual config)
+        const failedAttempts = 6; // Example: Assume limit is 5
+        let lastResponse;
+        for (let i = 0; i < failedAttempts; i++) {
+            lastResponse = await request(app)
+                .post("/api/auth/login")
+                .send({ username, password: "wrongpassword" });
+            // The last attempt should be rate limited
+            if (i === failedAttempts - 1) {
+                expect(lastResponse.statusCode).toEqual(429); // Too Many Requests
+                expect(lastResponse.body.success).toBe(false);
+                expect(lastResponse.body.message).toContain("Çok fazla istek"); // Check for rate limit message
+            } else {
+                // Previous attempts should be 401 Unauthorized
+                expect(lastResponse.statusCode).toEqual(401);
+            }
+        }
+    }, 15000); // Increase timeout if needed
+
+    it("GET /profile - should get current user details with valid token", async () => {
         const res = await request(app)
             .get('/api/auth/profile')
             .set('Authorization', `Bearer ${authToken}`);
@@ -427,6 +494,19 @@ describe('User Roles & Permissions API (/api/user-roles)', () => {
         expect(res.body.data.hasPermission).toBe(false);
     });
 
+    it("POST /check-permission - should check if admin has admin permission (positive case)", async () => {
+        // Assuming admin role implicitly has certain permissions or a specific one like 'admin:access'
+        const res = await request(app)
+            .post("/api/user-roles/check-permission")
+            .set("Authorization", `Bearer ${adminAuthToken}`)
+            .send({ permission: "admin:manage:users" }); // Check a typical admin permission
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.success).toBe(true);
+        // This depends on whether the 'admin' role actually has this permission assigned
+        // Adjust the expected value based on actual service implementation
+        expect(res.body.data.hasPermission).toBe(true); 
+    });
+
     // --- Admin Management --- 
 
     it('GET /users/{userId}/roles - should allow admin to get user roles', async () => {
@@ -525,7 +605,53 @@ describe('Admin User Management API (/api/auth/users)', () => {
         expect(res.body.data.length).toBeGreaterThanOrEqual(2); // admin + testUser + tempUser
     });
 
-    it('GET /users/{userId} - should allow admin to get specific user details', async () => {
+    it("GET /users - should deny non-admin access", async () => {
+        const res = await request(app)
+            .get("/api/auth/users")
+            .set("Authorization", `Bearer ${authToken}`); // Use regular user token
+        expect(res.statusCode).toEqual(403); // Forbidden
+        expect(res.body.success).toBe(false);
+    });
+
+    it("GET /users/{userId} - should deny non-admin access", async () => {
+        const res = await request(app)
+            .get(`/api/auth/users/${userId}`)
+            .set("Authorization", `Bearer ${authToken}`); // Use regular user token
+        expect(res.statusCode).toEqual(403); // Forbidden
+        expect(res.body.success).toBe(false);
+    });
+
+    it("PUT /users/{userId} - should deny non-admin access", async () => {
+        const res = await request(app)
+            .put(`/api/auth/users/${userId}`)
+            .set("Authorization", `Bearer ${authToken}`)
+            .send({ firstName: "AttemptUpdate" });
+        expect(res.statusCode).toEqual(403); // Forbidden
+        expect(res.body.success).toBe(false);
+    });
+
+    it("DELETE /users/{userId} - should deny non-admin access", async () => {
+        // Create a temporary user for deletion attempt
+        const tempUsername = `temp_nonadmin_delete_${Date.now()}`;
+        const tempEmail = `${tempUsername}@example.com`;
+        const regRes = await request(app)
+            .post("/api/auth/register")
+            .send({ username: tempUsername, password: "password123", email: tempEmail });
+        const tempUserIdToDelete = regRes.body.data.id;
+
+        const res = await request(app)
+            .delete(`/api/auth/users/${tempUserIdToDelete}`)
+            .set("Authorization", `Bearer ${authToken}`); // Use regular user token
+        expect(res.statusCode).toEqual(403); // Forbidden
+        expect(res.body.success).toBe(false);
+
+        // Clean up: Admin deletes the user
+        await request(app)
+            .delete(`/api/auth/users/${tempUserIdToDelete}`)
+            .set("Authorization", `Bearer ${adminAuthToken}`);
+    });
+
+    it("GET /users/{userId} - should allow admin to get specific user details", async () => {
         const res = await request(app)
             .get(`/api/auth/users/${tempUserId}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
@@ -595,7 +721,96 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
     });
 
     // Permissions
-    it('POST /permissions - should allow admin to create a permission', async () => {
+    it("POST /permissions - should deny non-admin access", async () => {
+        const res = await request(app)
+            .post("/api/auth/permissions")
+            .set("Authorization", `Bearer ${authToken}`)
+            .send({ name: "nonadmin_perm", description: "Attempt" });
+        expect(res.statusCode).toEqual(403);
+    });
+
+    it("GET /permissions - should deny non-admin access", async () => {
+        const res = await request(app)
+            .get("/api/auth/permissions")
+            .set("Authorization", `Bearer ${authToken}`);
+        expect(res.statusCode).toEqual(403);
+    });
+
+    it("DELETE /permissions/{permissionName} - should deny non-admin access", async () => {
+        // Admin creates a permission first
+        const tempPermName = `temp_perm_delete_attempt_${Date.now()}`;
+        await request(app)
+            .post("/api/auth/permissions")
+            .set("Authorization", `Bearer ${adminAuthToken}`)
+            .send({ name: tempPermName });
+
+        const res = await request(app)
+            .delete(`/api/auth/permissions/${encodeURIComponent(tempPermName)}`)
+            .set("Authorization", `Bearer ${authToken}`); // Use regular user token
+        expect(res.statusCode).toEqual(403);
+
+        // Clean up: Admin deletes the permission
+        await request(app)
+            .delete(`/api/auth/permissions/${encodeURIComponent(tempPermName)}`)
+            .set("Authorization", `Bearer ${adminAuthToken}`);
+    });
+
+    // Roles
+    it("POST /roles - should deny non-admin access", async () => {
+        const res = await request(app)
+            .post("/api/auth/roles")
+            .set("Authorization", `Bearer ${authToken}`)
+            .send({ name: "nonadmin_role", permissions: [] });
+        expect(res.statusCode).toEqual(403);
+    });
+
+    it("GET /roles - should deny non-admin access", async () => {
+        const res = await request(app)
+            .get("/api/auth/roles")
+            .set("Authorization", `Bearer ${authToken}`);
+        expect(res.statusCode).toEqual(403);
+    });
+
+    it("PUT /roles/{roleName} - should deny non-admin access", async () => {
+        // Admin creates a role first
+        const tempRoleName = `temp_role_update_attempt_${Date.now()}`;
+        await request(app)
+            .post("/api/auth/roles")
+            .set("Authorization", `Bearer ${adminAuthToken}`)
+            .send({ name: tempRoleName });
+
+        const res = await request(app)
+            .put(`/api/auth/roles/${tempRoleName}`)
+            .set("Authorization", `Bearer ${authToken}`)
+            .send({ description: "Attempt Update" });
+        expect(res.statusCode).toEqual(403);
+
+        // Clean up: Admin deletes the role
+        await request(app)
+            .delete(`/api/auth/roles/${tempRoleName}`)
+            .set("Authorization", `Bearer ${adminAuthToken}`);
+    });
+
+    it("DELETE /roles/{roleName} - should deny non-admin access", async () => {
+        // Admin creates a role first
+        const tempRoleName = `temp_role_delete_attempt_${Date.now()}`;
+        await request(app)
+            .post("/api/auth/roles")
+            .set("Authorization", `Bearer ${adminAuthToken}`)
+            .send({ name: tempRoleName });
+
+        const res = await request(app)
+            .delete(`/api/auth/roles/${tempRoleName}`)
+            .set("Authorization", `Bearer ${authToken}`);
+        expect(res.statusCode).toEqual(403);
+
+        // Clean up: Admin deletes the role
+        await request(app)
+            .delete(`/api/auth/roles/${tempRoleName}`)
+            .set("Authorization", `Bearer ${adminAuthToken}`);
+    });
+
+    it("POST /permissions - should allow admin to create a permission", async () => {
         const res = await request(app)
             .post('/api/auth/permissions')
             .set('Authorization', `Bearer ${adminAuthToken}`)

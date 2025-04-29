@@ -53,10 +53,11 @@ export const rateLimiter = (options: RateLimiterOptions) => {
     
     // Limit aşıldıysa hata döndür
     if (ipRequestCounts[key].count > maxRequests) {
-      return res.status(statusCode).json({
+      res.status(statusCode).json({
         message,
         retryAfter: Math.ceil((ipRequestCounts[key].resetTime - now) / 1000)
       });
+      return; // End execution after sending response
     }
     
     next();

@@ -26,6 +26,15 @@ export const responseTime = (req: Request, res: Response, next: NextFunction): v
   next();
 };
 
+// Extend Express Response interface for custom property
+declare global {
+  namespace Express {
+    interface Response {
+      responseTime?: number;
+    }
+  }
+}
+
 // Güvenlik başlıkları middleware'i (helmet alternatifi)
 export const securityHeaders = (req: Request, res: Response, next: NextFunction): void => {
   // Temel güvenlik başlıkları

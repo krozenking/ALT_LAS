@@ -1,29 +1,28 @@
-import { Router } from 'express';
-import { asyncHandler } from '../middleware/errorMiddleware';
-import { authenticateJWT } from '../middleware/authMiddleware';
-import { requireResourcePermission } from '../services/authorizationService';
-import { withServiceIntegration } from '../services/serviceIntegration';
-import logger from '../utils/logger';
-import { BadRequestError, NotFoundError } from '../utils/errors';
+import express, { Request, Response, NextFunction } from "express";
+import { body, param, validationResult } from "express-validator";
+import commandService from "../services/commandService";
+import { authenticateJWT } from "../middleware/authMiddleware";
+import { asyncHandler } from "../middleware/errorMiddleware";
+import logger from "../utils/logger";
+import { AppError } from "../utils/errors";
 
-const router = Router();
+const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: Commands
- *   description: Komut işleme API'leri
- */
+// Middleware to extract user ID from authenticated request
+const getUserId = (req: Request): string => {
+  if (!req.user?.id) {
+    throw new AppError("User ID not found in authenticated request", 500);
+  }
+  return req.user.id;
+};
 
-// Kimlik doğrulama ve servis entegrasyonu middleware'leri
-router.use(authenticateJWT);
-router.use(withServiceIntegration);
+// --- Command Routes --- 
 
 /**
  * @swagger
  * /api/commands:
  *   post:
- *     summary: Yeni bir komut gönderir
+ *     summary: Submit a new command for execution
  *     tags: [Commands]
  *     security:
  *       - bearerAuth: []
@@ -33,55 +32,80 @@ router.use(withServiceIntegration);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - targetSystem
+ *               - command
  *             properties:
+ *               targetSystem:
+ *                 type: string
+ *                 description: ID of the target system/runner
  *               command:
  *                 type: string
- *               options:
+ *                 description: The command string to execute
+ *               parameters:
  *                 type: object
- *             required:
- *               - command
+ *                 description: Optional parameters for the command
  *     responses:
- *       202:
- *         description: Komut başarıyla alındı
+ *       201:
+ *         description: Command submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/Command"
  *       400:
- *         description: Geçersiz istek
+ *         description: Invalid input
  *       401:
- *         description: Yetkilendirme hatası
- *       403:
- *         description: Yetki hatası
- *       500:
- *         description: Sunucu hatası
+ *         description: Unauthorized
  */
-router.post('/', 
-  requireResourcePermission('runner', 'write'),
-  asyncHandler(async (req, res) => {
-    const { command, options = {} } = req.body;
-    
-    if (!command) {
-      throw new BadRequestError('Komut metni gereklidir');
+router.post(
+  "/",
+  authenticateJWT,
+  [
+    body("targetSystem").isString().notEmpty().withMessage("Target system ID is required"),
+    body("command").isString().notEmpty().withMessage("Command string is required"),
+    body("parameters").optional().isObject().withMessage("Parameters must be an object"),
+  ],
+  asyncHandler(async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
-    
-    // Kullanıcı bilgilerini options'a ekle
-    const commandOptions = {
-      ...options,
-      userId: req.user?.id,
-      username: req.user?.username
-    };
-    
-    // 1. Segmentation Service ile komutu işle ve alt dosyası oluştur
-    logger.info(`Komut segmentasyonu başlatılıyor: "${command.substring(0, 50)}..."`);
-    const segmentationResult = await req.services?.segmentation.segmentCommand(command, commandOptions);
-    
-    // 2. Runner Service ile alt dosyasını çalıştır
-    logger.info(`Komut çalıştırılıyor, Alt dosya ID: ${segmentationResult.altFileId}`);
-    const runResult = await req.services?.runner.runCommand(segmentationResult.altFileId, commandOptions);
-    
-    res.status(202).json({
-      message: 'Komut başarıyla alındı ve işleniyor',
-      commandId: runResult.runId,
-      status: 'processing',
-      estimatedCompletionTime: runResult.estimatedCompletionTime
-    });
+
+    const userId = getUserId(req);
+    const { targetSystem, command, parameters } = req.body;
+
+    const newCommand = await commandService.submitCommand(userId, targetSystem, command, parameters);
+    res.status(201).json({ success: true, data: newCommand });
+  })
+);
+
+/**
+ * @swagger
+ * /api/commands:
+ *   get:
+ *     summary: List commands submitted by the current user
+ *     tags: [Commands]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user commands
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: "#/components/schemas/Command"
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/",
+  authenticateJWT,
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    const commands = await commandService.listUserCommands(userId);
+    res.status(200).json({ success: true, data: commands });
   })
 );
 
@@ -89,221 +113,117 @@ router.post('/',
  * @swagger
  * /api/commands/{commandId}:
  *   get:
- *     summary: Komut durumunu sorgular
+ *     summary: Get the status and details of a specific command
  *     tags: [Commands]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - name: commandId
- *         in: path
+ *       - in: path
+ *         name: commandId
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: The ID of the command to retrieve
  *     responses:
  *       200:
- *         description: Komut durumu başarıyla getirildi
+ *         description: Command details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/Command"
  *       401:
- *         description: Yetkilendirme hatası
+ *         description: Unauthorized
  *       403:
- *         description: Yetki hatası
+ *         description: Forbidden (user does not own the command)
  *       404:
- *         description: Komut bulunamadı
- *       500:
- *         description: Sunucu hatası
+ *         description: Command not found
  */
-router.get('/:commandId', 
-  requireResourcePermission('runner', 'read'),
-  asyncHandler(async (req, res) => {
-    const commandId = req.params.commandId;
-    
-    logger.info(`Komut durumu sorgulanıyor: ${commandId}`);
-    const statusResult = await req.services?.runner.getCommandStatus(commandId);
-    
-    if (!statusResult) {
-      throw new NotFoundError('Komut bulunamadı');
+router.get(
+  "/:commandId",
+  authenticateJWT,
+  [param("commandId").isUUID().withMessage("Invalid Command ID format")],
+  asyncHandler(async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
-    
-    res.json(statusResult);
+
+    const userId = getUserId(req);
+    const { commandId } = req.params;
+
+    const command = await commandService.getCommandStatus(commandId, userId);
+
+    if (!command) {
+      // Distinguish between not found and forbidden based on whether the command exists at all
+      // (Requires commandService to potentially check existence without user ID first, or handle here)
+      // For simplicity, returning 404 if command is null (could be not found or forbidden)
+      return res.status(404).json({ success: false, message: "Command not found or access denied" });
+    }
+
+    res.status(200).json({ success: true, data: command });
   })
 );
 
 /**
  * @swagger
- * /api/commands/{commandId}/cancel:
- *   post:
- *     summary: Komutu iptal eder
+ * /api/commands/{commandId}:
+ *   delete:
+ *     summary: Request cancellation of a pending or running command
  *     tags: [Commands]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - name: commandId
- *         in: path
+ *       - in: path
+ *         name: commandId
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
+ *         description: The ID of the command to cancel
  *     responses:
  *       200:
- *         description: Komut başarıyla iptal edildi
- *       401:
- *         description: Yetkilendirme hatası
- *       403:
- *         description: Yetki hatası
- *       404:
- *         description: Komut bulunamadı
- *       500:
- *         description: Sunucu hatası
- */
-router.post('/:commandId/cancel', 
-  requireResourcePermission('runner', 'write'),
-  asyncHandler(async (req, res) => {
-    const commandId = req.params.commandId;
-    
-    logger.info(`Komut iptal ediliyor: ${commandId}`);
-    const cancelResult = await req.services?.runner.cancelCommand(commandId);
-    
-    if (!cancelResult) {
-      throw new NotFoundError('Komut bulunamadı veya iptal edilemedi');
-    }
-    
-    res.json({
-      message: 'Komut başarıyla iptal edildi',
-      status: cancelResult.status
-    });
-  })
-);
-
-/**
- * @swagger
- * /api/commands/history:
- *   get:
- *     summary: Komut geçmişini listeler
- *     tags: [Commands]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: limit
- *         in: query
- *         schema:
- *           type: integer
- *           default: 10
- *       - name: offset
- *         in: query
- *         schema:
- *           type: integer
- *           default: 0
- *       - name: status
- *         in: query
- *         schema:
- *           type: string
- *           enum: [pending, processing, completed, failed, cancelled]
- *     responses:
- *       200:
- *         description: Komut geçmişi başarıyla listelendi
- *       401:
- *         description: Yetkilendirme hatası
- *       403:
- *         description: Yetki hatası
- *       500:
- *         description: Sunucu hatası
- */
-router.get('/history', 
-  requireResourcePermission('runner', 'read'),
-  asyncHandler(async (req, res) => {
-    const limit = parseInt(req.query.limit as string) || 10;
-    const offset = parseInt(req.query.offset as string) || 0;
-    const status = req.query.status as string;
-    
-    // Kullanıcıya özel komut geçmişi
-    const query = {
-      userId: req.user?.id,
-      limit,
-      offset,
-      ...(status ? { status } : {})
-    };
-    
-    logger.info(`Komut geçmişi sorgulanıyor: ${JSON.stringify(query)}`);
-    
-    // Runner Service'den komut geçmişini al
-    const historyResult = await req.services?.runner.get('/api/history', query);
-    
-    res.json(historyResult);
-  })
-);
-
-/**
- * @swagger
- * /api/commands/archive/{commandId}:
- *   post:
- *     summary: Tamamlanan bir komutu arşivler
- *     tags: [Commands]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: commandId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               metadata:
- *                 type: object
- *     responses:
- *       200:
- *         description: Komut başarıyla arşivlendi
+ *         description: Cancellation request accepted
  *       400:
- *         description: Geçersiz istek
+ *         description: Invalid Command ID or command cannot be cancelled (e.g., already completed)
  *       401:
- *         description: Yetkilendirme hatası
+ *         description: Unauthorized
  *       403:
- *         description: Yetki hatası
+ *         description: Forbidden (user does not own the command)
  *       404:
- *         description: Komut bulunamadı
- *       500:
- *         description: Sunucu hatası
+ *         description: Command not found
  */
-router.post('/archive/:commandId', 
-  requireResourcePermission('archive', 'write'),
-  asyncHandler(async (req, res) => {
-    const commandId = req.params.commandId;
-    const { metadata = {} } = req.body;
-    
-    // Önce komut durumunu kontrol et
-    logger.info(`Arşivlenecek komut durumu sorgulanıyor: ${commandId}`);
-    const statusResult = await req.services?.runner.getCommandStatus(commandId);
-    
-    if (!statusResult) {
-      throw new NotFoundError('Komut bulunamadı');
+router.delete(
+  "/:commandId",
+  authenticateJWT,
+  [param("commandId").isUUID().withMessage("Invalid Command ID format")],
+  asyncHandler(async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
-    
-    if (statusResult.status !== 'completed') {
-      throw new BadRequestError('Sadece tamamlanan komutlar arşivlenebilir');
+
+    const userId = getUserId(req);
+    const { commandId } = req.params;
+
+    const cancelled = await commandService.cancelCommand(commandId, userId);
+
+    if (!cancelled) {
+      // Determine reason for failure (not found, forbidden, wrong state)
+      const command = await commandService.getCommandStatus(commandId, userId); // Re-fetch to check state/ownership
+      if (!command) {
+        return res.status(404).json({ success: false, message: "Command not found or access denied" });
+      } else if (command.status !== "pending" && command.status !== "running") {
+        return res.status(400).json({ success: false, message: `Command cannot be cancelled in state: ${command.status}` });
+      } else {
+        // Should not happen if cancelCommand logic is correct, but handle defensively
+        return res.status(500).json({ success: false, message: "Failed to cancel command" });
+      }
     }
-    
-    // Kullanıcı bilgilerini metadata'ya ekle
-    const archiveMetadata = {
-      ...metadata,
-      userId: req.user?.id,
-      username: req.user?.username,
-      archivedAt: new Date().toISOString()
-    };
-    
-    // Archive Service ile arşivle
-    logger.info(`Komut arşivleniyor: ${commandId}`);
-    const archiveResult = await req.services?.archive.archiveLastFile(
-      statusResult.lastFileId,
-      archiveMetadata
-    );
-    
-    res.json({
-      message: 'Komut başarıyla arşivlendi',
-      atlasFileId: archiveResult.atlasFileId
-    });
+
+    res.status(200).json({ success: true, message: "Command cancellation requested" });
   })
 );
 
 export default router;
+

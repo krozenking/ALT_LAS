@@ -242,6 +242,47 @@ export class AuthorizationService {
   }
 
   /**
+   * Bir rolün izinlerini günceller
+   * @param roleName Rol adı
+   * @param permissions Yeni izin listesi
+   */
+  updateRolePermissions(roleName: string, permissions: string[]): void {
+    const role = this.roles[roleName];
+    if (!role) {
+      logger.warn(`Rol bulunamadı: ${roleName}`);
+      throw new Error(`Rol bulunamadı: ${roleName}`); // Throw error for route handler
+    }
+
+    // İzinlerin geçerliliğini kontrol et
+    const validPermissions = permissions.filter(p => this.permissions[p]);
+    if (validPermissions.length !== permissions.length) {
+      const invalidPermissions = permissions.filter(p => !this.permissions[p]);
+      logger.warn(`Geçersiz izinler: ${invalidPermissions.join(", ")}`);
+      // Optionally throw an error or just use valid ones
+      throw new Error(`Geçersiz izinler: ${invalidPermissions.join(", ")}`);
+    }
+
+    role.permissions = validPermissions;
+    logger.info(`Rol izinleri güncellendi: ${roleName}`);
+  }
+
+  /**
+   * Bir rolün açıklamasını günceller
+   * @param roleName Rol adı
+   * @param description Yeni açıklama
+   */
+  updateRoleDescription(roleName: string, description: string): void {
+    const role = this.roles[roleName];
+    if (!role) {
+      logger.warn(`Rol bulunamadı: ${roleName}`);
+      throw new Error(`Rol bulunamadı: ${roleName}`); // Throw error for route handler
+    }
+
+    role.description = description;
+    logger.info(`Rol açıklaması güncellendi: ${roleName}`);
+  }
+
+  /**
    * Bir izni siler
    * @param permissionName İzin adı
    */

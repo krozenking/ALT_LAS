@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import logger from '../utils/logger';
-import { AppError, handleError } from '../utils/errors';
+import { Request, Response, NextFunction } from "express";
+import logger from "../utils/logger";
+import { AppError, handleError } from "../utils/errors";
+import { criticalErrorCounter } from "../utils/monitoring"; // Import the counter
 
 // Global hata işleme middleware'i
 export const errorHandler = (
@@ -13,7 +14,10 @@ export const errorHandler = (
   
   // Hata logla
   if (appError.statusCode >= 500) {
-    logger.error('Sunucu hatası', {
+    // Increment critical error counter for 5xx errors
+    criticalErrorCounter.labels(appError.name || "UnknownError", req.route?.path || req.path).inc();
+
+    logger.error("Sunucu hatası", {
       error: appError,
       stack: appError.stack,
       path: req.path,

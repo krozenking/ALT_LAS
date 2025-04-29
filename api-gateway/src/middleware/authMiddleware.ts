@@ -22,9 +22,12 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     const secret = process.env.JWT_SECRET || 'default_jwt_secret_change_in_production';
     const decoded = jwt.verify(token, secret) as { userId: string | number }; // Assume token contains userId
 
+    // Ensure userId is a string before passing to the service
+    const userIdAsString = String(decoded.userId);
+
     // Fetch detailed user info including roles and permissions from DB/service
     // This makes roles/permissions always up-to-date, not just snapshot from token creation time
-    const userDetails = await authService.getUserDetailsForAuth(decoded.userId); 
+    const userDetails = await authService.getUserDetailsForAuth(userIdAsString); 
     // getUserDetailsForAuth should return an object like { id, username, roles, permissions }
     // or throw an error if user not found/inactive
 

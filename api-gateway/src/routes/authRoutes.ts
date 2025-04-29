@@ -6,6 +6,8 @@ import { authenticateJWT } from '../middleware/authMiddleware'; // Removed autho
 import { BadRequestError, NotFoundError, UnauthorizedError, ForbiddenError } from '../utils/errors';
 import logger from '../utils/logger';
 import authService from '../services/authService';
+import jwtService from '../services/jwtService'; // Import jwtService
+import sessionService from '../services/sessionService'; // Import sessionService
 import authorizationService from '../services/authorizationService';
 import { routeAuthManager, authorizeRoute } from '../middleware/routeAuthMiddleware'; // Import authorizeRoute
 
@@ -193,7 +195,7 @@ router.post('/refresh-token', async (req: Request, res: Response, next: NextFunc
     }
 
     // Refresh token using authService (which uses sessionService and jwtService)
-    const newTokens = await authService.refreshToken(refreshToken);
+    const newTokens = await authService.refreshAccessToken(refreshToken);
 
     res.status(200).json({
       success: true,
@@ -281,10 +283,11 @@ router.get('/profile', authenticateJWT, async (req: Request, res: Response, next
     const userId = req.user?.id;
 
     if (!userId) {
-      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+      throw new UnauthorizedError("Kimlik doğrulaması gerekli");
     }
 
-    const user = await authService.getUserById(userId);
+    // Ensure userId is a string before passing to service
+    const user = await authService.getUserById(String(userId));
     if (!user) {
       throw new NotFoundError('Kullanıcı bulunamadı');
     }
@@ -337,11 +340,12 @@ router.put('/profile', authenticateJWT, async (req: Request, res: Response, next
     const userId = req.user?.id;
 
     if (!userId) {
-      throw new UnauthorizedError('Kimlik doğrulaması gerekli');
+      throw new UnauthorizedError("Kimlik doğrulaması gerekli");
     }
 
     const { firstName, lastName, email } = req.body;
-    const updatedUser = await authService.updateUser(userId, { firstName, lastName, email });
+    // Ensure userId is a string before passing to service
+    const updatedUser = await authService.updateUser(String(userId), { firstName, lastName, email });
 
     res.status(200).json({
       success: true,

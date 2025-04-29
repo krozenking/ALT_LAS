@@ -77,7 +77,13 @@ export class SwaggerService {
     };
 
     // YAML dosyası varsa, onu kullan
-    if (fs.existsSync(this.yamlPath)) {
+    // Validate yamlPath to prevent path traversal
+    const resolvedYamlPath = path.resolve(process.cwd(), this.yamlPath);
+    if (!resolvedYamlPath.startsWith(process.cwd())) {
+        logger.error(`Geçersiz YAML yolu algılandı: ${this.yamlPath}`);
+        throw new Error("Geçersiz YAML yolu");
+    }
+    if (fs.existsSync(resolvedYamlPath)) {
       try {
         const swaggerDocument = YAML.load(this.yamlPath);
         this.swaggerSpec = swaggerDocument;
@@ -136,10 +142,16 @@ export class SwaggerService {
    */
   saveSpecToFile(outputPath?: string): void {
     const filePath = outputPath || this.yamlPath;
+    // Validate filePath to prevent path traversal
+    const resolvedFilePath = path.resolve(process.cwd(), filePath);
+    if (!resolvedFilePath.startsWith(process.cwd())) {
+        logger.error(`Geçersiz çıktı yolu algılandı: ${filePath}`);
+        throw new Error("Geçersiz çıktı yolu");
+    }
     try {
       const yamlString = YAML.stringify(this.swaggerSpec, 10, 2);
-      fs.writeFileSync(filePath, yamlString, 'utf8');
-      logger.info(`Swagger şeması dosyaya kaydedildi: ${filePath}`);
+      fs.writeFileSync(resolvedFilePath, yamlString, 'utf8');
+      logger.info(`Swagger şeması dosyaya kaydedildi: ${resolvedFilePath}`);
     } catch (error) {
       logger.error(`Swagger şeması dosyaya kaydedilemedi: ${error}`);
     }

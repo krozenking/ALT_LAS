@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import logger from '../utils/logger';
 import jwtService from '../services/jwtService';
-import sessionService, { DeviceInfo } from '../services/sessionService';
+import sessionService, { DeviceInfo, SessionInfo } from '../services/sessionService'; // Import SessionInfo
 import authorizationService from '../services/authorizationService'; // Import authorizationService
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors';
 import crypto from 'crypto'; // For generating reset tokens
@@ -156,8 +156,9 @@ const validateRefreshToken = async (userId: string, refreshToken: string): Promi
 const invalidateRefreshToken = async (userId: string, refreshToken: string): Promise<void> => {
   try {
     sessionService.invalidateSessionByRefreshToken(refreshToken);
-  } catch (error) {
-    logger.warn(`Error invalidating refresh token via sessionService: ${error.message}`);
+  } catch (error: unknown) { // Catch unknown error type
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Error invalidating refresh token via sessionService: ${message}`);
   }
 };
 
@@ -168,8 +169,10 @@ const createSession = async (userId: string, sessionId: string, ipAddress: strin
   // This is a placeholder. Sessions are managed by sessionService.
   // A refresh token would typically be generated here and stored in the session.
   const refreshToken = jwtService.generateRefreshToken(userId); // Generate a token
-  sessionService.createSession(userId, refreshToken, { ipAddress, userAgent, id: sessionId });
-  logger.info(`Session created for user ${userId}, session ID: ${sessionId}`);
+  // Use ip instead of ipAddress based on DeviceInfo interface
+  // The session ID is generated within sessionService.createSession, so don't pass it here.
+  sessionService.createSession(userId, refreshToken, { ip: ipAddress, userAgent });
+  logger.info(`Session created for user ${userId}`); // Log without session ID as it's created internally
 };
 
 /**
@@ -177,10 +180,11 @@ const createSession = async (userId: string, sessionId: string, ipAddress: strin
  */
 const endSession = async (userId: string, sessionId: string): Promise<void> => {
   try {
-    sessionService.invalidateSessionById(sessionId);
-  } catch (error) {
-    logger.warn(`Error ending session ${sessionId} for user ${userId}: ${error.message}`);
-    throw new NotFoundError('Oturum bulunamadı veya zaten sonlandırılmış');
+    sessionService.invalidateSession(sessionId); // Use invalidateSession instead of invalidateSessionById
+  } catch (error: unknown) { // Catch unknown error type
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Error ending session ${sessionId} for user ${userId}: ${message}`);
+    throw new NotFoundError("Oturum bulunamadı veya zaten sonlandırılmış");
   }
 };
 
@@ -196,13 +200,14 @@ const endAllSessions = async (userId: string): Promise<void> => {
  * End all sessions for a user except the specified one.
  */
 const endAllSessionsExcept = async (userId: string, currentSessionId: string): Promise<void> => {
-  const sessions = sessionService.getUserSessions(userId);
-  sessions.forEach(session => {
+  const sessions = sessionService.getUserActiveSessions(userId); // Use getUserActiveSessions
+  sessions.forEach((session: SessionInfo) => { // Add type SessionInfo
     if (session.id !== currentSessionId) {
       try {
-        sessionService.invalidateSessionById(session.id);
-      } catch (error) {
-        logger.warn(`Error ending session ${session.id} for user ${userId}: ${error.message}`);
+        sessionService.invalidateSession(session.id); // Use invalidateSession
+      } catch (error: unknown) { // Catch unknown error type
+        const message = error instanceof Error ? error.message : String(error);
+        logger.warn(`Error ending session ${session.id} for user ${userId}: ${message}`);
       }
     }
   });
@@ -263,8 +268,8 @@ const getAllUsers = async (): Promise<Partial<User>[]> => {
 /**
  * Get user sessions.
  */
-const getUserSessions = async (userId: string): Promise<any[]> => {
-  return sessionService.getUserSessions(userId);
+const getUserSessions = async (userId: string): Promise<SessionInfo[]> => { // Use SessionInfo[]
+  return sessionService.getUserActiveSessions(userId); // Use getUserActiveSessions
 };
 
 /**
@@ -436,6 +441,65 @@ const updateUserPermissions = async (userId: string, permissions: string[]): Pro
 };
 
 /**
+ * Refresh access token using a refresh token.
+ */
+const refreshAccessToken = async (refreshToken: string): Promise<{ token: string }> => {
+  try {
+    // Validate the refresh token and get the associated session
+    const session = sessionService.getSessionByRefreshToken(refreshToken);
+    if (!session || session.expiresAt < new Date()) {
+      throw new UnauthorizedError("Geçersiz veya süresi dolmuş refresh token");
+    }
+
+    // Get user details to generate a new access token payload
+    const user = await getUserById(session.userId);
+    if (!user) {
+      throw new UnauthorizedError("Refresh token ile ilişkili kullanıcı bulunamadı");
+    }
+
+    // Generate a new access token
+    const tokenPayload = { userId: user.id, username: user.username, roles: user.roles, permissions: await getUserPermissions(user.id!) }; // Fetch fresh permissions
+    const newToken = jwtService.generateToken(tokenPayload);
+
+    logger.info(`Access token refreshed for user ${user.id}`);
+    return { token: newToken };
+
+  } catch (error) {
+    if (error instanceof UnauthorizedError || error instanceof NotFoundError) {
+      throw error;
+    }
+    logger.error("Error refreshing access token:", error);
+    throw new UnauthorizedError("Token yenilenirken hata oluştu");
+  }
+};
+
+/**
+ * Logout user: invalidate session and blacklist access token.
+ */
+const logout = async (accessToken: string, refreshToken: string): Promise<void> => {
+  try {
+    // Invalidate the session associated with the refresh token
+    sessionService.invalidateSessionByRefreshToken(refreshToken);
+    logger.info(`Session invalidated for refresh token.`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Error invalidating session during logout: ${message}`);
+    // Continue to blacklist access token even if session invalidation fails
+  }
+
+  try {
+    // Blacklist the access token
+    jwtService.blacklistToken(accessToken);
+    logger.info(`Access token blacklisted.`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`Error blacklisting access token during logout: ${message}`);
+    // Depending on policy, you might want to re-throw or just log
+  }
+};
+
+
+/**
  * Update user profile information.
  */
 const updateUser = async (userId: string, updateData: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'isActive'>>): Promise<Partial<User>> => {
@@ -523,6 +587,8 @@ export default {
   getUserPermissions,    // Exported for authRoutes (admin)
   updateUserPermissions, // Exported for authRoutes (admin)
   updateUser,            // Exported for authRoutes (profile & admin)
-  deleteUser             // Exported for authRoutes (admin)
+  deleteUser,            // Exported for authRoutes (admin)
+  refreshAccessToken,    // Exported for authRoutes
+  logout                 // Exported for authRoutes
 };
 

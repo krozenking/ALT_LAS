@@ -46,7 +46,7 @@ export const generateToken = (
       algorithm: config.algorithm,
       issuer: config.issuer,
       audience: config.audience
-    }
+    } as jwt.SignOptions // Add type assertion
   );
 };
 
@@ -63,14 +63,14 @@ export const generateRefreshToken = (
   const config = { ...defaultConfig, ...options };
   
   return jwt.sign(
-    { userId, type: 'refresh' },
+    { userId, type: "refresh" },
     config.secret,
     {
       expiresIn: config.refreshExpiresIn,
       algorithm: config.algorithm,
       issuer: config.issuer,
       audience: config.audience
-    }
+    } as jwt.SignOptions // Add type assertion
   );
 };
 
@@ -89,7 +89,7 @@ export const verifyToken = (
   try {
     // Token blacklist kontrolü
     if (tokenBlacklist.has(token)) {
-      throw new UnauthorizedError('Token geçersiz kılındı');
+      throw new UnauthorizedError("Token geçersiz kılındı");
     }
     
     return jwt.verify(token, config.secret, {
@@ -97,18 +97,21 @@ export const verifyToken = (
       issuer: config.issuer,
       audience: config.audience
     }) as jwt.JwtPayload;
-  } catch (error) {
+  } catch (error: unknown) { // Catch unknown error type
     if (error instanceof UnauthorizedError) {
       throw error;
     }
     
-    if (error.name === 'TokenExpiredError') {
-      throw new UnauthorizedError('Token süresi doldu');
-    } else if (error.name === 'JsonWebTokenError') {
-      throw new UnauthorizedError('Geçersiz token');
+    // Check if error is an object and has a name property before accessing it
+    const errorName = (typeof error === "object" && error !== null && "name" in error) ? (error as { name: string }).name : "UnknownError";
+
+    if (errorName === "TokenExpiredError") {
+      throw new UnauthorizedError("Token süresi doldu");
+    } else if (errorName === "JsonWebTokenError") {
+      throw new UnauthorizedError("Geçersiz token");
     } else {
-      logger.error('Token doğrulama hatası:', error);
-      throw new UnauthorizedError('Token doğrulama hatası');
+      logger.error("Token doğrulama hatası:", error);
+      throw new UnauthorizedError("Token doğrulama hatası");
     }
   }
 };
@@ -139,36 +142,13 @@ export const blacklistToken = (token: string): void => {
 };
 
 /**
- * JWT kimlik doğrulama middleware'i
+ * JWT kimlik doğrulama middleware'i - REMOVED as it conflicts with authMiddleware.ts
  */
+/*
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
-  // Authorization header'ını al
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    throw new UnauthorizedError('Yetkilendirme token\'ı bulunamadı');
-  }
-  
-  // Bearer token formatını kontrol et
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    throw new UnauthorizedError('Geçersiz token formatı');
-  }
-  
-  const token = parts[1];
-  
-  try {
-    // Token'ı doğrula
-    const decoded = verifyToken(token);
-    
-    // Kullanıcı bilgilerini request nesnesine ekle
-    req.user = decoded;
-    
-    next();
-  } catch (error) {
-    next(error);
-  }
+  // ... (implementation removed)
 };
+*/
 
 /**
  * Rol tabanlı yetkilendirme middleware'i
@@ -239,7 +219,8 @@ export const refreshAccessToken = (refreshToken: string): { token: string, refre
   }
 };
 
-// Request nesnesine user özelliği eklemek için type extension
+// Request nesnesine user özelliği eklemek için type extension - REMOVED as it conflicts with authMiddleware.ts
+/*
 declare global {
   namespace Express {
     interface Request {
@@ -247,13 +228,14 @@ declare global {
     }
   }
 }
+*/
 
 export default {
   generateToken,
   generateRefreshToken,
   verifyToken,
   blacklistToken,
-  authenticateJWT,
+  // authenticateJWT, // Removed as it conflicts with authMiddleware.ts
   authorize,
   refreshAccessToken
 };

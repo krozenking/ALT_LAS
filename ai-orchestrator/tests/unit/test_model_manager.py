@@ -7,10 +7,9 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
-from models.model_manager import ModelManager
-from models.llm.base import BaseLLMModel
+from src.models.model_manager import ModelManager
+from src.models.llm.base import BaseLLMModel
 
 
 class MockLLMModel(BaseLLMModel):

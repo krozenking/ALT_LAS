@@ -7,12 +7,11 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
-from models.llm.base import BaseLLMModel
-from models.llm.onnx_llm import ONNXLLMModel
-from models.llm.llama_cpp import LlamaCppModel
-from models.llm.ggml_model import GGMLModel
+from src.models.llm.base import BaseLLMModel
+from src.models.llm.onnx_llm import ONNXLLMModel
+from src.models.llm.llama_cpp import LlamaCppModel
+from src.models.llm.ggml_model import GGMLModel
 
 
 class TestBaseLLMModel(unittest.TestCase):

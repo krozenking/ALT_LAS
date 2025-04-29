@@ -27,7 +27,7 @@ class AIOrchestrator:
         # Log platform info using the client (Added by Worker 1)
         platform_info = self.os_client.get_platform_info()
         if platform_info:
-            logger.info(f"Detected Platform: {platform_info.get("os_name")} {platform_info.get("os_version")}")
+            logger.info(f"Detected Platform: {platform_info.get('os_name')} {platform_info.get('os_version')}")
         else:
             logger.warning("Could not retrieve platform info from OS Integration Service.")
 
@@ -36,7 +36,7 @@ class AIOrchestrator:
         logger.info(f"Received task: {task_description}")
 
         # --- OS Integration Example: Take screenshot before task (Added by Worker 1) ---
-        screenshot_path = f"/tmp/before_task_{task_description.replace(" ", "_")}.png"
+        screenshot_path = f"/tmp/before_task_{task_description.replace(' ', '_')}.png"
         screenshot_result = self.os_client.take_screenshot(output_path=screenshot_path)
         if screenshot_result:
             logger.info(f"Screenshot taken before task: {screenshot_path}")

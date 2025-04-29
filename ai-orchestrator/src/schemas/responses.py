@@ -105,4 +105,3 @@ class ModelLoadResponse(BaseResponse):
     success: bool = Field(..., description="Whether the loading was successful")
     message: str = Field(..., description="Status message")
     load_time: Optional[float] = Field(None, description="Time taken to load the model in seconds")
-"""

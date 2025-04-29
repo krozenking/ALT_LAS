@@ -8,6 +8,10 @@ export interface DragHandleProps extends BoxProps {
   onDragStart?: (e: React.MouseEvent) => void;
   onDrag?: (e: React.MouseEvent) => void;
   onDragEnd?: (e: React.MouseEvent) => void;
+  /**
+   * Accessible label for the drag handle
+   */
+  ariaLabel?: string;
 }
 
 export const DragHandle: React.FC<DragHandleProps> = ({
@@ -16,6 +20,7 @@ export const DragHandle: React.FC<DragHandleProps> = ({
   onDragStart,
   onDrag,
   onDragEnd,
+  ariaLabel,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -40,6 +45,29 @@ export const DragHandle: React.FC<DragHandleProps> = ({
           : { width: '5px', height: '24px' };
     }
   };
+
+  // Keyboard handlers
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      onDragStart?.(e as unknown as React.MouseEvent);
+    }
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      onDragEnd?.(e as unknown as React.MouseEvent);
+    }
+  };
+  
+  // Accessibility attributes
+  const accessibilityProps = {
+    role: 'button',
+    'aria-label': ariaLabel || `${orientation === 'horizontal' ? 'Horizontal' : 'Vertical'} drag handle`,
+    'aria-grabbed': false,
+    tabIndex: 0,
+  };
   
   return (
     <Box
@@ -54,22 +82,19 @@ export const DragHandle: React.FC<DragHandleProps> = ({
         bg: colorMode === 'light' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.4)',
         cursor: orientation === 'horizontal' ? 'grabbing' : 'col-resize',
       }}
+      _focus={{
+        boxShadow: 'outline',
+        outline: 'none',
+        bg: colorMode === 'light' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)',
+      }}
       onMouseDown={onDragStart}
       onMouseMove={onDrag}
       onMouseUp={onDragEnd}
       onMouseLeave={onDragEnd}
-      role="separator"
-      aria-orientation={orientation}
-      tabIndex={0}
-      aria-label={orientation === 'horizontal' ? "Horizontal drag handle" : "Vertical drag handle"}
-      aria-roledescription="Use arrow keys to move adjacent elements when focused"
-      onKeyDown={(e) => {
-        // TODO: Implement keyboard interaction logic
-        // e.g., check e.key for ArrowLeft/Right/Up/Down
-        // Call a parent handler to adjust layout based on orientation
-        console.log("DragHandle key down:", e.key);
-      }}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
       {...getSizeStyle()}
+      {...accessibilityProps}
       {...rest}
     />
   );

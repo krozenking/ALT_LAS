@@ -7,18 +7,18 @@ export interface CardProps extends BoxProps {
   variant?: 'glass' | 'glass-primary' | 'glass-secondary' | 'solid' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   isDisabled?: boolean;
-  isInteractive?: boolean; // Kept from HEAD, might be useful for click interactions
-  header?: React.ReactNode; // Renamed from 'title' in HEAD to match 4d81c5c
+  isInteractive?: boolean; // Can be clicked
+  header?: React.ReactNode;
   footer?: React.ReactNode;
-  onClick?: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent | React.KeyboardEvent) => void;
   headerProps?: BoxProps;
   bodyProps?: BoxProps;
   footerProps?: BoxProps;
-  headerLevel?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'; // From 4d81c5c
-  isHoverable?: boolean; // From 4d81c5c (redundant with isInteractive? Keep for now)
-  role?: string; // Allow overriding the default role (From 4d81c5c)
-  isFocusable?: boolean; // Add prop to make card focusable (From 4d81c5c)
-  'aria-label'?: string; // Explicit aria-label for accessibility (From 4d81c5c)
+  headerLevel?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  isHoverable?: boolean; // Apply hover effects
+  role?: string; // Allow overriding the default role
+  isFocusable?: boolean; // Add prop to make card focusable
+  'aria-label'?: string; // Explicit aria-label for accessibility
 }
 
 // Custom comparison function for memoization
@@ -48,7 +48,7 @@ const areEqual = (prevProps: CardProps, nextProps: CardProps) => {
     }
   }
 
-  // Deep comparison is expensive, so we'll assume complex props changed if they're provided
+  // Assume complex props changed if they're provided (shallow compare)
   if (
     (prevProps.header && !nextProps.header) ||
     (!prevProps.header && nextProps.header) ||
@@ -74,11 +74,11 @@ export const Card: React.FC<CardProps> = memo(({
   headerProps,
   bodyProps,
   footerProps,
-  headerLevel = 'h3', // Default header level (From 4d81c5c)
-  isHoverable = true, // Default from 4d81c5c
-  role = 'region', // Default role to region, suitable for landmark (From 4d81c5c)
-  isFocusable = false, // Default to not focusable (From 4d81c5c)
-  'aria-label': ariaLabel, // Destructure aria-label (From 4d81c5c)
+  headerLevel = 'h3', // Default header level
+  isHoverable = true, // Default hoverable
+  role: customRole, // Rename to avoid conflict with internal role variable
+  isFocusable = false, // Default to not focusable
+  'aria-label': ariaLabel, // Destructure aria-label
   ...rest
 }) => {
   const { colorMode } = useColorMode();
@@ -86,7 +86,7 @@ export const Card: React.FC<CardProps> = memo(({
   const headerId = useId();
   const contentId = useId();
 
-  // Apply glassmorphism effect based on color mode and variant (from HEAD, more detailed)
+  // Apply glassmorphism effect based on color mode and variant
   const getCardStyle = useCallback(() => {
     if (variant === 'glass') {
       return colorMode === 'light'
@@ -130,7 +130,7 @@ export const Card: React.FC<CardProps> = memo(({
     return {};
   }, [variant, colorMode]);
 
-  // Size styles - memoized (from HEAD)
+  // Size styles - memoized
   const sizeStyle = useMemo(() => {
     switch (size) {
       case 'sm':
@@ -143,7 +143,7 @@ export const Card: React.FC<CardProps> = memo(({
     }
   }, [size]);
 
-  // Disabled styles - memoized (from HEAD)
+  // Disabled styles - memoized
   const disabledStyle = useMemo(() => isDisabled ? {
     opacity: 0.6,
     cursor: 'not-allowed',
@@ -152,7 +152,7 @@ export const Card: React.FC<CardProps> = memo(({
     _focus: { boxShadow: 'none' }, // Prevent focus ring on disabled
   } : {}, [isDisabled]);
 
-  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized (from 4d81c5c, using isFocusable)
+  // Improved focus styles for better visibility (WCAG 2.1 AA compliance) - memoized
   const focusStyles = useMemo(() => !isDisabled && isFocusable ? {
     outline: 'none', // Remove default outline
     boxShadow: `0 0 0 3px ${colorMode === 'light' ? 'rgba(66, 153, 225, 0.6)' : 'rgba(99, 179, 237, 0.6)'}`, // Higher contrast focus ring
@@ -162,7 +162,7 @@ export const Card: React.FC<CardProps> = memo(({
   // Memoize card style to prevent recalculation on every render
   const cardStyle = useMemo(() => getCardStyle(), [getCardStyle]);
 
-  // Memoize hover and active styles with GPU acceleration (from HEAD, using isHoverable/isInteractive)
+  // Memoize hover and active styles with GPU acceleration
   const interactionStyles = useMemo(() => {
     if (!(isInteractive || isHoverable) || isDisabled) {
       return {};
@@ -196,10 +196,13 @@ export const Card: React.FC<CardProps> = memo(({
     };
   }, [isInteractive, isHoverable, isDisabled, prefersReducedMotion]);
 
-  // Apply GPU acceleration utilities (from HEAD)
+  // Apply GPU acceleration utilities
   const gpuAcceleration = animations.performanceUtils.forceGPU;
 
-  // Determine aria attributes based on header presence and provided aria-label (from 4d81c5c)
+  // Determine role
+  const role = isInteractive ? 'button' : (customRole || 'region');
+
+  // Determine aria attributes based on header presence and provided aria-label
   const ariaAttributes = useMemo(() => {
     // If an explicit aria-label is provided, use it
     if (ariaLabel) {
@@ -211,15 +214,31 @@ export const Card: React.FC<CardProps> = memo(({
       return { 'aria-labelledby': headerId };
     }
 
-    // If neither is present and the card is focusable, warn in development
-    if (isFocusable && !header && !ariaLabel && process.env.NODE_ENV !== 'production') {
+    // If neither is present and the card is focusable/interactive, warn in development
+    if ((isFocusable || isInteractive) && !header && !ariaLabel && process.env.NODE_ENV !== 'production') {
       console.warn(
-        'Warning: Focusable Card should have either a header or an explicit `aria-label` prop for accessibility.'
+        `Warning: ${isInteractive ? 'Interactive' : 'Focusable'} Card should have either a header or an explicit 
+        'aria-label' prop for accessibility.`
       );
     }
 
     return {};
-  }, [ariaLabel, header, headerId, isFocusable]);
+  }, [ariaLabel, header, headerId, isFocusable, isInteractive]);
+
+  // Handle click event with useCallback
+  const handleClick = useCallback((e: React.MouseEvent | React.KeyboardEvent) => {
+    if (!isDisabled && isInteractive && onClick) {
+      onClick(e);
+    }
+  }, [isDisabled, isInteractive, onClick]);
+
+  // Handle keydown event for Enter/Space activation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isDisabled && isInteractive && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      handleClick(e);
+    }
+  }, [isDisabled, isInteractive, handleClick]);
 
   return (
     <Box
@@ -228,25 +247,20 @@ export const Card: React.FC<CardProps> = memo(({
       transition={animations.createAdaptiveTransition(['transform', 'box-shadow', 'background', 'opacity'], 'normal', animations.easings.easeOut)}
       position="relative" // Ensure position context for focus styles
       tabIndex={(isInteractive || isFocusable) && !isDisabled ? 0 : undefined}
-      role={isInteractive ? 'button' : role} // Use 'button' if interactive, otherwise use role from props (default 'region')
+      role={role}
       aria-disabled={isDisabled}
-      // Apply focus styles using _focusVisible for better keyboard navigation experience (from 4d81c5c)
+      // Apply focus styles using _focusVisible for better keyboard navigation experience
       _focusVisible={{
         ...focusStyles
       }}
-      {...interactionStyles} // From HEAD
-      {...cardStyle} // Merged from getGlassStyle/getCardStyle
-      {...sizeStyle} // From HEAD
-      {...disabledStyle} // From HEAD
-      {...gpuAcceleration} // Apply GPU acceleration (from HEAD)
-      {...ariaAttributes} // Apply computed aria attributes (from 4d81c5c)
-      onClick={isInteractive && !isDisabled ? onClick : undefined} // From HEAD
-      onKeyDown={isInteractive && !isDisabled ? (e) => { // From HEAD
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick?.(e as any);
-        }
-      } : undefined}
+      {...interactionStyles}
+      {...cardStyle}
+      {...sizeStyle}
+      {...disabledStyle}
+      {...gpuAcceleration} // Apply GPU acceleration
+      {...ariaAttributes} // Apply computed aria attributes
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       {...rest}
     >
       {header && (
@@ -254,10 +268,10 @@ export const Card: React.FC<CardProps> = memo(({
           as="header"
           p={4}
           borderBottomWidth={1}
-          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'} // Style from 4d81c5c
+          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
           {...headerProps}
         >
-          {/* Render header content with proper semantics (from 4d81c5c) */}
+          {/* Render header content with proper semantics */}
           {typeof header === 'string' ? (
             <Heading as={headerLevel} size="md" id={headerId}>{header}</Heading>
           ) : (
@@ -269,9 +283,9 @@ export const Card: React.FC<CardProps> = memo(({
 
       <Box
         p={4}
-        flex="1" // From 4d81c5c
-        className="card-content" // From 4d81c5c
-        id={contentId} // From 4d81c5c
+        flex="1"
+        className="card-content"
+        id={contentId}
         {...bodyProps}
       >
         {children}
@@ -282,8 +296,8 @@ export const Card: React.FC<CardProps> = memo(({
           as="footer"
           p={4}
           borderTopWidth={1}
-          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'} // Style from 4d81c5c
-          className="card-footer" // From 4d81c5c
+          borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
+          className="card-footer"
           {...footerProps}
         >
           {footer}
@@ -297,3 +311,4 @@ export const Card: React.FC<CardProps> = memo(({
 Card.displayName = 'Card';
 
 export default Card;
+

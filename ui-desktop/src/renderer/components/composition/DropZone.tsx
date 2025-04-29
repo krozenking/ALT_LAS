@@ -9,7 +9,18 @@ export interface DropZoneProps extends BoxProps {
   onDrop?: (id: string, item: any) => void;
   isActive?: boolean;
   children?: React.ReactNode;
-  dropLabel?: string; // Custom label for the drop zone
+  /**
+   * Accessible label for the drop zone
+   */
+  ariaLabel?: string;
+  /**
+   * Description for screen readers about what can be dropped here
+   */
+  ariaDescription?: string;
+  /**
+   * Custom label for the drop zone visual text
+   */
+  dropLabel?: string;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({
@@ -17,18 +28,21 @@ export const DropZone: React.FC<DropZoneProps> = ({
   onDrop,
   isActive = false,
   children,
+  ariaLabel,
+  ariaDescription,
   dropLabel = "Paneli buraya sürükleyin", // Default label
   ...rest
 }) => {
   const { colorMode } = useColorMode();
   const dropZoneId = `dropzone-${id}`;
   const labelId = `${dropZoneId}-label`;
-  
+  const descriptionId = `${id}-description`;
+
   // Apply glassmorphism effect based on color mode
-  const glassStyle = colorMode === 'light' 
+  const glassStyle = colorMode === 'light'
     ? glassmorphism.create(0.4, 5, 1)
     : glassmorphism.createDark(0.4, 5, 1);
-  
+
   // Active state styles
   const activeStyle = isActive ? {
     borderColor: 'primary.500',
@@ -44,7 +58,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       zIndex: 1,
     }
   };
-  
+
   return (
     <Box
       id={dropZoneId}
@@ -62,6 +76,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       {...focusStyle}
       role="region" // Use region role for container
       aria-labelledby={labelId} // Reference the label ID
+      aria-describedby={ariaDescription ? descriptionId : undefined}
       aria-dropeffect={isActive ? "move" : "none"} // Indicate drop effect
       aria-busy={isActive} // Indicate busy state when active
       tabIndex={0} // Make focusable
@@ -69,12 +84,19 @@ export const DropZone: React.FC<DropZoneProps> = ({
     >
       {/* Hidden label for screen readers */}
       <VisuallyHidden id={labelId}>
-        {isActive ? "Bırakmak için hazır" : dropLabel}
+        {ariaLabel || (isActive ? "Bırakmak için hazır" : dropLabel)}
       </VisuallyHidden>
-      
+
+      {/* Optional hidden description */}
+      {ariaDescription && (
+        <VisuallyHidden id={descriptionId}>
+          {ariaDescription}
+        </VisuallyHidden>
+      )}
+
       {children || (
-        <Box 
-          textAlign="center" 
+        <Box
+          textAlign="center"
           color={colorMode === 'light' ? 'gray.500' : 'gray.400'}
           fontSize="sm"
           aria-hidden="true" // Hide visual text from screen readers since we have the visually hidden label
@@ -87,3 +109,4 @@ export const DropZone: React.FC<DropZoneProps> = ({
 };
 
 export default DropZone;
+

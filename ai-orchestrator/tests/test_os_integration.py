@@ -14,7 +14,7 @@ import time
 import base64
 
 from src.integration.os_integration import OSIntegrationManager
-from src.services.os_integration_enhanced import EnhancedOSIntegrationClient
+from src.integration.os_integration_enhanced import EnhancedOSIntegrationClient
 
 # Mock configuration for testing
 @pytest.fixture

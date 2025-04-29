@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useId, useState } from 'react';
 import { Box, BoxProps, useColorMode, Heading } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
 
@@ -10,9 +10,16 @@ export interface PanelProps extends BoxProps {
   isResizable?: boolean;
   minWidth?: string | number;
   minHeight?: string | number;
-  onDragStart?: (e: React.MouseEvent | React.TouchEvent) => void; // Allow touch events
-  onDragEnd?: (e: React.MouseEvent | React.TouchEvent) => void; // Allow touch events
-  // Add props for keyboard resizing if implemented later
+  onDragStart?: (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => void; // Allow touch and keyboard events
+  onDragEnd?: (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => void; // Allow touch and keyboard events
+  /**
+   * Accessible label for the panel when the title is not provided
+   */
+  ariaLabel?: string;
+  /**
+   * ID for the panel, used for aria-labelledby
+   */
+  id?: string; // Allow external ID override
 }
 
 export const Panel: React.FC<PanelProps> = ({
@@ -26,12 +33,16 @@ export const Panel: React.FC<PanelProps> = ({
   onDragStart,
   onDragEnd,
   children,
+  ariaLabel,
+  id: externalId,
   ...rest
 }) => {
   const { colorMode } = useColorMode();
-  const panelId = useId();
+  const generatedId = useId();
+  const panelId = externalId || generatedId;
   const headerId = title ? `${panelId}-header` : undefined;
   const contentId = `${panelId}-content`;
+  const [isDragging, setIsDragging] = useState(false);
 
   // Apply glassmorphism effect based on color mode
   const glassStyle = colorMode === 'light'
@@ -56,10 +67,37 @@ export const Panel: React.FC<PanelProps> = ({
     }
   } : {};
 
+  // Keyboard handlers for draggable header
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
+    if (!isDraggable) return;
+    setIsDragging(true);
+    onDragStart?.(e);
+  };
+
+  const handleDragEnd = (e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
+    if (!isDraggable || !isDragging) return;
+    setIsDragging(false);
+    onDragEnd?.(e);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isDraggable) return;
+    // Space or Enter to start/stop dragging
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      if (isDragging) {
+        handleDragEnd(e);
+      } else {
+        handleDragStart(e);
+      }
+    }
+    // TODO: Implement arrow key movement logic when dragging via keyboard
+  };
+
   return (
     <Box
       {...glassStyle}
-      {...focusStyle} // Apply focus style if panel becomes focusable
+      // {...focusStyle} // Only apply if panel itself needs focus
       display="flex"
       flexDirection="column"
       minWidth={minWidth}
@@ -67,8 +105,9 @@ export const Panel: React.FC<PanelProps> = ({
       position="relative"
       transition="all 0.2s ease-in-out"
       _hover={{ boxShadow: 'lg' }}
-      role="region" // Keep role as region
-      aria-labelledby={headerId} // Label panel by its header title
+      role="region"
+      aria-labelledby={headerId}
+      aria-label={!title && ariaLabel ? ariaLabel : undefined}
       id={panelId}
       {...rest}
     >
@@ -76,22 +115,25 @@ export const Panel: React.FC<PanelProps> = ({
       {(title || headerActions) && (
         <Box
           as="header"
+          id={headerId}
           display="flex"
           alignItems="center"
           justifyContent="space-between"
           p={2}
           borderBottom="1px solid"
           borderColor={colorMode === 'light' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}
-          cursor={isDraggable ? 'grab' : 'default'}
+          cursor={isDraggable ? (isDragging ? 'grabbing' : 'grab') : 'default'}
           userSelect="none"
-          onMouseDown={isDraggable ? onDragStart : undefined}
-          onMouseUp={isDraggable ? onDragEnd : undefined}
-          onTouchStart={isDraggable ? onDragStart : undefined} // Add touch support
-          onTouchEnd={isDraggable ? onDragEnd : undefined} // Add touch support
+          onMouseDown={isDraggable ? handleDragStart : undefined}
+          onMouseUp={isDraggable ? handleDragEnd : undefined}
+          onMouseLeave={isDraggable ? handleDragEnd : undefined} // End drag if mouse leaves header
+          onTouchStart={isDraggable ? handleDragStart : undefined} // Add touch support
+          onTouchEnd={isDraggable ? handleDragEnd : undefined} // Add touch support
+          onKeyDown={handleKeyDown} // Add keyboard support
           className="panel-header"
           tabIndex={isDraggable ? 0 : -1} // Make header focusable if draggable
-          aria-roledescription={isDraggable ? "draggable header, use arrow keys to move when focused" : undefined}
-          // TODO: Implement keyboard dragging logic (e.g., onKeyDown handler)
+          aria-roledescription={isDraggable ? "draggable header" : undefined}
+          aria-grabbed={isDraggable ? isDragging : undefined}
           {...headerFocusStyle} // Apply focus style to header
         >
           {title && (
@@ -105,17 +147,17 @@ export const Panel: React.FC<PanelProps> = ({
 
       {/* Panel Content */}
       <Box
+        id={contentId}
         flex="1"
         p={4}
         overflow="auto"
         className="panel-content"
-        id={contentId}
         role="document" // Role document might be appropriate for main content area
       >
         {children}
       </Box>
 
-      {/* Resize Handle (Visual Only - Needs Keyboard Implementation) */}
+      {/* Accessible Resize Handle Implementation Needed */}
       {isResizable && (
         <Box
           position="absolute"
@@ -125,7 +167,23 @@ export const Panel: React.FC<PanelProps> = ({
           height="15px"
           cursor="nwse-resize"
           className="resize-handle"
-          aria-hidden="true" // Hide visual handle from screen readers
+          role="button" // Use button role for interaction
+          aria-label="Resize panel" // Accessible label
+          tabIndex={0} // Make it focusable
+          _focus={{
+            outline: '2px solid',
+            outlineColor: 'primary.500',
+            zIndex: 1,
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              // TODO: Implement keyboard resize activation/logic
+              console.log('Activate resize mode');
+            }
+            // TODO: Implement arrow key resize logic
+          }}
+          // TODO: Add onMouseDown/onTouchStart for visual handle dragging
           _before={{
             content: '""',
             position: 'absolute',
@@ -139,7 +197,7 @@ export const Panel: React.FC<PanelProps> = ({
             opacity: 0.7,
           }}
         />
-        // TODO: Implement accessible resize handle (e.g., invisible button with keyboard controls)
+        // Consider using a dedicated library or more robust implementation for resizing
       )}
     </Box>
   );

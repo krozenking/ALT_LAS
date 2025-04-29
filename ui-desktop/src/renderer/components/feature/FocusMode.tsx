@@ -33,9 +33,21 @@ import {
   Stat,
   StatLabel,
   StatNumber,
+  StatHelpText,
   Divider,
-  useToast, // Added for notifications
-  Badge // Added for cycle display
+  useToast,
+  Badge,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel
 } from '@chakra-ui/react';
 import { animations } from '@/styles/animations';
 // Assuming a global store or context for managing focus state and notifications
@@ -57,6 +69,31 @@ const SESSIONS_BEFORE_LONG_BREAK = 4;
 // Type for session state
 type SessionType = 'work' | 'short-break' | 'long-break';
 
+// Interface for focus statistics
+interface FocusStats {
+  dailyCompleted: number;
+  weeklyCompleted: number;
+  totalCompleted: number;
+  lastSessionDate: string;
+  history: Array<{
+    date: string;
+    completed: number;
+    duration: number;
+  }>;
+}
+
+// Default stats
+const DEFAULT_STATS: FocusStats = {
+  dailyCompleted: 0,
+  weeklyCompleted: 0,
+  totalCompleted: 0,
+  lastSessionDate: '',
+  history: []
+};
+
+// LocalStorage key
+const FOCUS_STATS_KEY = 'alt_las_focus_stats';
+
 export const FocusMode: React.FC<FocusModeProps> = memo(() => {
   const { isOpen, onOpen, onClose, onToggle } = useDisclosure();
   const { colorMode } = useColorMode();
@@ -68,7 +105,46 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
   const [sessionType, setSessionType] = useState<SessionType>('work');
   const [workDuration, setWorkDuration] = useState(DEFAULT_WORK_DURATION); // Work duration setting
   const [timeLeft, setTimeLeft] = useState(DEFAULT_WORK_DURATION); // Time left in current session
-  const [completedSessions, setCompletedSessions] = useState(0); // Basic statistics
+  const [focusStats, setFocusStats] = useState<FocusStats>(DEFAULT_STATS);
+  const [showStats, setShowStats] = useState(false);
+
+  // Load stats from localStorage on component mount
+  useEffect(() => {
+    const loadStats = () => {
+      try {
+        const savedStats = localStorage.getItem(FOCUS_STATS_KEY);
+        if (savedStats) {
+          const parsedStats = JSON.parse(savedStats) as FocusStats;
+          
+          // Check if it's a new day and reset daily count if needed
+          const today = new Date().toISOString().split('T')[0];
+          if (parsedStats.lastSessionDate !== today) {
+            parsedStats.dailyCompleted = 0;
+            parsedStats.lastSessionDate = today;
+          }
+          
+          setFocusStats(parsedStats);
+        } else {
+          // Initialize with today's date
+          const today = new Date().toISOString().split('T')[0];
+          setFocusStats({
+            ...DEFAULT_STATS,
+            lastSessionDate: today
+          });
+        }
+      } catch (error) {
+        console.error('Error loading focus stats:', error);
+        // Initialize with today's date on error
+        const today = new Date().toISOString().split('T')[0];
+        setFocusStats({
+          ...DEFAULT_STATS,
+          lastSessionDate: today
+        });
+      }
+    };
+
+    loadStats();
+  }, []);
 
   // Access global state if needed (replace with actual implementation)
   // const { setFocusModeActive, filterNotifications } = useAppStore();
@@ -79,30 +155,78 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
     // TODO: Implement actual notification filtering logic via global state/service
   };
 
-  // Placeholder for saving stats
-  const saveFocusStats = (stats: { completed: number }) => {
-    console.log(`Placeholder: Saving focus stats - Completed: ${stats.completed}`);
-    // TODO: Implement logic to persist stats (e.g., localStorage, backend)
-  };
+  // Save stats to localStorage
+  const saveFocusStats = useCallback((stats: Partial<FocusStats>) => {
+    try {
+      const updatedStats = { ...focusStats, ...stats };
+      localStorage.setItem(FOCUS_STATS_KEY, JSON.stringify(updatedStats));
+      setFocusStats(updatedStats);
+    } catch (error) {
+      console.error('Error saving focus stats:', error);
+      toast({
+        title: "İstatistik Kaydetme Hatası",
+        description: "İstatistikler kaydedilirken bir hata oluştu.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }, [focusStats, toast]);
 
   // Function to start the next session (work or break)
   const startNextSession = useCallback(() => {
     let nextSessionType: SessionType;
     let nextDuration: number;
-    let sessionsCompleted = completedSessions;
-
+    
     if (sessionType === 'work') {
-      sessionsCompleted += 1;
-      setCompletedSessions(sessionsCompleted);
-      saveFocusStats({ completed: sessionsCompleted }); // Save stats
+      // Update stats when work session completes
+      const today = new Date().toISOString().split('T')[0];
+      const dailyCompleted = focusStats.dailyCompleted + 1;
+      const weeklyCompleted = focusStats.weeklyCompleted + 1;
+      const totalCompleted = focusStats.totalCompleted + 1;
+      
+      // Add to history
+      const historyEntry = {
+        date: today,
+        completed: 1,
+        duration: workDuration / 60 // in minutes
+      };
+      
+      // Merge with existing history entry for today if exists
+      const updatedHistory = [...focusStats.history];
+      const todayEntryIndex = updatedHistory.findIndex(entry => entry.date === today);
+      
+      if (todayEntryIndex >= 0) {
+        updatedHistory[todayEntryIndex] = {
+          ...updatedHistory[todayEntryIndex],
+          completed: updatedHistory[todayEntryIndex].completed + 1,
+          duration: updatedHistory[todayEntryIndex].duration + (workDuration / 60)
+        };
+      } else {
+        updatedHistory.push(historyEntry);
+      }
+      
+      // Keep only last 30 days in history
+      const limitedHistory = updatedHistory.slice(-30);
+      
+      // Save updated stats
+      saveFocusStats({
+        dailyCompleted,
+        weeklyCompleted,
+        totalCompleted,
+        lastSessionDate: today,
+        history: limitedHistory
+      });
 
-      if (sessionsCompleted % SESSIONS_BEFORE_LONG_BREAK === 0) {
+      // Determine next session type
+      if (dailyCompleted % SESSIONS_BEFORE_LONG_BREAK === 0) {
         nextSessionType = 'long-break';
         nextDuration = DEFAULT_LONG_BREAK;
       } else {
         nextSessionType = 'short-break';
         nextDuration = DEFAULT_SHORT_BREAK;
       }
+      
       toast({
         title: "Çalışma Seansı Tamamlandı!",
         description: `Şimdi ${nextDuration / 60} dakikalık bir mola zamanı.`,
@@ -128,7 +252,7 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
     setTimeLeft(nextDuration);
     filterNotifications(nextSessionType === 'work'); // Filter only during work sessions
 
-  }, [sessionType, workDuration, completedSessions, toast]);
+  }, [sessionType, workDuration, focusStats, saveFocusStats, toast]);
 
   // Timer logic using useInterval
   useInterval(() => {
@@ -218,6 +342,29 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
     }
   }, [isActive, sessionType]);
 
+  // Toggle stats view
+  const toggleStats = useCallback(() => {
+    setShowStats(prev => !prev);
+  }, []);
+
+  // Reset stats
+  const handleResetStats = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    saveFocusStats({
+      dailyCompleted: 0,
+      weeklyCompleted: 0,
+      totalCompleted: 0,
+      lastSessionDate: today,
+      history: []
+    });
+    toast({
+      title: "İstatistikler Sıfırlandı",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  }, [saveFocusStats, toast]);
+
   return (
     <Popover
       isOpen={isOpen}
@@ -242,17 +389,97 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
         </Tooltip>
       </PopoverTrigger>
       <PopoverContent
-        width="350px"
+        width={showStats ? "450px" : "350px"}
         bg={colorMode === 'light' ? 'white' : 'gray.800'}
         {...animations.presets.dropdown} // Apply dropdown animation
       >
         <PopoverArrow bg={colorMode === 'light' ? 'white' : 'gray.800'} />
         <PopoverCloseButton />
         <PopoverHeader fontWeight="bold">
-          {isActive ? `${label} Aktif` : "Odaklanma Modunu Ayarla"}
+          <Flex justify="space-between" align="center">
+            <Text>{isActive ? `${label} Aktif` : "Odaklanma Modunu Ayarla"}</Text>
+            <Button 
+              size="xs" 
+              variant="ghost" 
+              onClick={toggleStats}
+              leftIcon={<Box aria-hidden="true">{showStats ? '⏱️' : '📊'}</Box>}
+            >
+              {showStats ? 'Zamanlayıcı' : 'İstatistikler'}
+            </Button>
+          </Flex>
         </PopoverHeader>
         <PopoverBody>
-          {isActive ? (
+          {showStats ? (
+            <VStack spacing={4} align="stretch">
+              <Tabs variant="soft-rounded" colorScheme="purple" size="sm">
+                <TabList>
+                  <Tab>Özet</Tab>
+                  <Tab>Geçmiş</Tab>
+                </TabList>
+                <TabPanels>
+                  <TabPanel p={2}>
+                    <VStack spacing={4} align="stretch">
+                      <HStack justify="space-between">
+                        <Stat>
+                          <StatLabel>Bugün</StatLabel>
+                          <StatNumber>{focusStats.dailyCompleted}</StatNumber>
+                          <StatHelpText>Tamamlanan Seans</StatHelpText>
+                        </Stat>
+                        <Stat>
+                          <StatLabel>Bu Hafta</StatLabel>
+                          <StatNumber>{focusStats.weeklyCompleted}</StatNumber>
+                          <StatHelpText>Tamamlanan Seans</StatHelpText>
+                        </Stat>
+                        <Stat>
+                          <StatLabel>Toplam</StatLabel>
+                          <StatNumber>{focusStats.totalCompleted}</StatNumber>
+                          <StatHelpText>Tamamlanan Seans</StatHelpText>
+                        </Stat>
+                      </HStack>
+                      <Button 
+                        size="sm" 
+                        colorScheme="red" 
+                        variant="outline" 
+                        onClick={handleResetStats}
+                      >
+                        İstatistikleri Sıfırla
+                      </Button>
+                    </VStack>
+                  </TabPanel>
+                  <TabPanel p={2}>
+                    <Box maxH="200px" overflowY="auto">
+                      <Table size="sm" variant="simple">
+                        <Thead>
+                          <Tr>
+                            <Th>Tarih</Th>
+                            <Th isNumeric>Seans</Th>
+                            <Th isNumeric>Süre (dk)</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {focusStats.history.length > 0 ? (
+                            [...focusStats.history]
+                              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                              .map((entry, index) => (
+                                <Tr key={index}>
+                                  <Td>{entry.date}</Td>
+                                  <Td isNumeric>{entry.completed}</Td>
+                                  <Td isNumeric>{entry.duration}</Td>
+                                </Tr>
+                              ))
+                          ) : (
+                            <Tr>
+                              <Td colSpan={3} textAlign="center">Henüz kayıt yok</Td>
+                            </Tr>
+                          )}
+                        </Tbody>
+                      </Table>
+                    </Box>
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
+            </VStack>
+          ) : isActive ? (
             <VStack spacing={4} align="center">
               <CircularProgress
                 value={progressPercent}
@@ -270,8 +497,8 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
                  <Badge colorScheme={colorScheme}>{label}</Badge>
               </HStack>
               <Stat textAlign="center">
-                <StatLabel>Tamamlanan Çalışma Seansları</StatLabel>
-                <StatNumber>{completedSessions}</StatNumber>
+                <StatLabel>Bugün Tamamlanan Seanslar</StatLabel>
+                <StatNumber>{focusStats.dailyCompleted}</StatNumber>
               </Stat>
               <Button
                 colorScheme="red"
@@ -324,13 +551,12 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
               <Divider />
               <Stat textAlign="center">
                 <StatLabel>Bugün Tamamlanan Seanslar</StatLabel>
-                {/* TODO: Load stats from persistence */}
-                <StatNumber>{completedSessions}</StatNumber>
+                <StatNumber>{focusStats.dailyCompleted}</StatNumber>
               </Stat>
             </VStack>
           )}
         </PopoverBody>
-        {!isActive && (
+        {!isActive && !showStats && (
           <PopoverFooter borderTopWidth="1px" pt={4}>
             <Button
               colorScheme="purple"
@@ -349,4 +575,3 @@ export const FocusMode: React.FC<FocusModeProps> = memo(() => {
 FocusMode.displayName = 'FocusMode';
 
 export default FocusMode;
-

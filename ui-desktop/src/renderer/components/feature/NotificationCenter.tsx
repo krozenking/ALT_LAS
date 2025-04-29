@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Box, 
-  Flex, 
-  Heading, 
-  Text, 
-  useColorMode, 
-  Badge, 
+import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import {
+  Box,
+  Flex,
+  Heading,
+  Text,
+  useColorMode,
+  Badge,
   IconButton,
   Drawer,
   DrawerBody,
@@ -15,15 +15,14 @@ import {
   DrawerCloseButton,
   useDisclosure,
   VStack,
-  HStack,
   Divider,
   Button
 } from '@chakra-ui/react';
 import { glassmorphism } from '@/styles/theme';
-import { OptimizedAnimation } from '@/components/core/OptimizedAnimation';
 import { VirtualList } from '@/components/core/VirtualList';
+import { NotificationItem } from './NotificationItem'; // Import the memoized item component
 
-// Types for notifications
+// Types for notifications (can be moved to a types file)
 export interface Notification {
   id: string;
   title: string;
@@ -47,7 +46,23 @@ export interface NotificationCenterProps {
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
-export const NotificationCenter: React.FC<NotificationCenterProps> = ({
+// Helper function for position styles
+const getPositionStyles = (position: NotificationCenterProps['position']) => {
+  switch (position) {
+    case 'top-right':
+      return { top: 4, right: 4 };
+    case 'top-left':
+      return { top: 4, left: 4 };
+    case 'bottom-right':
+      return { bottom: 4, right: 4 };
+    case 'bottom-left':
+      return { bottom: 4, left: 4 };
+    default:
+      return { top: 4, right: 4 };
+  }
+};
+
+export const NotificationCenter: React.FC<NotificationCenterProps> = memo(({
   notifications = [],
   onNotificationRead,
   onNotificationClear,
@@ -57,18 +72,19 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const { colorMode } = useColorMode();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [groupedNotifications, setGroupedNotifications] = useState<Record<string, Notification[]>>({});
   const btnRef = useRef<HTMLButtonElement>(null);
-  
-  // Calculate unread count and group notifications
-  useEffect(() => {
-    // Count unread notifications
-    const count = notifications.filter(n => !n.isRead).length;
-    setUnreadCount(count);
-    
-    // Group notifications by category
-    const grouped = notifications.reduce((acc, notification) => {
+
+  // Memoize notifications prop to prevent unnecessary recalculations if the reference hasn't changed
+  const memoizedNotifications = useMemo(() => notifications, [notifications]);
+
+  // Calculate unread count using useMemo
+  const unreadCount = useMemo(() => {
+    return memoizedNotifications.filter(n => !n.isRead).length;
+  }, [memoizedNotifications]);
+
+  // Group and sort notifications using useMemo
+  const groupedNotifications = useMemo(() => {
+    const grouped = memoizedNotifications.reduce((acc, notification) => {
       const category = notification.category;
       if (!acc[category]) {
         acc[category] = [];
@@ -76,199 +92,65 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       acc[category].push(notification);
       return acc;
     }, {} as Record<string, Notification[]>);
-    
+
     // Sort notifications within each group by priority and timestamp
     Object.keys(grouped).forEach(category => {
       grouped[category].sort((a, b) => {
-        // First by priority (urgent > high > medium > low)
         const priorityOrder = { urgent: 3, high: 2, medium: 1, low: 0 };
         const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
         if (priorityDiff !== 0) return priorityDiff;
-        
-        // Then by timestamp (newest first)
-        return b.timestamp.getTime() - a.timestamp.getTime();
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(); // Ensure Date objects are used for comparison
       });
     });
-    
-    setGroupedNotifications(grouped);
-  }, [notifications]);
-  
-  // Handle notification click
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead && onNotificationRead) {
-      onNotificationRead(notification.id);
+
+    return grouped;
+  }, [memoizedNotifications]);
+
+  // Memoize callback functions
+  const handleNotificationRead = useCallback((id: string) => {
+    if (onNotificationRead) {
+      onNotificationRead(id);
     }
-  };
-  
-  // Get position styles
-  const getPositionStyles = () => {
-    switch (position) {
-      case 'top-right':
-        return { top: 4, right: 4 };
-      case 'top-left':
-        return { top: 4, left: 4 };
-      case 'bottom-right':
-        return { bottom: 4, right: 4 };
-      case 'bottom-left':
-        return { bottom: 4, left: 4 };
-      default:
-        return { top: 4, right: 4 };
+  }, [onNotificationRead]);
+
+  const handleNotificationClear = useCallback((id: string) => {
+    if (onNotificationClear) {
+      onNotificationClear(id);
     }
-  };
-  
-  // Get category color
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'info':
-        return 'blue';
-      case 'success':
-        return 'green';
-      case 'warning':
-        return 'orange';
-      case 'error':
-        return 'red';
-      case 'system':
-        return 'purple';
-      default:
-        return 'gray';
+  }, [onNotificationClear]);
+
+  const handleClearAll = useCallback(() => {
+    if (onClearAll) {
+      onClearAll();
     }
-  };
-  
-  // Get priority indicator
-  const getPriorityIndicator = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return { color: 'red', label: 'Urgent' };
-      case 'high':
-        return { color: 'orange', label: 'High' };
-      case 'medium':
-        return { color: 'yellow', label: 'Medium' };
-      case 'low':
-        return { color: 'green', label: 'Low' };
-      default:
-        return { color: 'gray', label: 'Normal' };
-    }
-  };
-  
-  // Render notification item
-  const renderNotificationItem = (notification: Notification, index: number) => {
-    const categoryColor = getCategoryColor(notification.category);
-    const priorityInfo = getPriorityIndicator(notification.priority);
-    
-    return (
-      <OptimizedAnimation 
-        key={notification.id}
-        animationType="fade"
-        duration={0.3}
-        delay={index * 0.05}
-      >
-        <Box
-          p={3}
-          mb={2}
-          borderRadius="md"
-          bg={colorMode === 'light' 
-            ? 'rgba(255, 255, 255, 0.8)' 
-            : 'rgba(26, 32, 44, 0.8)'
-          }
-          boxShadow="sm"
-          borderLeft="4px solid"
-          borderLeftColor={`${categoryColor}.500`}
-          opacity={notification.isRead ? 0.7 : 1}
-          _hover={{ 
-            transform: 'translateY(-2px)',
-            boxShadow: 'md',
-            opacity: 1
-          }}
-          transition="all 0.2s"
-          onClick={() => handleNotificationClick(notification)}
-          role="listitem"
-          aria-label={`${notification.title} notification`}
-        >
-          <Flex justify="space-between" align="center" mb={1}>
-            <Heading size="xs" fontWeight="bold">
-              {notification.title}
-            </Heading>
-            <HStack spacing={1}>
-              {!notification.isRead && (
-                <Badge 
-                  colorScheme="blue" 
-                  variant="solid" 
-                  fontSize="2xs"
-                  borderRadius="full"
-                  px={1}
-                >
-                  New
-                </Badge>
-              )}
-              <Badge 
-                colorScheme={priorityInfo.color} 
-                variant="subtle"
-                fontSize="2xs"
-              >
-                {priorityInfo.label}
-              </Badge>
-            </HStack>
-          </Flex>
-          
-          <Text fontSize="sm" mb={2}>
-            {notification.message}
-          </Text>
-          
-          <Flex justify="space-between" align="center">
-            <Text fontSize="xs" color="gray.500">
-              {new Date(notification.timestamp).toLocaleString()}
-            </Text>
-            
-            {notification.actions && notification.actions.length > 0 && (
-              <HStack spacing={1}>
-                {notification.actions.map((action, idx) => (
-                  <Button 
-                    key={idx}
-                    size="xs"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      action.action();
-                    }}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </HStack>
-            )}
-            
-            {onNotificationClear && (
-              <IconButton
-                aria-label="Clear notification"
-                icon={<span>×</span>}
-                size="xs"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNotificationClear(notification.id);
-                }}
-              />
-            )}
-          </Flex>
-        </Box>
-      </OptimizedAnimation>
-    );
-  };
-  
+  }, [onClearAll]);
+
+  // Memoize the renderItem function for VirtualList
+  const renderItem = useCallback((notification: Notification, index: number) => (
+    <NotificationItem
+      notification={notification}
+      index={index}
+      onRead={handleNotificationRead}
+      onClear={handleNotificationClear}
+    />
+  ), [handleNotificationRead, handleNotificationClear]);
+
+  const positionStyles = useMemo(() => getPositionStyles(position), [position]);
+
   return (
     <>
       {/* Notification Bell Button */}
       <Box
         position="fixed"
         zIndex={1000}
-        {...getPositionStyles()}
+        {...positionStyles}
       >
         <Button
           ref={btnRef}
           onClick={onOpen}
           position="relative"
           aria-label={`Open notification center. ${unreadCount} unread notifications.`}
-          {...(colorMode === 'light' 
+          {...(colorMode === 'light'
             ? glassmorphism.create(0.7, 8, 1)
             : glassmorphism.createDark(0.7, 8, 1)
           )}
@@ -293,7 +175,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           )}
         </Button>
       </Box>
-      
+
       {/* Notification Drawer */}
       <Drawer
         isOpen={isOpen}
@@ -308,11 +190,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           <DrawerHeader>
             <Flex justify="space-between" align="center">
               <Heading size="md">Notifications</Heading>
-              {notifications.length > 0 && onClearAll && (
-                <Button 
-                  size="sm" 
+              {memoizedNotifications.length > 0 && onClearAll && (
+                <Button
+                  size="sm"
                   variant="ghost"
-                  onClick={onClearAll}
+                  onClick={handleClearAll}
                   aria-label="Clear all notifications"
                 >
                   Clear All
@@ -320,13 +202,13 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               )}
             </Flex>
           </DrawerHeader>
-          
+
           <DrawerBody>
-            {notifications.length === 0 ? (
-              <Flex 
-                direction="column" 
-                align="center" 
-                justify="center" 
+            {memoizedNotifications.length === 0 ? (
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
                 height="100%"
                 opacity={0.7}
               >
@@ -340,12 +222,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       {category} ({categoryNotifications.length})
                     </Heading>
                     <Divider mb={2} />
-                    
+
                     <VirtualList
                       items={categoryNotifications}
-                      itemHeight={120} // Approximate height of each notification
-                      renderItem={renderNotificationItem}
-                      height={Math.min(categoryNotifications.length * 120, 400)}
+                      itemHeight={120} // Adjust if NotificationItem height changes
+                      renderItem={renderItem}
+                      height={Math.min(categoryNotifications.length * 120, 400)} // Limit height per category
                       width="100%"
                       overscan={2}
                     />
@@ -358,6 +240,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       </Drawer>
     </>
   );
-};
+});
+
+NotificationCenter.displayName = 'NotificationCenter';
 
 export default NotificationCenter;
+

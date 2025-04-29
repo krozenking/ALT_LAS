@@ -1,227 +1,170 @@
-import React, { memo, useMemo, useCallback } from 'react';
-import { 
-  Box, 
-  Flex, 
-  Text, 
-  IconButton, 
-  useColorMode, 
-  Badge, 
-  HStack, 
-  CloseButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem
+import React, { memo, useCallback } from 'react';
+import {
+  Box,
+  Flex,
+  Heading,
+  Text,
+  useColorMode,
+  Badge,
+  IconButton,
+  HStack,
+  Button
 } from '@chakra-ui/react';
-import { animations } from '@/styles/animations';
+import { OptimizedAnimation } from '@/components/core/OptimizedAnimation';
+import type { Notification } from './NotificationCenter'; // Import type
 
-// Notification types
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'task';
-export type NotificationPriority = 'low' | 'medium' | 'high';
+// Helper functions (moved from NotificationCenter)
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case 'info':
+      return 'blue';
+    case 'success':
+      return 'green';
+    case 'warning':
+      return 'orange';
+    case 'error':
+      return 'red';
+    case 'system':
+      return 'purple';
+    default:
+      return 'gray';
+  }
+};
 
-// Notification object interface
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: NotificationType;
-  priority: NotificationPriority;
-  timestamp: Date;
-  read: boolean;
-  snoozedUntil?: Date; // Add optional snooze timestamp
-  actions?: {
-    label: string;
-    onClick: () => void;
-  }[];
-}
+const getPriorityIndicator = (priority: string) => {
+  switch (priority) {
+    case 'urgent':
+      return { color: 'red', label: 'Urgent' };
+    case 'high':
+      return { color: 'orange', label: 'High' };
+    case 'medium':
+      return { color: 'yellow', label: 'Medium' };
+    case 'low':
+      return { color: 'green', label: 'Low' };
+    default:
+      return { color: 'gray', label: 'Normal' };
+  }
+};
 
-// NotificationItem properties
 interface NotificationItemProps {
   notification: Notification;
-  onDismiss: (id: string) => void;
-  onMarkAsRead?: (id: string) => void;
-  onActionClick?: (id: string, actionIndex: number) => void;
-  onSnooze?: (id: string, duration: number) => void; // Add snooze handler prop
+  index: number;
+  onRead: (id: string) => void;
+  onClear: (id: string) => void;
 }
-
-// Helper to get icon based on type
-const getNotificationIcon = (type: NotificationType): string => {
-  switch (type) {
-    case 'success': return '✅';
-    case 'warning': return '⚠️';
-    case 'error': return '❌';
-    case 'task': return '⏳';
-    case 'info':
-    default: return 'ℹ️';
-  }
-};
-
-// Helper to get color scheme based on type
-const getNotificationColorScheme = (type: NotificationType): string => {
-  switch (type) {
-    case 'success': return 'green';
-    case 'warning': return 'orange';
-    case 'error': return 'red';
-    case 'task': return 'blue';
-    case 'info':
-    default: return 'gray';
-  }
-};
-
-// Helper to format timestamp
-const formatTimestamp = (date: Date): string => {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) {
-    return 'Şimdi';
-  } else if (diffInSeconds < 3600) {
-    const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} dk önce`;
-  } else if (diffInSeconds < 86400) {
-    const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} sa önce`;
-  } else {
-    return date.toLocaleDateString(); // Older than a day, show date
-  }
-};
 
 export const NotificationItem: React.FC<NotificationItemProps> = memo(({
   notification,
-  onDismiss,
-  onMarkAsRead,
-  onActionClick
+  index,
+  onRead,
+  onClear
 }) => {
   const { colorMode } = useColorMode();
+  const categoryColor = getCategoryColor(notification.category);
+  const priorityInfo = getPriorityIndicator(notification.priority);
 
-  const icon = useMemo(() => getNotificationIcon(notification.type), [notification.type]);
-  const colorScheme = useMemo(() => getNotificationColorScheme(notification.type), [notification.type]);
-  const timestampText = useMemo(() => formatTimestamp(notification.timestamp), [notification.timestamp]);
-
-  const handleDismiss = useCallback(() => {
-    onDismiss(notification.id);
-  }, [notification.id, onDismiss]);
-
-  const handleMarkAsRead = useCallback(() => {
-    if (onMarkAsRead) {
-      onMarkAsRead(notification.id);
+  const handleItemClick = useCallback(() => {
+    if (!notification.isRead) {
+      onRead(notification.id);
     }
-  }, [notification.id, onMarkAsRead]);
+  }, [notification.isRead, notification.id, onRead]);
 
-  const handleAction = useCallback((index: number) => {
-    if (onActionClick) {
-      onActionClick(notification.id, index);
-    }
-  }, [notification.id, onActionClick]);
+  const handleClearClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClear(notification.id);
+  }, [notification.id, onClear]);
 
-  const handleSnooze = useCallback((duration: number) => {
-    if (onSnooze) {
-      onSnooze(notification.id, duration);
-    }
-  }, [notification.id, onSnooze]);
-
-  const itemBg = colorMode === 'light' ? 'white' : 'gray.700';
-  const itemHoverBg = colorMode === 'light' ? 'gray.50' : 'gray.600';
-  const unreadBg = colorMode === 'light' ? `${colorScheme}.50` : `${colorScheme}.900`;
-  const unreadHoverBg = colorMode === 'light' ? `${colorScheme}.100` : `${colorScheme}.800`;
+  const handleActionClick = useCallback((e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  }, []);
 
   return (
-    <Box
-      p={3}
-      mb={2}
-      borderRadius="md"
-      bg={notification.read ? itemBg : unreadBg}
-      borderWidth="1px"
-      borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'}
-      boxShadow="sm"
-      _hover={{ bg: notification.read ? itemHoverBg : unreadHoverBg }}
-      transition={animations.createAdaptiveTransition(['background-color', 'box-shadow'], 'fast')}
-      position="relative"
-      role="listitem"
-      aria-labelledby={`notification-title-${notification.id}`}
-      aria-describedby={`notification-message-${notification.id}`}
-      {...animations.performanceUtils.forceGPU}
+    <OptimizedAnimation
+      animationType="fade"
+      duration={0.3}
+      delay={index * 0.05}
     >
-      <Flex align="flex-start">
-        <Box fontSize="xl" mr={3} mt={1} aria-hidden="true">{icon}</Box>
-        <Box flex="1">
-          <Flex justifyContent="space-between" alignItems="center" mb={1}>
-            <HStack>
-              <Text fontWeight="bold" id={`notification-title-${notification.id}`}>{notification.title}</Text>
-              {notification.priority === 'high' && <Badge colorScheme='red' variant='solid' fontSize='xs'>Yüksek</Badge>}
-              {notification.priority === 'medium' && <Badge colorScheme='orange' variant='solid' fontSize='xs'>Orta</Badge>}
-            </HStack>
-            <Text fontSize="xs" color="gray.500">{timestampText}</Text>
-          </Flex>
-          <Text fontSize="sm" color={colorMode === 'light' ? 'gray.700' : 'gray.300'} id={`notification-message-${notification.id}`}>
-            {notification.message}
-          </Text>
-          {(notification.actions && notification.actions.length > 0) && (
-            <HStack mt={2} spacing={2}>
-              {notification.actions.map((action, index) => (
-                <Badge
-                  key={index}
-                  as="button"
-                  variant="subtle"
-                  colorScheme={colorScheme}
-                  onClick={() => handleAction(index)}
-                  px={2}
-                  py={1}
-                  borderRadius="md"
-                  fontSize="xs"
-                  cursor="pointer"
-                  _hover={{ bg: `${colorScheme}.200` }}
-                  aria-label={`${action.label}: ${notification.title}`}
-                >
-                  {action.label}
-                </Badge>
-              ))}
-            </HStack>
-          )}
-        </Box>
-        <Flex direction="column" ml={2}>
-          <CloseButton 
-            size="sm" 
-            onClick={handleDismiss} 
-            aria-label="Bildirimi kapat"
-            mb={1}
-          />
-          {onSnooze && (
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                aria-label="Bildirimi ertele"
-                icon={<Box fontSize="xs">⏰</Box>}
-                variant="ghost"
-                size="sm"
-              />
-              <MenuList minWidth="120px">
-                <MenuItem onClick={() => handleSnooze(5 * 60)}>5 dakika</MenuItem>
-                <MenuItem onClick={() => handleSnooze(15 * 60)}>15 dakika</MenuItem>
-                <MenuItem onClick={() => handleSnooze(60 * 60)}>1 saat</MenuItem>
-              </MenuList>
-            </Menu>
-          )}
+      <Box
+        p={3}
+        mb={2}
+        borderRadius="md"
+        bg={colorMode === 'light'
+          ? 'rgba(255, 255, 255, 0.8)'
+          : 'rgba(26, 32, 44, 0.8)'
+        }
+        boxShadow="sm"
+        borderLeft="4px solid"
+        borderLeftColor={`${categoryColor}.500`}
+        opacity={notification.isRead ? 0.7 : 1}
+        _hover={{
+          transform: 'translateY(-2px)',
+          boxShadow: 'md',
+          opacity: 1
+        }}
+        transition="all 0.2s"
+        onClick={handleItemClick}
+        role="listitem"
+        aria-label={`${notification.title} notification`}
+        cursor="pointer"
+      >
+        <Flex justify="space-between" align="center" mb={1}>
+          <Heading size="xs" fontWeight="bold">
+            {notification.title}
+          </Heading>
+          <HStack spacing={1}>
+            {!notification.isRead && (
+              <Badge
+                colorScheme="blue"
+                variant="solid"
+                fontSize="2xs"
+                borderRadius="full"
+                px={1}
+              >
+                New
+              </Badge>
+            )}
+            <Badge
+              colorScheme={priorityInfo.color}
+              variant="subtle"
+              fontSize="2xs"
+            >
+              {priorityInfo.label}
+            </Badge>
+          </HStack>
         </Flex>
-      </Flex>
-      {!notification.read && onMarkAsRead && (
-        <Box 
-          as="button"
-          position="absolute"
-          bottom="8px"
-          right="8px"
-          width="10px"
-          height="10px"
-          borderRadius="full"
-          bg={`${colorScheme}.500`}
-          onClick={handleMarkAsRead}
-          aria-label="Okundu olarak işaretle"
-          title="Okundu olarak işaretle"
-          _hover={{ transform: 'scale(1.2)' }}
-          transition="transform 0.1s ease-out"
-        />
-      )}
-    </Box>
+
+        <Text fontSize="sm" mb={2}>
+          {notification.message}
+        </Text>
+
+        <Flex justify="space-between" align="center">
+          <Text fontSize="xs" color="gray.500">
+            {new Date(notification.timestamp).toLocaleString()}
+          </Text>
+
+          <HStack spacing={1}>
+            {notification.actions?.map((action, idx) => (
+              <Button
+                key={idx}
+                size="xs"
+                variant="ghost"
+                onClick={(e) => handleActionClick(e, action.action)}
+              >
+                {action.label}
+              </Button>
+            ))}
+            <IconButton
+              aria-label="Clear notification"
+              icon={<span>×</span>}
+              size="xs"
+              variant="ghost"
+              onClick={handleClearClick}
+            />
+          </HStack>
+        </Flex>
+      </Box>
+    </OptimizedAnimation>
   );
 });
 

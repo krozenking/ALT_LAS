@@ -1,13 +1,15 @@
 # İşçi 8: Güvenlik ve DevOps Uzmanı - Görev Listesi
 
+**Note:** Following the deletion of all non-main branches (Apr 30, 2025), tasks previously marked as complete based on work in those branches have been reset to incomplete `[ ]`. All future work must be done directly on the `main` branch.
+
 ## Yeni Görevler
 ### Yüksek Öncelikli
-- [x] **Docker Güvenlik Taraması CI/CD Entegrasyonu**: Docker güvenlik taramasını CI/CD pipeline'ına entegre etme
-  - [x] Trivy entegrasyonu
-  - [x] Hadolint entegrasyonu
-  - [x] Dockle entegrasyonu
-  - [x] Docker Bench Security entegrasyonu
-  - [x] CI/CD pipeline yapılandırması (GitHub Actions oluşturuldu)
+- [ ] **Docker Güvenlik Taraması CI/CD Entegrasyonu**: Docker güvenlik taramasını CI/CD pipeline'ına entegre etme
+  - [ ] Trivy entegrasyonu
+  - [ ] Hadolint entegrasyonu
+  - [ ] Dockle entegrasyonu
+  - [ ] Docker Bench Security entegrasyonu
+  - [ ] CI/CD pipeline yapılandırması (GitHub Actions oluşturuldu - *main üzerinde doğrulanmalı*)
 
 ### Orta Öncelikli
 - [ ] **Tüm Ortamlarda Güvenli Dockerfile Uygulaması**: Güvenli Dockerfile'ların tüm ortamlarda uygulanması
@@ -26,26 +28,29 @@
   - [ ] Denetim otomasyonu
 
 ## Mevcut Kalan Görevler
-### Docker Güvenlik İyileştirmeleri (%25)- [x] Kalan servislerin güvenli Dockerfile'larının oluşturulması (%10) (AI Orchestrator, Segmentation, API Gateway, Archive, Runner)- [x] Docker Compose güvenlik yapılandırması (%5) (docker-compose.secure.yml oluşturuldu)
-- [x] Docker ağ güvenliği iyileştirmeleri (%5) (docs/docker_network_volume_security.md oluşturuldu)- [x] Docker volume güvenliği (%5) (docs/docker_network_volume_security.md oluşturuldu)
-### Kubernetes Entegrasyonu (%25)
-- [ ] Kubernetes güvenlik politikaları (%10)
-- [ ] Pod güvenlik bağlamları (%5)
-- [ ] Network policy yapılandırması (%5)
-- [ ] Secret yönetimi (%5)
+### Docker Güvenlik İyileştirmeleri (%0)
+- [ ] Kalan servislerin güvenli Dockerfile'larının oluşturulması (AI Orchestrator, Segmentation, API Gateway, Archive, Runner)
+- [ ] Docker Compose güvenlik yapılandırması (docker-compose.secure.yml oluşturuldu - *main üzerinde doğrulanmalı*)
+- [ ] Docker ağ güvenliği iyileştirmeleri (docs/docker_network_volume_security.md oluşturuldu - *main üzerinde doğrulanmalı*)
+- [ ] Docker volume güvenliği (docs/docker_network_volume_security.md oluşturuldu - *main üzerinde doğrulanmalı*)
+### Kubernetes Entegrasyonu (%0)
+- [ ] Kubernetes güvenlik politikaları
+- [ ] Pod güvenlik bağlamları
+- [ ] Network policy yapılandırması
+- [ ] Secret yönetimi
 
-### CI/CD Güvenliği (%20)
-- [ ] Pipeline güvenlik kontrolleri (%5)
-- [ ] Kod analizi entegrasyonu (%5)
-- [ ] Güvenlik testleri otomasyonu (%5)
-- [ ] Dağıtım güvenliği (%5)
+### CI/CD Güvenliği (%0)
+- [ ] Pipeline güvenlik kontrolleri
+- [ ] Kod analizi entegrasyonu
+- [ ] Güvenlik testleri otomasyonu
+- [ ] Dağıtım güvenliği
 
-### Dokümantasyon ve Eğitim (%10)
-- [ ] Güvenlik en iyi uygulamaları dokümantasyonu (%5)
-- [ ] DevOps ekibi için güvenlik eğitim materyalleri (%5)
+### Dokümantasyon ve Eğitim (%0)
+- [ ] Güvenlik en iyi uygulamaları dokümantasyonu
+- [ ] DevOps ekibi için güvenlik eğitim materyalleri
 
 ## Sonraki Adım
-Docker güvenlik taramasının CI/CD pipeline'ına entegrasyonu ve kalan servislerin güvenli Dockerfile'larının oluşturulması
+Görevlerin `main` dalı üzerindeki durumunu gözden geçirip yeniden önceliklendirme.
 
 ## İlerleme Takip Notu
 
@@ -74,3 +79,11 @@ Tüm işçilerin, kendi görevlerindeki ilerlemeyi düzenli olarak doğrulamalar
 - **%100**: Tüm özellikler tamamlanmış, testler geçilmiş, dokümantasyon güncel
 
 Bu doğrulama süreci, projenin şeffaf ve doğru bir şekilde ilerlemesini sağlamak için tüm işçiler tarafından düzenli olarak uygulanmalıdır.
+
+## Yeni Çalışma Kuralları (30 Nisan 2025 itibarıyla)
+
+- **Tüm geliştirme işlemleri doğrudan `main` dalı üzerinde yapılacaktır.**
+- **Yeni geliştirme dalları (feature branches) oluşturulmayacaktır.**
+- Tüm değişiklikler küçük, mantıksal commit'ler halinde doğrudan `main` dalına push edilecektir.
+- Bu kural, proje genelinde dallanma karmaşıklığını azaltmak ve sürekli entegrasyonu teşvik etmek amacıyla getirilmiştir.
+

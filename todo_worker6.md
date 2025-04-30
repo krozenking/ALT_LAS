@@ -2,6 +2,8 @@
 
 Based on the project documentation (`updated_worker_tasks.md` and `os-integration-service/README.md`), the following tasks are identified for Worker 6:
 
+**Note:** Following the deletion of all non-main branches (Apr 30, 2025), all future work must be done directly on the `main` branch.
+
 ## 1. Refine Platform Integrations (Weeks 3-8 Focus)
 - [ ] **Windows Integration:** Verify and complete implementation for:
   - [ ] Filesystem access (beyond basic read/write, e.g., monitoring, metadata, NTFS specifics).
@@ -40,4 +42,11 @@ Based on the project documentation (`updated_worker_tasks.md` and `os-integratio
     - [ ] Automated multi-platform builds (Windows, macOS, Linux).
     - [ ] Automated testing across platforms.
     - [ ] Secure deployment strategies (if applicable).
+
+## Yeni Çalışma Kuralları (30 Nisan 2025 itibarıyla)
+
+- **Tüm geliştirme işlemleri doğrudan `main` dalı üzerinde yapılacaktır.**
+- **Yeni geliştirme dalları (feature branches) oluşturulmayacaktır.**
+- Tüm değişiklikler küçük, mantıksal commit'ler halinde doğrudan `main` dalına push edilecektir.
+- Bu kural, proje genelinde dallanma karmaşıklığını azaltmak ve sürekli entegrasyonu teşvik etmek amacıyla getirilmiştir.
 

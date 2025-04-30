@@ -63,3 +63,50 @@ Bu doğrultuda, aşağıdaki **adım adım manuel birleştirme ve çakışma ç�
 
 Bu planın uygulanabilmesi için kullanıcı onayı gerekmektedir.
 
+
+
+
+## 7. Birleştirme vs. Yeniden Yazma Değerlendirmesi
+
+**Analiz:**
+
+`git diff --stat` komutu ile yapılan analiz, birleştirilmesi hedeflenen dalların karmaşıklığını ortaya koymuştur:
+
+- **Yüksek Karmaşıklık / Büyük Değişiklikler:**
+    - `origin/ai-orchestrator-implementation`: Çok sayıda yeni dosya ve binlerce satır ekleme (AI Orchestrator servisi).
+    - `origin/devdebug/partial-merge-state`: Birden fazla serviste (API Gateway, Archive Service) önemli değişiklikler.
+    - `origin/fix-pr-20`: UI tarafında (ui-desktop) binlerce satır ekleme/çıkarma.
+    - `origin/isci5-ui-gelistirme`: UI tarafında (ui-desktop) binlerce satır ekleme/çıkarma.
+    - `origin/worker4/backup-retention-features`: Archive Service üzerinde önemli değişiklikler.
+    - `origin/worker4/elasticsearch-integration`: Archive Service ve UI tarafında önemli değişiklikler.
+- **Düşük Karmaşıklık / Fark Yok:**
+    - `origin/integration/worker9-merge`
+    - `origin/ui-accessibility-improvements`
+    - `origin/update-dependencies`
+
+İlk birleştirme denemesinde (`ai-orchestrator-implementation`) karşılaşılan çok sayıda çakışma, bu yüksek karmaşıklığı teyit etmektedir.
+
+**Seçenekler:**
+
+1.  **Birleştirme:**
+    *   **Artıları:** Git geçmişini korur, mevcut çalışmayı kullanır, çakışmalar yönetilebilirse daha hızlı olabilir.
+    *   **Eksileri:** Çok yüksek çakışma riski, çakışma çözümünün aşırı zaman alıcı ve hataya açık olması (özellikle farklı servisler ve diller arası), entegrasyonun çok zorlu olması bekleniyor.
+2.  **Yeniden Yazma:**
+    *   **Artıları:** Karmaşık çakışmalardan kaçınır, en güncel `main` dalı üzerine temiz bir başlangıç sağlar, tutarlılık ve kalite kontrolü daha kolay olabilir.
+    *   **Eksileri:** Orijinal geliştirme geçmişini kaybeder, önemli miktarda işlevselliğin (binlerce satır) yeniden yazılmasını gerektirir, zaman alıcı olabilir, orijinal implementasyondaki detayların kaçırılma riski vardır.
+
+**Değerlendirme ve Öneri:**
+
+Özellikle `ai-orchestrator-implementation`, `fix-pr-20`, `isci5-ui-gelistirme` gibi dallardaki değişikliklerin büyüklüğü ve birden fazla servisi etkilemesi göz önüne alındığında, **birleştirme işleminin aşırı derecede karmaşık, zaman alıcı ve riskli olması kuvvetle muhtemeldir.** Tüm bu dalları sırayla birleştirmeye çalışmak, çözülmesi çok zor veya imkansız çakışmalara yol açabilir.
+
+Bu nedenle, **yeniden yazma yaklaşımı daha yönetilebilir ve öngörülebilir görünmektedir.** Yüksek karmaşıklıktaki dallarda bulunan özelliklerin, en güncel `main` dalı temel alınarak, ilgili işçiler (örn. İşçi 10, İşçi 5, İşçi 4, İşçi 7) tarafından yeniden implemente edilmesi önerilir. Farklılık göstermeyen dallar (`integration/worker9-merge`, `ui-accessibility-improvements`, `update-dependencies`) ise güvenle silinebilir.
+
+Bu yaklaşım, geliştirme eforu gerektirse de, büyük ölçekli ve kontrolü zor bir birleştirme sürecinin risklerinden kaçınmayı sağlayacaktır.
+
+**Önerilen Yeni Strateji:**
+
+1.  İşçi 9, **birleştirme işlemini YAPMAYACAKTIR.**
+2.  İşçi 9, fark göstermeyen dalları (`integration/worker9-merge`, `ui-accessibility-improvements`, `update-dependencies`) silecektir.
+3.  Yüksek karmaşıklıktaki dallarda (`ai-orchestrator-implementation`, `devdebug/partial-merge-state`, `fix-pr-20`, `isci5-ui-gelistirme`, `worker4/backup-retention-features`, `worker4/elasticsearch-integration`) bulunan özelliklerin, ilgili işçiler (İşçi 10, 5, 4, 7 vb.) tarafından `main` dalı üzerine yeniden yazılması için görevlendirme yapılmalıdır. Bu dallar referans olarak korunabilir ancak `main` ile birleştirilmemelidir.
+4.  İşçi 9, bu yeni stratejiyi dokümante edip (bu dosyanın güncellenmiş hali) onay aldıktan sonra sadece fark göstermeyen dalları silme işlemini yapacaktır.
+

@@ -105,3 +105,29 @@
 ---
 
 *Son Güncelleme Tarihi: 30 Nisan 2025*
+
+
+
+### Piece Framework Dokümantasyonu (Görev 9.5)
+
+İş akışı motorunun temel yapı taşlarından biri "Piece" (Parça) framework'üdür. Bu framework, iş akışlarındaki her bir düğümün (node) işlevselliğini tanımlamak için kullanılır. Her Piece, belirli bir görevi yerine getiren (örneğin, bir HTTP isteği göndermek, bir kodu çalıştırmak, bir olayı tetiklemek) bağımsız bir modüldür.
+
+**Temel Kavramlar:**
+
+*   **`Piece` Sınıfı (`src/pieces/base.py`):** Tüm Piece'ler için soyut (abstract) temel sınıftır. Yeni bir Piece oluşturmak için bu sınıftan kalıtım alınmalıdır.
+*   **`__init__(self, node: Node)`:** Piece örneği oluşturulurken çağrılır. İlgili iş akışı düğümünün (`Node`) tanımını alır ve yapılandırmayı (`config`) saklar.
+*   **`execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]`:** Piece'in ana mantığının yürütüldüğü soyut metottur. Girdi verilerini alır ve işlenmiş çıktı verilerini döndürür. Her alt sınıf bu metodu kendi mantığına göre implemente etmelidir.
+*   **`get_config_schema(cls) -> Dict[str, Any]`:** Piece'in yapılandırma (`config`) parametreleri için JSON şemasını döndüren sınıf metodudur. Bu, UI tarafında veya doğrulama için kullanılabilir.
+*   **`get_input_schema(cls) -> Dict[str, Any]`:** Piece'in `execute` metodu için beklediği girdi verisinin JSON şemasını döndüren sınıf metodudur.
+*   **`get_output_schema(cls) -> Dict[str, Any]`:** Piece'in `execute` metodundan döndüreceği çıktı verisinin JSON şemasını döndüren sınıf metodudur.
+*   **Registry (`src/engine/registry.py`):** Kullanılabilir tüm Piece sınıflarını kaydeder ve yönetir. İş akışı motoru, bir düğümü yürütmesi gerektiğinde ilgili Piece sınıfını registry üzerinden bulur.
+
+**Yeni Bir Piece Oluşturma:**
+
+1.  `src/pieces/` dizini altında uygun bir dosyada (veya yeni bir dosyada) `Piece` sınıfından kalıtım alan yeni bir sınıf oluşturun.
+2.  `execute` metodunu implemente ederek Piece'in ana iş mantığını yazın.
+3.  Gerekirse `get_config_schema`, `get_input_schema`, ve `get_output_schema` metodlarını override ederek ilgili JSON şemalarını tanımlayın.
+4.  Oluşturduğunuz Piece sınıfını `src/main.py` içerisindeki `lifespan` fonksiyonunda registry'ye kaydedin (`piece_registry.register("benzersiz_piece_tipi", YeniPieceSinifi)`).
+
+Bu framework, iş akışı motoruna kolayca yeni işlevsellikler eklemeyi sağlar.
+

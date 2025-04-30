@@ -6,3 +6,5 @@ sqlalchemy[asyncio]
 alembic
 pydantic-settings
 aiosqlite # Using SQLite for development
+
+loguru

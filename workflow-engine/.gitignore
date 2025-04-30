@@ -5,3 +5,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+alt_las_workflow.db # Ignore the SQLite database file
+logs/ # Ignore log directory if created
+.env # Ignore environment variables file
+

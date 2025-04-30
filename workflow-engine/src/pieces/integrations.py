@@ -3,7 +3,7 @@ import httpx # Assuming services communicate via HTTP
 from .base import Piece
 from ..models.workflow import Node
 
-# TODO: Get service URLs from configuration/environment variables
+from ..config import settings # Import settings
 AI_ORCHESTRATOR_URL = "http://ai-orchestrator:8000" # Example URL
 OS_INTEGRATION_URL = "http://os-integration-service:8000" # Example URL
 
@@ -17,7 +17,7 @@ class AiOrchestrator(Piece):
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Sends data to the AI Orchestrator and returns the response."""
-        target_url = f"{AI_ORCHESTRATOR_URL}{self.endpoint}"
+        target_url = f"{settings.AI_ORCHESTRATOR_URL}{self.endpoint}"
         print(f"Executing AiOrchestrator for node {self.node.id} to {target_url}")
 
         try:
@@ -83,7 +83,7 @@ class OsIntegration(Piece):
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Sends data to the OS Integration service and returns the response."""
-        target_url = f"{OS_INTEGRATION_URL}{self.endpoint}"
+        target_url = f"{settings.OS_INTEGRATION_URL}{self.endpoint}"
         print(f"Executing OsIntegration for node {self.node.id} to {target_url}")
 
         try:

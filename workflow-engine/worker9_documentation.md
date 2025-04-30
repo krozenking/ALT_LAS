@@ -11,25 +11,25 @@
 - **Görev 9.1 (Kısmi):** Mimari Seçimlerin İyileştirilmesi (Veritabanı)
   - Tamamlanma Tarihi: 30 Nisan 2025
   - Açıklama: Workflow Engine için veritabanı katmanı tasarlandı. SQLAlchemy ORM ve Alembic migration aracı seçildi. Başlangıçta PostgreSQL hedeflenmişti ancak geliştirme ortamındaki Docker kısıtlamaları nedeniyle geçici olarak SQLite veritabanına geçildi (`aiosqlite` sürücüsü ile).
-  - İlgili Commit(ler): [Henüz commit edilmedi]
+  - İlgili Commit(ler): 89b7ac7
   - Karşılaşılan Zorluklar ve Çözümler: Geliştirme ortamında Docker servisinin başlatılamaması nedeniyle PostgreSQL kullanılamadı. Çözüm olarak, geliştirme sürecini aksatmamak adına SQLite veritabanına geçildi.
 
-- **Görev 9.4 (Kısmi):** Workflow Yürütme Kalıcılığının Uygulanması (Temel Kurulum)
+- **Görev 9.4 (Kısmi):** Workflow Yürütme Kalıcılığının Uygulanması (Temel Kurulum ve Entegrasyon)
   - Tamamlanma Tarihi: 30 Nisan 2025
-  - Açıklama: SQLAlchemy kullanılarak `WorkflowDefinitionDB` ve `WorkflowRunDB` veritabanı modelleri oluşturuldu. Alembic ile ilk veritabanı migration'ı oluşturuldu ve uygulandı. Temel CRUD işlemleri için test script'i (`test_db.py`) yazılarak veritabanı katmanının çalıştığı doğrulandı.
+  - Açıklama: SQLAlchemy kullanılarak `WorkflowDefinitionDB` ve `WorkflowRunDB` veritabanı modelleri oluşturuldu. Alembic ile ilk veritabanı migration'ı oluşturuldu ve uygulandı. Temel CRUD işlemleri için test script'i (`test_db.py`) yazılarak veritabanı katmanının çalıştığı doğrulandı. Ardından, bu kalıcılık katmanı `WorkflowExecutor`'a entegre edildi; workflow ve node durumları artık veritabanına kaydediliyor.
+  - İlgili Commit(ler): 89b7ac7, [Henüz commit edilmedi]
+  - Karşılaşılan Zorluklar ve Çözümler: Alembic'in async sürücü ile kullanımı için `env.py` dosyasında düzenlemeler yapıldı. `pydantic-settings` bağımlılığı eklendi. Veritabanı güncellemeleri için `session.merge()` kullanıldı.
+
+- **Görev 9.3 (Kısmi):** Çekirdek Workflow Yürütme Mantığının Geliştirilmesi
+  - Tamamlanma Tarihi: 30 Nisan 2025
+  - Açıklama: `WorkflowExecutor`'a veritabanı kalıcılığı entegre edildi. Adımlar için yapılandırılabilir yeniden deneme (retry) mekanizması eklendi (varsayılan 3 deneme, 5sn bekleme). `asyncio.Semaphore` kullanılarak eş zamanlı çalıştırılabilecek node sayısı sınırlandırılarak paralel yürütme mantığı iyileştirildi (varsayılan 5). Temel testler (`test_executor.py`) ile bu geliştirmeler doğrulandı.
   - İlgili Commit(ler): [Henüz commit edilmedi]
-  - Karşılaşılan Zorluklar ve Çözümler: Alembic'in async sürücü (asyncpg/aiosqlite) ile kullanımı için `env.py` dosyasında düzenlemeler yapılması gerekti. `pydantic-settings` bağımlılığı eksikti, eklendi.
+  - Karşılaşılan Zorluklar ve Çözümler: Paralel yürütme ve veritabanı işlemlerinin uyumlu çalışması için dikkatli `asyncio` yönetimi gerekti. Test sırasında çeşitli import ve syntax hataları düzeltildi.
 
 ### Devam Eden Görevler
-- **Görev 9.3 (Kısmi):** Çekirdek Workflow Yürütme Mantığının Geliştirilmesi (Kalıcılık Entegrasyonu)
+- **Görev 9.3 (Devamı):** Çekirdek Workflow Yürütme Mantığının Geliştirilmesi
   - Başlangıç Tarihi: 30 Nisan 2025
-  - Mevcut Durum: %10 - Veritabanı katmanı hazırlandı, şimdi executor koduna entegre edilecek (TODO yorumları).
-  - Planlanan Tamamlanma Tarihi: [Tahmini tarih]
-  - Karşılaşılan Zorluklar: [Varsa]
-
-- **Görev 9.4 (Kısmi):** Workflow Yürütme Kalıcılığının Uygulanması (Entegrasyon)
-  - Başlangıç Tarihi: 30 Nisan 2025
-  - Mevcut Durum: %40 - Veritabanı modelleri ve migration tamamlandı, test edildi. Şimdi executor ile entegrasyon yapılacak.
+  - Mevcut Durum: %70 - Kalıcılık, retry ve paralel yürütme eklendi. Node'lar için gelişmiş input toplama (multiple inputs, handles) mantığı eksik.
   - Planlanan Tamamlanma Tarihi: [Tahmini tarih]
   - Karşılaşılan Zorluklar: [Varsa]
 
@@ -75,6 +75,8 @@
 - ORM Seçimi: Asenkron yetenekleri ve yaygın kullanımı nedeniyle SQLAlchemy (asyncio extension ile) tercih edildi.
 - Migration Yönetimi: SQLAlchemy ile entegrasyonu ve şema evrimini yönetme yetenekleri nedeniyle Alembic seçildi.
 - Veritabanı Modelleri: Pydantic modellerinden ayrı olarak SQLAlchemy modelleri (`db_models.py`) oluşturuldu. Bu, veritabanı şeması ile API/iş mantığı modelleri arasında bir ayrım sağlar. Pydantic modelleri, veritabanına kaydedilirken JSON formatına dönüştürülmektedir.
+- Paralel Yürütme: `asyncio.Semaphore` kullanılarak aynı anda çalıştırılabilecek node sayısı sınırlandırıldı (varsayılan 5). Bu, kaynak kullanımını kontrol altında tutarken paralelliği sağlar.
+- Hata Yönetimi: Node'lar için yapılandırılabilir yeniden deneme (retry) mekanizması eklendi.
 
 ### API Dokümantasyonu
 - Henüz API endpointleri eklenmemiştir.
@@ -90,12 +92,15 @@
 
 ## Notlar ve Öneriler
 - Geliştirme ortamında PostgreSQL yerine SQLite kullanılması geçici bir çözümdür. Üretim ortamı için PostgreSQL altyapısı ve konfigürasyonu ayrıca planlanmalıdır.
-- `executor.py` içerisindeki veritabanı etkileşimleri için bırakılan `TODO` yorumları bir sonraki adımda ele alınacaktır.
+- `executor.py` içerisindeki veritabanı etkileşimleri (durum güncellemeleri, node çıktıları) artık uygulanmıştır.
+- Paralel yürütme için `max_concurrent_nodes` ve adımlar için `max_retries`, `retry_delay_seconds` gibi ayarlar node config üzerinden yapılandırılabilir.
+- Test (`test_executor.py`) sırasında veritabanı temizleme adımında (`cleanup_test_data`) "database is closed" hatası alındı. Bu, ana yürütme mantığını etkilemese de ileride incelenmelidir.
 
 ## Sonraki Adımlar
-- Veritabanı kalıcılığını `WorkflowExecutor` içerisine entegre etmek (Görev 9.3 ve 9.4 devamı).
-- Executor mantığını iyileştirmek (paralel yürütme, hata yönetimi).
+- Node'lar için gelişmiş input toplama mantığını uygulamak (multiple inputs, handles) (Görev 9.3 devamı).
 - API endpointlerini (CRUD, execution, monitoring) tasarlamak ve uygulamak (Görev 9.9).
+- Workflow izleme ve loglama mekanizmalarını detaylandırmak (Görev 9.10).
+- Daha kapsamlı unit ve entegrasyon testleri yazmak (Görev 9.11 devamı).
 
 ---
 

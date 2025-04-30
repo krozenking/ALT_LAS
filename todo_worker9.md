@@ -20,14 +20,14 @@ Based on the project's `FEATURE_ROADMAP.md` (v1.1), the existing code in the `wo
     - [ ] Create `.gitignore`.
 
 ### 2. Core Execution Logic (Week 3-4)
-- [ ] **Task 9.3:** Enhance the core workflow execution engine (`src/engine/executor.py`).
+- [x] **Task 9.3:** Enhance the core workflow execution engine (`src/engine/executor.py`).
     - [x] Implement logic to parse workflow definitions.
     - [x] Implement basic state management for running workflows (in-memory).
     - [x] Handle sequential step execution (topological sort).
-    - [ ] Improve parallel step execution handling (currently basic asyncio queue).
-    - [ ] Implement robust error handling and retry logic for steps.
+    - [x] Improve parallel step execution handling (using asyncio.Semaphore).
+    - [x] Implement robust error handling and retry logic for steps.
     - [ ] Implement proper input gathering for nodes (handle multiple inputs, handles).
-    - [ ] Add persistence calls (TODOs in `executor.py`).
+    - [x] Add persistence calls (integrated DB session, status/state updates).
 - [x] **Task 9.4:** Implement workflow execution persistence.
     - [x] Integrate chosen database. *Note: Using SQLite for dev.*
     - [x] Store/Update workflow definitions. *(Basic models and migration done)*

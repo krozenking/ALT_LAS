@@ -45,3 +45,13 @@
 
 *Son Güncelleme Tarihi: 30 Nisan 2025*
 
+
+
+
+## Yeni Çalışma Kuralları (30 Nisan 2025 itibarıyla)
+
+- **Tüm geliştirme işlemleri doğrudan `main` dalı üzerinde yapılacaktır.**
+- **Yeni geliştirme dalları (feature branches) oluşturulmayacaktır.**
+- Tüm değişiklikler küçük, mantıksal commit'ler halinde doğrudan `main` dalına push edilecektir.
+- Bu kural, proje genelinde dallanma karmaşıklığını azaltmak ve sürekli entegrasyonu teşvik etmek amacıyla getirilmiştir.
+

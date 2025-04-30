@@ -1,97 +1,67 @@
 # İşçi Dokümantasyon Şablonu
 
 ## Genel Bilgiler
-- **İşçi Numarası**: [İşçi numaranızı yazın, örn: İşçi 6]
-- **Sorumluluk Alanı**: [Sorumluluk alanınızı yazın, örn: OS Entegrasyon Uzmanı]
-- **Başlangıç Tarihi**: [Projeye başlangıç tarihinizi yazın]
+- **İşçi Numarası**: [İşçi Numarası]
+- **Sorumluluk Alanı**: [Sorumluluk Alanı]
+- **Başlangıç Tarihi**: [Başlangıç Tarihi]
 
 ## Görevler ve İlerleme Durumu
 
 ### Tamamlanan Görevler
-- [Tamamlanan görev 1]
+- **Görev [Numara]:** [Görev Açıklaması]
   - Tamamlanma Tarihi: [Tarih]
-  - Açıklama: [Görevin detaylı açıklaması]
-  - İlgili Commit(ler): [Commit ID'leri ve açıklamaları]
-  - Karşılaşılan Zorluklar ve Çözümler: [Varsa]
-
-- [Tamamlanan görev 2]
-  - Tamamlanma Tarihi: [Tarih]
-  - Açıklama: [Görevin detaylı açıklaması]
-  - İlgili Commit(ler): [Commit ID'leri ve açıklamaları]
+  - Açıklama: [Detaylı Açıklama]
+  - İlgili Commit(ler): [Commit ID(ler)]
   - Karşılaşılan Zorluklar ve Çözümler: [Varsa]
 
 ### Devam Eden Görevler
-- [Devam eden görev 1]
+- **Görev [Numara]:** [Görev Açıklaması]
   - Başlangıç Tarihi: [Tarih]
-  - Mevcut Durum: [% olarak tamamlanma oranı ve açıklama]
-  - Planlanan Tamamlanma Tarihi: [Tarih]
-  - Karşılaşılan Zorluklar: [Varsa]
-
-- [Devam eden görev 2]
-  - Başlangıç Tarihi: [Tarih]
-  - Mevcut Durum: [% olarak tamamlanma oranı ve açıklama]
-  - Planlanan Tamamlanma Tarihi: [Tarih]
+  - Mevcut Durum: [% Tamamlanma Oranı] - [Kısa Durum Özeti]
+  - Planlanan Tamamlanma Tarihi: [Tahmini Tarih]
   - Karşılaşılan Zorluklar: [Varsa]
 
 ### Planlanan Görevler
-- [Planlanan görev 1]
-  - Planlanan Başlangıç Tarihi: [Tarih]
-  - Tahmini Süre: [Gün/Hafta]
-  - Bağımlılıklar: [Varsa, diğer görevlere veya işçilere bağımlılıklar]
-
-- [Planlanan görev 2]
-  - Planlanan Başlangıç Tarihi: [Tarih]
-  - Tahmini Süre: [Gün/Hafta]
-  - Bağımlılıklar: [Varsa, diğer görevlere veya işçilere bağımlılıklar]
+- **Görev [Numara]:** [Görev Açıklaması]
+  - Planlanan Başlangıç Tarihi: [Tahmini Tarih]
+  - Tahmini Süre: [Süre]
+  - Bağımlılıklar: [Varsa]
 
 ## Teknik Detaylar
 
 ### Kullanılan Teknolojiler
-- [Teknoloji 1]: [Açıklama ve kullanım amacı]
-- [Teknoloji 2]: [Açıklama ve kullanım amacı]
-- [Teknoloji 3]: [Açıklama ve kullanım amacı]
+- [Teknoloji 1]: [Açıklama]
+- [Teknoloji 2]: [Açıklama]
 
 ### Mimari Kararlar
-- [Karar 1]: [Açıklama ve gerekçe]
-- [Karar 2]: [Açıklama ve gerekçe]
-- [Karar 3]: [Açıklama ve gerekçe]
+- [Karar 1]: [Gerekçe]
+- [Karar 2]: [Gerekçe]
 
 ### API Dokümantasyonu
-- [Endpoint 1]
-  - URL: [URL]
-  - Metod: [GET/POST/PUT/DELETE]
-  - Parametreler: [Varsa]
-  - Dönüş Değeri: [Format ve örnek]
-  - Açıklama: [Endpoint'in amacı ve kullanımı]
-
-- [Endpoint 2]
-  - URL: [URL]
-  - Metod: [GET/POST/PUT/DELETE]
-  - Parametreler: [Varsa]
-  - Dönüş Değeri: [Format ve örnek]
-  - Açıklama: [Endpoint'in amacı ve kullanımı]
+- [Varsa API endpointleri ve açıklamaları]
 
 ## Diğer İşçilerle İş Birliği
 
 ### Bağımlılıklar
-- [İşçi X]: [Bağımlılık açıklaması ve durumu]
-- [İşçi Y]: [Bağımlılık açıklaması ve durumu]
+- İşçi [Numara] ([Sorumluluk Alanı]): [Bağımlılık Açıklaması]
 
 ### Ortak Çalışma Alanları
-- [Alan 1]: [İş birliği yapılan işçiler ve açıklama]
-- [Alan 2]: [İş birliği yapılan işçiler ve açıklama]
+- [Varsa ortak kullanılan modüller, kütüphaneler vb.]
 
 ## Notlar ve Öneriler
-- [Not 1]
-- [Not 2]
-- [Öneri 1]
-- [Öneri 2]
+- [Genel notlar, iyileştirme önerileri vb.]
 
 ## Sonraki Adımlar
-- [Adım 1]
-- [Adım 2]
-- [Adım 3]
+- [Yakın gelecekteki adımlar]
 
 ---
 
 *Son Güncelleme Tarihi: [Tarih]*
+
+## Yeni Çalışma Kuralları (30 Nisan 2025 itibarıyla)
+
+- **Tüm geliştirme işlemleri doğrudan `main` dalı üzerinde yapılacaktır.**
+- **Yeni geliştirme dalları (feature branches) oluşturulmayacaktır.**
+- Tüm değişiklikler küçük, mantıksal commit'ler halinde doğrudan `main` dalına push edilecektir.
+- Bu kural, proje genelinde dallanma karmaşıklığını azaltmak ve sürekli entegrasyonu teşvik etmek amacıyla getirilmiştir.
+

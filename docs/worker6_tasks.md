@@ -4,30 +4,30 @@
 ## Tamamlanan Görevler
 
 - [x] OS Integration Service temel yapısı oluşturuldu
-- [x] Windows, macOS ve Linux için platform algılama modülleri geliştirildi
-- [x] Dosya sistemi erişimi ve yönetimi API'leri oluşturuldu
-- [x] İşlem yönetimi ve kontrolü API'leri oluşturuldu
-- [x] Temel ekran görüntüsü alma özellikleri eklendi
-- [x] CUDA hızlandırmalı ekran görüntüsü alma modülü geliştirildi
-- [x] Platform bağımsız entegrasyon modülü oluşturuldu
-- [x] Güvenlik özellikleri (kimlik doğrulama, yetkilendirme, şifreleme) eklendi
-- [x] Kapsamlı test altyapısı geliştirildi
-- [x] Detaylı teknik dokümantasyon hazırlandı
-- [x] Git LFS yapılandırması ve dokümantasyon şablonu oluşturuldu
+- [ ] Windows, macOS ve Linux için platform algılama modülleri geliştirildi
+- [ ] Dosya sistemi erişimi ve yönetimi API'leri oluşturuldu
+- [ ] İşlem yönetimi ve kontrolü API'leri oluşturuldu
+- [ ] Temel ekran görüntüsü alma özellikleri eklendi
+- [ ] CUDA hızlandırmalı ekran görüntüsü alma modülü geliştirildi
+- [ ] Platform bağımsız entegrasyon modülü oluşturuldu
+- [ ] Güvenlik özellikleri (kimlik doğrulama, yetkilendirme, şifreleme) eklendi
+- [ ] Kapsamlı test altyapısı geliştirildi
+- [ ] Detaylı teknik dokümantasyon hazırlandı
+- [ ] Git LFS yapılandırması ve dokümantasyon şablonu oluşturuldu
 
 ## Devam Eden Görevler
 
-- [ ] CUDA performans optimizasyonları
+- [/] CUDA performans optimizasyonları
   - [ ] Bellek kullanımı optimizasyonu
   - [ ] Paralel işleme iyileştirmeleri
   - [ ] GPU kaynak yönetimi geliştirmeleri
 
-- [ ] Doğrudan Rust-CUDA entegrasyonu (Python köprüsü yerine)
+- [/] Doğrudan Rust-CUDA entegrasyonu (Python köprüsü yerine)
   - [ ] Rust-CUDA bağlantı kütüphanesi oluşturma
   - [ ] FFI (Foreign Function Interface) katmanı geliştirme
   - [ ] CUDA kernel fonksiyonları için Rust sarmalayıcıları
 
-- [ ] Gerçek zamanlı ekran yakalama ve analiz
+- [/] Gerçek zamanlı ekran yakalama ve analiz
   - [ ] Düşük gecikme süreli yakalama mekanizması
   - [ ] Kare farkı algılama ve optimizasyon
   - [ ] Video akışı API'si

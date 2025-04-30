@@ -5,106 +5,106 @@ Bu liste, İşçi 4 (Archive ve Veri Yönetimi Uzmanı) için `worker4_documenta
 ## Görevler
 
 ### 1. Performans Optimizasyonu
-- [x] **Görev 4.1:** Profiling ve performans analizi
-  - [x] CPU profiling
-  - [x] Bellek profiling
-  - [x] I/O profiling
-  - [x] Ağ profiling
-- [x] **Görev 4.2:** Sorgu optimizasyonu
-  - [x] Explain plan analizi
-  - [x] İndeks optimizasyonu
-  - [x] Query caching
-  - [x] N+1 sorgu önleme
-- [x] **Görev 4.3:** Bellek optimizasyonu
-  - [x] Bellek sızıntısı analizi
-  - [x] Bellek havuzu (pool) implementasyonu
-  - [x] Garbage collection optimizasyonu
-  - [x] Bellek kullanımı izleme
-- [x] **Görev 4.4:** I/O optimizasyonu
-  - [x] Dosya I/O optimizasyonu
-  - [x] Ağ I/O optimizasyonu
-  - [x] Disk I/O optimizasyonu
-  - [x] Buffer yönetimi
+- [ ] **Görev 4.1:** Profiling ve performans analizi
+  - [ ] CPU profiling
+  - [ ] Bellek profiling
+  - [ ] I/O profiling
+  - [ ] Ağ profiling
+- [ ] **Görev 4.2:** Sorgu optimizasyonu
+  - [ ] Explain plan analizi
+  - [ ] İndeks optimizasyonu
+  - [ ] Query caching
+  - [ ] N+1 sorgu önleme
+- [ ] **Görev 4.3:** Bellek optimizasyonu
+  - [ ] Bellek sızıntısı analizi
+  - [ ] Bellek havuzu (pool) implementasyonu
+  - [ ] Garbage collection optimizasyonu
+  - [ ] Bellek kullanımı izleme
+- [ ] **Görev 4.4:** I/O optimizasyonu
+  - [ ] Dosya I/O optimizasyonu
+  - [ ] Ağ I/O optimizasyonu
+  - [ ] Disk I/O optimizasyonu
+  - [ ] Buffer yönetimi
 
 ### 2. CI/CD Entegrasyonu
-- [x] **Görev 4.5:** CI pipeline oluşturma
-  - [x] GitHub Actions workflow tanımlama
-  - [x] Otomatik test çalıştırma
-  - [x] Kod kalite kontrolü
-  - [x] Güvenlik taraması
-- [x] **Görev 4.6:** CD pipeline oluşturma
-  - [x] Otomatik build ve paketleme
-  - [x] Deployment stratejisi
-  - [x] Canary/Blue-Green deployment
-  - [x] Rollback mekanizması
-- [x] **Görev 4.7:** Monitoring ve alerting
-  - [x] Prometheus entegrasyonu
-  - [x] Grafana dashboard
-  - [x] Alert kuralları
-  - [x] On-call rotasyonu
+- [/] **Görev 4.5:** CI pipeline oluşturma
+  - [ ] GitHub Actions workflow tanımlama
+  - [ ] Otomatik test çalıştırma
+  - [ ] Kod kalite kontrolü
+  - [ ] Güvenlik taraması
+- [/] **Görev 4.6:** CD pipeline oluşturma
+  - [ ] Otomatik build ve paketleme
+  - [ ] Deployment stratejisi
+  - [ ] Canary/Blue-Green deployment
+  - [ ] Rollback mekanizması
+- [ ] **Görev 4.7:** Monitoring ve alerting
+  - [ ] Prometheus entegrasyonu
+  - [ ] Grafana dashboard
+  - [ ] Alert kuralları
+  - [ ] On-call rotasyonu
 
 ### 3. Veri Yedekleme ve Kurtarma
-- [x] **Görev 4.8:** Yedekleme stratejisi
-  - [x] Tam yedekleme planı
-  - [x] Artımlı yedekleme planı
-  - [x] Yedekleme rotasyonu
-  - [x] Yedekleme doğrulama
-- [x] **Görev 4.9:** Otomatik yedekleme
-  - [x] Zamanlanmış yedekleme işleri
-  - [x] Yedekleme izleme
-  - [x] Yedekleme raporlama
-  - [x] Yedekleme optimizasyonu
-- [x] **Görev 4.10:** Point-in-time recovery
-  - [x] WAL (Write-Ahead Log) yönetimi
-  - [x] Zaman bazlı kurtarma
-  - [x] İşlem bazlı kurtarma
-  - [x] Kurtarma testleri
-- [x] **Görev 4.11:** Disaster recovery
-  - [x] DR planı oluşturma
-  - [x] Failover mekanizması
-  - [x] Veri replikasyonu
-  - [x] DR testleri
+- [ ] **Görev 4.8:** Yedekleme stratejisi
+  - [ ] Tam yedekleme planı
+  - [ ] Artımlı yedekleme planı
+  - [ ] Yedekleme rotasyonu
+  - [ ] Yedekleme doğrulama
+- [ ] **Görev 4.9:** Otomatik yedekleme
+  - [ ] Zamanlanmış yedekleme işleri
+  - [ ] Yedekleme izleme
+  - [ ] Yedekleme raporlama
+  - [ ] Yedekleme optimizasyonu
+- [ ] **Görev 4.10:** Point-in-time recovery
+  - [ ] WAL (Write-Ahead Log) yönetimi
+  - [ ] Zaman bazlı kurtarma
+  - [ ] İşlem bazlı kurtarma
+  - [ ] Kurtarma testleri
+- [ ] **Görev 4.11:** Disaster recovery
+  - [ ] DR planı oluşturma
+  - [ ] Failover mekanizması
+  - [ ] Veri replikasyonu
+  - [ ] DR testleri
 
 ### 4. Veri Saklama Politikaları
-- [x] **Görev 4.12:** Veri yaşam döngüsü yönetimi
-  - [x] Veri sınıflandırma
-  - [x] Saklama süresi tanımlama
-  - [x] Arşivleme kuralları
-  - [x] Silme kuralları
-- [x] **Görev 4.13:** Otomatik arşivleme
-  - [x] Soğuk depolama entegrasyonu
-  - [x] Arşiv tagging
-  - [x] Arşiv indeksleme
-  - [x] Arşiv erişim yönetimi
-- [x] **Görev 4.14:** Otomatik silme
-  - [x] Silme iş akışı
-  - [x] Silme onayı
-  - [x] Silme doğrulama
-  - [x] Silme raporlama
-- [x] **Görev 4.15:** Uyumluluk kontrolleri
-  - [x] Yasal gereksinimlere uyum
-  - [x] Denetim izleri
-  - [x] Uyumluluk raporlama
-  - [x] Uyumluluk testleri
+- [ ] **Görev 4.12:** Veri yaşam döngüsü yönetimi
+  - [ ] Veri sınıflandırma
+  - [ ] Saklama süresi tanımlama
+  - [ ] Arşivleme kuralları
+  - [ ] Silme kuralları
+- [ ] **Görev 4.13:** Otomatik arşivleme
+  - [ ] Soğuk depolama entegrasyonu
+  - [ ] Arşiv tagging
+  - [ ] Arşiv indeksleme
+  - [ ] Arşiv erişim yönetimi
+- [ ] **Görev 4.14:** Otomatik silme
+  - [ ] Silme iş akışı
+  - [ ] Silme onayı
+  - [ ] Silme doğrulama
+  - [ ] Silme raporlama
+- [ ] **Görev 4.15:** Uyumluluk kontrolleri
+  - [ ] Yasal gereksinimlere uyum
+  - [ ] Denetim izleri
+  - [ ] Uyumluluk raporlama
+  - [ ] Uyumluluk testleri
 
 ### 5. Dokümantasyon
-- [x] **Görev 4.16:** API referans dokümanı
-  - [x] Endpoint dokümantasyonu
-  - [x] İstek/yanıt örnekleri
-  - [x] Hata kodları
-  - [x] Kullanım senaryoları
-- [x] **Görev 4.17:** *.atlas format dokümanı
-  - [x] Format şeması
-  - [x] Örnek dosyalar
-  - [x] Versiyon yönetimi
-  - [x] Geriye dönük uyumluluk
-- [x] **Görev 4.18:** Mimari dokümanı
-  - [x] Sistem mimarisi
-  - [x] Veri akışı
-  - [x] Bileşen etkileşimleri
-  - [x] Ölçeklendirme stratejisi
-- [x] **Görev 4.19:** Sorun giderme kılavuzu
-  - [x] Yaygın hatalar ve çözümleri
-  - [x] Performans sorunları
-  - [x] Veri kurtarma senaryoları
-  - [x] İzleme ve teşhis
+- [/] **Görev 4.16:** API referans dokümanı
+  - [ ] Endpoint dokümantasyonu
+  - [ ] İstek/yanıt örnekleri
+  - [ ] Hata kodları
+  - [ ] Kullanım senaryoları
+- [ ] **Görev 4.17:** *.atlas format dokümanı
+  - [ ] Format şeması
+  - [ ] Örnek dosyalar
+  - [ ] Versiyon yönetimi
+  - [ ] Geriye dönük uyumluluk
+- [/] **Görev 4.18:** Mimari dokümanı
+  - [ ] Sistem mimarisi
+  - [ ] Veri akışı
+  - [ ] Bileşen etkileşimleri
+  - [ ] Ölçeklendirme stratejisi
+- [ ] **Görev 4.19:** Sorun giderme kılavuzu
+  - [ ] Yaygın hatalar ve çözümleri
+  - [ ] Performans sorunları
+  - [ ] Veri kurtarma senaryoları
+  - [ ] İzleme ve teşhis

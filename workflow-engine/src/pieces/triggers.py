@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from .base import Piece
-from models.workflow import Node
+from ..models.workflow import Node
 
 class ManualTrigger(Piece):
     """A piece that represents a manual start of the workflow."""

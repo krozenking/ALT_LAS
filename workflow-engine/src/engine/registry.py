@@ -1,5 +1,5 @@
 from typing import Dict, Type, Any
-from pieces.base import Piece
+from ..pieces.base import Piece
 
 class PieceRegistry:
     """Registry for all available workflow pieces."""

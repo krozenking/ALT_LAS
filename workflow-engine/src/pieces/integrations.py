@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import httpx # Assuming services communicate via HTTP
 from .base import Piece
-from models.workflow import Node
+from ..models.workflow import Node
 
 # TODO: Get service URLs from configuration/environment variables
 AI_ORCHESTRATOR_URL = "http://ai-orchestrator:8000" # Example URL

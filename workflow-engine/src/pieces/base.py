@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
-from models.workflow import Node
+from ..models.workflow import Node
 
 class Piece(ABC):
     """Base class for all workflow pieces (nodes)."""

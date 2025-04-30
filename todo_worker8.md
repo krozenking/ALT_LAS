@@ -4,12 +4,12 @@
 
 ## Yeni Görevler
 ### Yüksek Öncelikli
-- [ ] **Docker Güvenlik Taraması CI/CD Entegrasyonu**: Docker güvenlik taramasını CI/CD pipeline'ına entegre etme
-  - [ ] Trivy entegrasyonu
-  - [ ] Hadolint entegrasyonu
-  - [ ] Dockle entegrasyonu
-  - [ ] Docker Bench Security entegrasyonu
-  - [ ] CI/CD pipeline yapılandırması (GitHub Actions oluşturuldu - *main üzerinde doğrulanmalı*)
+- [/] **Docker Güvenlik Taraması CI/CD Entegrasyonu**: Docker güvenlik taramasını CI/CD pipeline'ına entegre etme (Trivy mevcut, diğerleri eksik)
+  - [X] Trivy entegrasyonu (GitHub Actions ci.yml içinde mevcut)
+  - [ ] Hadolint entegrasyonu (GitHub Actions ci.yml içinde eksik)
+  - [ ] Dockle entegrasyonu (GitHub Actions ci.yml içinde eksik)
+  - [ ] Docker Bench Security entegrasyonu (GitHub Actions ci.yml içinde eksik)
+  - [/] CI/CD pipeline yapılandırması (GitHub Actions oluşturuldu - *main üzerinde doğrulanmalı, ancak AI Orchestrator, UI, OS Integration, Workflow Engine gibi servisler için eksik*)
 
 ### Orta Öncelikli
 - [ ] **Tüm Ortamlarda Güvenli Dockerfile Uygulaması**: Güvenli Dockerfile'ların tüm ortamlarda uygulanması

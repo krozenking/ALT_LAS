@@ -13,7 +13,7 @@ This list outlines the tasks for Worker 1, focusing on the API Gateway and backe
     - [X] Review Rate Limiting and Security (`middleware/rateLimiter.js`, `helmet` usage).
     - [X] Review Service Discovery (`services/serviceDiscovery.js`).
     - [X] Review API Versioning (`middleware/apiVersioning.js`).
-- [ ] **2. Enhance Authentication/Authorization:**
+- [/] **2. Enhance Authentication/Authorization:** (Replaced insecure password hashing with bcrypt)
     - [ ] Implement role-based access control (RBAC) if needed. (Needs review on main)
     - [ ] Consider token refresh mechanisms. (Needs review on main)
 - [ ] **3. Update API Documentation:**
@@ -30,7 +30,7 @@ This list outlines the tasks for Worker 1, focusing on the API Gateway and backe
 - [ ] **7. Coordinate CI/CD:**
     - [ ] Collaborate with Worker 8 (DevOps) to ensure the API Gateway is properly integrated into the CI/CD pipeline for `main`.
     - [ ] Provide necessary build/deployment scripts or configurations.
-- [ ] **8. Testing:**
+- [/] **8. Testing:** (Tests failed due to unrelated TypeScript errors in commandRoutes.ts - missing express-validator and type mismatch)
     - [ ] Review existing tests (`tests/` directory) in the context of `main`.
     - [ ] Add more comprehensive unit, integration, and end-to-end tests for `main`.
 - [ ] **9. Documentation:**

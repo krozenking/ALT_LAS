@@ -5,6 +5,7 @@ import jwtService from '../services/jwtService';
 import sessionService, { DeviceInfo, SessionInfo } from '../services/sessionService'; // Import SessionInfo
 import authorizationService from '../services/authorizationService'; // Import authorizationService
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/errors';
+import * as bcrypt from 'bcrypt';
 import crypto from 'crypto'; // For generating reset tokens
 
 // --- Mock Data Store --- 
@@ -21,7 +22,6 @@ interface User {
   lastName?: string; // Added for profile
   createdAt?: Date; // Added for profile
   updatedAt?: Date; // Added for profile
-  // refreshToken?: string; // Removed: Handled by sessionService
 }
 
 interface PasswordResetToken {
@@ -34,25 +34,28 @@ interface PasswordResetToken {
 const users = new Map<string, User>();
 const passwordResetTokens = new Map<string, PasswordResetToken>(); // token -> ResetTokenInfo
 
-// Helper to hash password (use a proper library like bcrypt in production)
-const simpleHash = (password: string): string => {
-    // WARNING: Insecure hashing for demonstration only!
-    // In a real app, use bcrypt.hashSync(password, saltRounds);
-    return `hashed_${password}`;
+const saltRounds = 10; // Standard salt rounds for bcrypt
+
+// Helper to hash password using bcrypt
+const hashPassword = (password: string): string => {
+    return bcrypt.hashSync(password, saltRounds);
 }
 
-// Helper to compare password
+// Helper to compare password using bcrypt
 const comparePassword = (plainPassword: string, hash: string): boolean => {
-    // WARNING: Insecure comparison for demonstration only!
-    // In a real app, use bcrypt.compareSync(plainPassword, hash);
-    return `hashed_${plainPassword}` === hash;
+    try {
+        return bcrypt.compareSync(plainPassword, hash);
+    } catch (error) {
+        logger.error("Bcrypt comparison failed:", error);
+        return false;
+    }
 }
 
 // Seed initial users
 users.set('1', {
   id: '1',
   username: 'admin',
-  passwordHash: simpleHash('password'), 
+  passwordHash: hashPassword('password'), // Use bcrypt
   email: 'admin@example.com',
   roles: ['admin'],
   permissions: Object.keys(authorizationService.getPermissions()), // Admin has all permissions
@@ -64,7 +67,7 @@ users.set('1', {
 users.set('2', {
   id: '2',
   username: 'user',
-  passwordHash: simpleHash('password'), 
+  passwordHash: hashPassword('password'), // Use bcrypt
   email: 'user@example.com',
   roles: ['user'],
   permissions: [], // User might get permissions dynamically or via roles
@@ -96,7 +99,7 @@ const createUser = async (
   const newUser: User = {
     id,
     username: userData.username,
-    passwordHash: simpleHash(userData.passwordHash), // Hash the password
+    passwordHash: hashPassword(userData.passwordHash), // Hash the password
     email: userData.email,
     roles: userData.roles || ['user'],
     permissions: [], // Start with no direct permissions
@@ -336,7 +339,7 @@ const resetPassword = async (token: string, newPassword: string): Promise<void> 
     }
 
     // Update password
-    userToUpdate.passwordHash = simpleHash(newPassword);
+    userToUpdate.passwordHash = hashPassword(newPassword); // Use bcrypt
     userToUpdate.updatedAt = new Date();
 
     // Invalidate the reset token
@@ -364,7 +367,7 @@ const changePassword = async (userId: string, currentPassword: string, newPasswo
         throw new BadRequestError('Yeni şifre mevcut şifre ile aynı olamaz');
     }
 
-    user.passwordHash = simpleHash(newPassword);
+    user.passwordHash = hashPassword(newPassword); // Use bcrypt
     user.updatedAt = new Date();
     // Invalidate all active sessions on password change
     await endAllSessions(userId);
@@ -458,49 +461,35 @@ const refreshAccessToken = async (refreshToken: string): Promise<{ token: string
     }
 
     // Generate a new access token
-    const tokenPayload = { userId: user.id, username: user.username, roles: user.roles, permissions: await getUserPermissions(user.id!) }; // Fetch fresh permissions
-    const newToken = jwtService.generateToken(tokenPayload);
+    const tokenPayload = { userId: user.id, username: user.username, roles: user.roles, permissions: user.permissions };
+    const token = jwtService.generateToken(tokenPayload);
 
-    logger.info(`Access token refreshed for user ${user.id}`);
-    return { token: newToken };
-
+    return { token };
   } catch (error) {
-    if (error instanceof UnauthorizedError || error instanceof NotFoundError) {
-      throw error;
-    }
-    logger.error("Error refreshing access token:", error);
-    throw new UnauthorizedError("Token yenilenirken hata oluştu");
+    logger.error('Error refreshing access token:', error);
+    if (error instanceof UnauthorizedError) throw error;
+    throw new UnauthorizedError('Token yenileme sırasında hata oluştu');
   }
 };
 
 /**
- * Logout user: invalidate session and blacklist access token.
+ * Logout user by invalidating session and blacklisting token.
  */
 const logout = async (accessToken: string, refreshToken: string): Promise<void> => {
   try {
     // Invalidate the session associated with the refresh token
     sessionService.invalidateSessionByRefreshToken(refreshToken);
-    logger.info(`Session invalidated for refresh token.`);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn(`Error invalidating session during logout: ${message}`);
-    // Continue to blacklist access token even if session invalidation fails
-  }
-
-  try {
-    // Blacklist the access token
+    // Blacklist the access token until it expires naturally
     jwtService.blacklistToken(accessToken);
-    logger.info(`Access token blacklisted.`);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error(`Error blacklisting access token during logout: ${message}`);
-    // Depending on policy, you might want to re-throw or just log
+    logger.info(`User logged out successfully (Session invalidated, token blacklisted)`);
+  } catch (error) {
+    logger.error('Error during logout:', error);
+    // Don't necessarily throw an error to the client, just log it
   }
 };
 
-
 /**
- * Update user profile information.
+ * Update user profile.
  */
 const updateUser = async (userId: string, updateData: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'isActive'>>): Promise<Partial<User>> => {
     const user = users.get(userId);
@@ -508,36 +497,27 @@ const updateUser = async (userId: string, updateData: Partial<Pick<User, 'firstN
         throw new NotFoundError('Kullanıcı bulunamadı');
     }
 
-    let updated = false;
-
-    // Validate and update fields
-    if (updateData.firstName !== undefined && updateData.firstName !== user.firstName) {
-        user.firstName = updateData.firstName;
-        updated = true;
-    }
-    if (updateData.lastName !== undefined && updateData.lastName !== user.lastName) {
-        user.lastName = updateData.lastName;
-        updated = true;
-    }
-    if (updateData.email && updateData.email !== user.email) {
-         if (Array.from(users.values()).some(u => u.email === updateData.email && u.id !== userId)) {
-            throw new BadRequestError('E-posta adresi zaten kullanılıyor');
+    // Update fields if they are provided
+    if (updateData.firstName !== undefined) user.firstName = updateData.firstName;
+    if (updateData.lastName !== undefined) user.lastName = updateData.lastName;
+    if (updateData.email !== undefined) {
+        // Check if email is already taken by another user
+        const existingUser = Array.from(users.values()).find(u => u.email === updateData.email && u.id !== userId);
+        if (existingUser) {
+            throw new BadRequestError('Bu e-posta adresi zaten başka bir kullanıcı tarafından kullanılıyor');
         }
-        // TODO: Add email format validation
         user.email = updateData.email;
-        updated = true;
     }
-    if (typeof updateData.isActive === 'boolean' && updateData.isActive !== user.isActive) {
+    if (updateData.isActive !== undefined) {
+        // Prevent deactivating the main admin user
+        if (user.username === 'admin' && updateData.isActive === false) {
+            throw new BadRequestError('Admin kullanıcısı devre dışı bırakılamaz.');
+        }
         user.isActive = updateData.isActive;
-        updated = true;
-    }
-    // Add other updatable fields here
-
-    if (updated) {
-        user.updatedAt = new Date();
-        logger.info(`User ${userId} profile updated.`);
     }
 
+    user.updatedAt = new Date();
+    logger.info(`User ${userId} profile updated.`);
     const { passwordHash: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
 };
@@ -546,49 +526,52 @@ const updateUser = async (userId: string, updateData: Partial<Pick<User, 'firstN
  * Delete a user.
  */
 const deleteUser = async (userId: string): Promise<void> => {
-    if (!users.has(userId)) {
+    const user = users.get(userId);
+    if (!user) {
         throw new NotFoundError('Kullanıcı bulunamadı');
     }
-    // TODO: Consider soft delete vs hard delete
+
+    // Prevent deleting the main admin user
+    if (user.username === 'admin') {
+        throw new BadRequestError('Admin kullanıcısı silinemez.');
+    }
+
+    // Invalidate all sessions for the user
+    await endAllSessions(userId);
+
+    // Delete the user
     users.delete(userId);
-    // Clean up any related data (e.g., password reset tokens, sessions)
-    Array.from(passwordResetTokens.entries()).forEach(([token, info]) => {
-        if (info.userId === userId) {
-            passwordResetTokens.delete(token);
-        }
-    });
-    sessionService.invalidateAllUserSessions(userId);
-    logger.info(`User ${userId} deleted.`);
+    logger.info(`User ${userId} deleted successfully.`);
 };
 
 
 export default {
   createUser,
   validateUser,
-  saveRefreshToken, // Keep for potential direct use, though sessionService is primary
-  validateRefreshToken, // Keep for potential direct use
-  invalidateRefreshToken, // Keep for potential direct use
-  createSession,
+  saveRefreshToken, // Keep for potential future use or remove if strictly unused
+  validateRefreshToken, // Keep for potential future use or remove if strictly unused
+  invalidateRefreshToken, // Keep for potential future use or remove if strictly unused
+  createSession, // Keep for potential future use or remove if strictly unused
   endSession,
   endAllSessions,
   endAllSessionsExcept,
   getUserById,
   getUserByEmail,
+  getUserDetailsForAuth,
   getAllUsers,
-  getUserDetailsForAuth, // Exported for authMiddleware
   getUserSessions,
   savePasswordResetToken,
   validatePasswordResetToken,
   invalidatePasswordResetToken,
-  requestPasswordReset,  // Exported for passwordRoutes
-  resetPassword,         // Exported for passwordRoutes
-  changePassword,        // Exported for passwordRoutes
-  updateUserRoles,       // Exported for authRoutes (admin)
-  getUserPermissions,    // Exported for authRoutes (admin)
-  updateUserPermissions, // Exported for authRoutes (admin)
-  updateUser,            // Exported for authRoutes (profile & admin)
-  deleteUser,            // Exported for authRoutes (admin)
-  refreshAccessToken,    // Exported for authRoutes
-  logout                 // Exported for authRoutes
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
+  updateUserRoles,
+  getUserPermissions,
+  updateUserPermissions,
+  refreshAccessToken,
+  logout,
+  updateUser,
+  deleteUser
 };
 

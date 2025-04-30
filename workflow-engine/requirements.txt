@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 httpx
-# Add database driver later, e.g., psycopg2-binary or asyncpg
-
+sqlalchemy[asyncio]
+alembic
+pydantic-settings
+aiosqlite # Using SQLite for development

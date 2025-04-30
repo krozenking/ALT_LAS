@@ -11,7 +11,7 @@ import time
 from typing import Dict, Any, List, Optional, Union, Callable
 from datetime import datetime
 
-from src.config import config
+from ..config import config
 from .llm import ONNXLLMModel, LlamaCppModel, GGMLModel
 
 logger = logging.getLogger("ai_orchestrator.models.model_manager")

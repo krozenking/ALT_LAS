@@ -19,9 +19,15 @@ const ARCHIVE_SERVICE_URL = process.env.ARCHIVE_SERVICE_URL || "http://localhost
 // Helper function to interact with Archive Service
 const callArchiveService = async (method, endpoint, data = {}, headers = {}) => {
     const url = `${ARCHIVE_SERVICE_URL}${endpoint}`;
-    logger.info(`Calling Archive Service: ${method.toUpperCase()} ${url}`, { data });
+    logger.info(`Calling Archive Service: ${method.toUpperCase()} ${url}`, { data: (method.toLowerCase() === "get" || method.toLowerCase() === "delete") ? undefined : data }); // Avoid logging large payloads for GET/DELETE
     try {
-        const response = await axios({ method, url, data, headers });
+        const config = { method, url, headers };
+        if (method.toLowerCase() === "get" || method.toLowerCase() === "delete") {
+            config.params = data.params; // Use params for GET/DELETE
+        } else {
+            config.data = data; // Use data for POST/PUT
+        }
+        const response = await axios(config);
         logger.info(`Archive Service responded for ${method.toUpperCase()} ${endpoint}`, { status: response.status });
         return response.data;
     } catch (error) {
@@ -32,6 +38,27 @@ const callArchiveService = async (method, endpoint, data = {}, headers = {}) => 
             status: error.response?.status
         });
         throw error; // Re-throw to be handled by the caller
+    }
+};
+
+// Helper function to handle Archive Service errors in responses
+const handleServiceError = (res, error, contextMessage, fileId = null) => {
+    logger.error(`${contextMessage} failed:`, { fileId, error: error.message, status: error.response?.status });
+    if (error.response) {
+        // Error from the service itself
+        if (error.response.status === 404) {
+            res.status(404).send({ message: "File not found in archive." });
+        } else if (error.response.status >= 500) {
+            // Service unavailable or internal error
+            res.status(502).send({ message: `Archive Service error during ${contextMessage}.`, serviceStatus: error.response.status, serviceError: error.response.data });
+        } else {
+            // Other client errors from service (e.g., 400, 401, 403)
+            // Pass through the status and message from the service error if possible
+            res.status(error.response.status).send({ message: `Archive Service error: ${error.response.data?.message || error.message}`, serviceError: error.response.data });
+        }
+    } else {
+        // Network error or other issue calling the service (error doesn't have a response property)
+        res.status(500).send({ message: `Could not communicate with Archive Service for ${contextMessage}.`, error: error.message });
     }
 };
 
@@ -72,23 +99,19 @@ router.post("/upload", (req, res, next) => {
         try {
             const archiveResponse = await callArchiveService(
                 "post", 
-                "/api/archive/register", // Assuming an endpoint to register new files
+                "/api/archive/register", 
                 { 
                     fileId: fileId,
                     filename: originalFilename,
                     size: uploadedFile.size,
                     mimeType: uploadedFile.mimetype,
-                    // Potential: Add user ID, project ID etc. from req context
-                    // Potential: Add local path if Archive Service needs to move/copy it
                     tempPath: newFilePath 
                 },
-                { Authorization: req.headers.authorization } // Pass auth header
+                { Authorization: req.headers.authorization } 
             );
 
             logger.info("Successfully registered file with Archive Service.", { fileId: fileId, archiveResponse });
             
-            // TODO: Optionally notify Segmentation Service (consider if Archive should do this)
-
             res.status(201).send({ 
                 message: "File uploaded and registered successfully.", 
                 fileId: fileId, 
@@ -96,17 +119,12 @@ router.post("/upload", (req, res, next) => {
             });
 
         } catch (serviceError) {
-            logger.error("Error registering file with Archive Service:", { fileId: fileId });
-            // Critical error: If archive registration fails, we might need to roll back the upload
+            // Use the helper for consistent error handling
+            // We need to clean up the locally saved file if registration fails
             fs.unlink(newFilePath, (unlinkErr) => {
                 if (unlinkErr) logger.error("Error cleaning up failed registration:", { error: unlinkErr.message, path: newFilePath });
             });
-            res.status(500).send({ 
-                message: "File uploaded but failed to register with Archive Service.", 
-                fileId: fileId, 
-                filename: originalFilename,
-                serviceError: serviceError.message
-            });
+            handleServiceError(res, serviceError, "registration", fileId);
         }
     });
   });
@@ -119,20 +137,24 @@ router.get("/download/:fileId", async (req, res) => {
     // Get file metadata/location from Archive Service
     const fileInfo = await callArchiveService(
         "get", 
-        `/api/archive/info/${fileId}`, // Assuming endpoint to get file info
+        `/api/archive/info/${fileId}`, 
         {},
         { Authorization: req.headers.authorization }
     );
 
-    // TODO: Implement actual download logic based on fileInfo (e.g., path, S3 URL)
-    // For now, assume it returns a path similar to local storage
-    const filePath = fileInfo.path || path.join(uploadDir, `${fileId}${path.extname(fileInfo.filename)}`); // Placeholder path logic
+    const filePath = fileInfo.path; // Assuming Archive Service provides the correct path
     const originalFilename = fileInfo.filename || `${fileId}.unknown`;
+
+    if (!filePath) {
+        logger.error("Archive Service returned info without a path:", { fileId, fileInfo });
+        return res.status(500).send({ message: "Archive Service did not provide a file location." });
+    }
 
     if (fs.existsSync(filePath)) {
         res.download(filePath, originalFilename, (downloadErr) => {
             if (downloadErr) {
-                logger.error("Error downloading file:", { error: downloadErr.message, fileId, path: filePath });
+                logger.error("Error sending file for download:", { error: downloadErr.message, fileId, path: filePath });
+                // Don't try to send another response if headers already sent
                 if (!res.headersSent) {
                     res.status(500).send({ message: "Could not download the file." });
                 }
@@ -144,12 +166,7 @@ router.get("/download/:fileId", async (req, res) => {
     }
 
   } catch (serviceError) {
-      logger.error("Error retrieving file info from Archive Service:", { fileId });
-      if (serviceError.response?.status === 404) {
-          res.status(404).send({ message: "File not found in archive." });
-      } else {
-          res.status(500).send({ message: "Error retrieving file information.", serviceError: serviceError.message });
-      }
+      handleServiceError(res, serviceError, "retrieving file information", fileId);
   }
 });
 
@@ -159,15 +176,14 @@ router.get("/", async (req, res) => {
     // Get file list from Archive Service
     const fileList = await callArchiveService(
         "get", 
-        "/api/archive/search", // Assuming endpoint for listing/searching
+        "/api/archive/search", 
         { params: req.query }, // Pass query params for searching/filtering
         { Authorization: req.headers.authorization }
     );
     res.status(200).send(fileList); 
 
   } catch (serviceError) {
-      logger.error("Error listing files from Archive Service:", { query: req.query });
-      res.status(500).send({ message: "Could not list files.", serviceError: serviceError.message });
+      handleServiceError(res, serviceError, "listing files");
   }
 });
 
@@ -184,7 +200,7 @@ router.put("/metadata/:fileId", async (req, res) => {
     // Update metadata via Archive Service
     const updatedInfo = await callArchiveService(
         "put", 
-        `/api/archive/metadata/${fileId}`, // Assuming endpoint for metadata update
+        `/api/archive/metadata/${fileId}`, 
         metadataUpdates,
         { Authorization: req.headers.authorization }
     );
@@ -192,12 +208,7 @@ router.put("/metadata/:fileId", async (req, res) => {
     res.status(200).send({ message: "Metadata updated successfully.", fileInfo: updatedInfo });
 
   } catch (serviceError) {
-      logger.error("Error updating metadata in Archive Service:", { fileId, updates: metadataUpdates });
-      if (serviceError.response?.status === 404) {
-          res.status(404).send({ message: "File not found in archive." });
-      } else {
-          res.status(500).send({ message: "Could not update metadata.", serviceError: serviceError.message });
-      }
+      handleServiceError(res, serviceError, "updating metadata", fileId);
   }
 });
 
@@ -208,24 +219,16 @@ router.delete("/:fileId", async (req, res) => {
         // Request deletion from Archive Service
         await callArchiveService(
             "delete", 
-            `/api/archive/${fileId}`, // Assuming endpoint for deletion
+            `/api/archive/${fileId}`, 
             {},
             { Authorization: req.headers.authorization }
         );
         logger.info(`File deletion requested successfully from Archive Service: ${fileId}`);
         
-        // Optional: Clean up local temp file if it still exists (Archive Service might handle this)
-        // fs.readdir(uploadDir, (err, files) => { ... find and unlink ... });
-
         res.status(200).send({ message: `File ${fileId} deletion initiated successfully.` });
 
     } catch (serviceError) {
-        logger.error("Error requesting file deletion from Archive Service:", { fileId });
-        if (serviceError.response?.status === 404) {
-            res.status(404).send({ message: "File not found in archive." });
-        } else {
-            res.status(500).send({ message: "Could not initiate file deletion.", serviceError: serviceError.message });
-        }
+        handleServiceError(res, serviceError, "initiating file deletion", fileId);
     }
 });
 

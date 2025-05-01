@@ -14,11 +14,12 @@
   - [x] Komut durumu sorgulama
   - [x] Komut iptal etme
   - [ ] Komut geçmişi
-- [ ] **Görev 1.17:** Dosya yönetimi API'leri (*.alt, *.last, *.atlas)
-  - [ ] Dosya yükleme endpoint'i
-  - [ ] Dosya indirme endpoint'i
-  - [ ] Dosya listeleme ve arama
-  - [ ] Dosya metadata yönetimi
+- [x] **Görev 1.17:** Dosya yönetimi API'leri (*.alt, *.last, *.atlas) (Temel CRUD uygulandı)
+  - [x] Dosya yükleme endpoint'i (Temel)
+  - [x] Dosya indirme endpoint'i (Temel)
+  - [x] Dosya listeleme ve arama (Temel listeleme)
+  - [ ] Dosya metadata yönetimi (Placeholder)
+  - [x] Dosya silme endpoint'i (Temel)
 - [ ] **Görev 1.18:** Performans optimizasyonu ve caching
   - [ ] Response caching stratejisi
   - [ ] Redis cache entegrasyonu

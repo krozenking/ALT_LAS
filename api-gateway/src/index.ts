@@ -49,27 +49,27 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // app.use("/health", healthRoutes);
 
 // API rotaları
-app.use('/api/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // Kimlik doğrulama ve yetkilendirme middleware'leri
 // Tüm korumalı rotalar için JWT doğrulama
-app.use('/api/segmentation', authenticateJWT);
-app.use('/api/runner', authenticateJWT);
-app.use('/api/archive', authenticateJWT);
-app.use("/api/services", authenticateJWT);
-app.use("/api/commands", authenticateJWT); // Add command routes with auth
-app.use("/api/files", authenticateJWT); // Add file routes with auth
+app.use("/api/v1/segmentation", authenticateJWT);
+app.use("/api/v1/runner", authenticateJWT);
+app.use("/api/v1/archive", authenticateJWT);
+app.use("/api/v1/services", authenticateJWT);
+app.use("/api/v1/commands", authenticateJWT); // Add command routes with auth
+app.use("/api/v1/files", authenticateJWT); // Add file routes with auth
 
 // Route bazlı yetkilendirme
 app.use(routeAuthorization);
 
 // Servis rotaları
-app.use("/api/segmentation", segmentationRoutes);
-app.use("/api/runner", runnerRoutes);
-app.use("/api/archive", cacheMiddleware(60), archiveRoutes); // Cache archive GETs for 60s
-app.use("/api/services", serviceRoutes);
-app.use("/api/commands", commandRoutes); // Use command routes
-app.use("/api/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests
+app.use("/api/v1/segmentation", segmentationRoutes);
+app.use("/api/v1/runner", runnerRoutes);
+app.use("/api/v1/archive", cacheMiddleware(60), archiveRoutes); // Cache archive GETs for 60s
+app.use("/api/v1/services", serviceRoutes);
+app.use("/api/v1/commands", commandRoutes); // Use command routes
+app.use("/api/v1/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests
 
 // 404 handler
 app.use((req: Request, res: Response) => {

@@ -62,7 +62,7 @@ app.use((req, res, next) => {
          next();
     }
 });
-app.use("/api/files", fileRoutes);
+app.use("/api/v1/files", fileRoutes);
 
 // Helper to create an error object that mimics an Axios error response
 const createServiceError = (status, data) => {
@@ -74,7 +74,7 @@ const createServiceError = (status, data) => {
 };
 
 // --- Test Suite ---
-describe("File Routes (/api/files)", () => {
+describe("File Routes (/api/v1/files)", () => {
     let token;
     const testUserId = "user-test-123";
     const uploadDir = path.join(__dirname, "../uploads"); // Define uploadDir for path checks
@@ -135,10 +135,9 @@ describe("File Routes (/api/files)", () => {
             mockCallArchiveService.mockResolvedValueOnce({ message: "Registered", fileId: mockGeneratedFileId });
 
             const response = await request(app)
-                .post("/api/files/upload")
+                .post("/api/v1/files/upload")
                 .set("Authorization", `Bearer ${token}`)
-                .send(); 
-
+                .send();
             expect(response.status).toBe(201);
             expect(response.body).toHaveProperty("message", "File uploaded and registered successfully.");
             expect(response.body).toHaveProperty("fileId", mockGeneratedFileId);

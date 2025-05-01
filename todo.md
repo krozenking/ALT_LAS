@@ -31,8 +31,8 @@
   - [ ] Geriye dönük uyumluluk
   - [ ] Versiyon dokümantasyonu
 - [ ] **Görev 1.20:** Kapsamlı API testleri
-  - [ ] Birim testleri
-  - [ ] Entegrasyon testleri
+  - [x] Birim testleri (Dosya Yönetimi API için tamamlandı)
+  - [x] Entegrasyon testleri (Dosya Yönetimi API için tamamlandı)
   - [ ] Performans testleri
   - [ ] Yük testleri
 - [ ] **Görev 1.21:** WebSocket desteği

@@ -3,8 +3,8 @@ const express = require("express"); // Import express for mocking app
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
-const axios = require("axios");
 const formidable = require("formidable");
+const { v4: uuidv4 } = require("uuid"); // Import uuid to mock it
 
 // Mock the actual app - We need to mock the dependencies used in files.js
 // Mock logger first as it's used globally
@@ -14,11 +14,10 @@ jest.mock("../src/utils/logger", () => ({
     error: jest.fn(),
 }));
 
-// Mock axios for service calls (Simplified instance mock)
-const mockAxiosInstance = jest.fn().mockResolvedValue({ data: {}, status: 200 });
-jest.mock("axios", () => ({
-  __esModule: true,
-  default: mockAxiosInstance, // Mock the default export used as axios(config)
+// Mock the NEW archiveClient module
+const mockCallArchiveService = jest.fn();
+jest.mock("../src/utils/archiveClient", () => ({
+    callArchiveService: mockCallArchiveService,
 }));
 
 // Mock formidable
@@ -27,6 +26,12 @@ const mockFormidableInstance = { parse: mockParse };
 jest.mock("formidable", () => {
     return jest.fn(() => mockFormidableInstance); // Mock the constructor to return our instance
 });
+
+// Mock uuid
+const mockGeneratedFileId = "mock-uuid-12345";
+jest.mock("uuid", () => ({
+    v4: jest.fn(() => mockGeneratedFileId),
+}));
 
 // Import the router *after* mocks are set up
 const fileRoutes = require("../routes/files");
@@ -59,10 +64,12 @@ app.use((req, res, next) => {
 });
 app.use("/api/files", fileRoutes);
 
-// Helper to create axios error with response
-const createAxiosError = (status, data) => {
+// Helper to create an error object that mimics an Axios error response
+const createServiceError = (status, data) => {
     const error = new Error(`Request failed with status code ${status}`);
     error.response = { status, data };
+    // Add other properties if the code specifically checks for them (e.g., isAxiosError)
+    // error.isAxiosError = true; 
     return error;
 };
 
@@ -70,7 +77,7 @@ const createAxiosError = (status, data) => {
 describe("File Routes (/api/files)", () => {
     let token;
     const testUserId = "user-test-123";
-    const archiveServiceUrl = process.env.ARCHIVE_SERVICE_URL || "http://localhost:3003";
+    const uploadDir = path.join(__dirname, "../uploads"); // Define uploadDir for path checks
 
     beforeAll(() => {
         // Generate a token for testing
@@ -82,21 +89,27 @@ describe("File Routes (/api/files)", () => {
         jest.clearAllMocks();
 
         // Spy on and mock fs methods
-        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        // jest.spyOn(fs, 'existsSync').mockReturnValue(true); // No longer needed
         jest.spyOn(fs, 'rename').mockImplementation((oldPath, newPath, cb) => cb(null));
         jest.spyOn(fs, 'unlink').mockImplementation((filePath, cb) => cb(null));
         jest.spyOn(fs, 'readdir').mockImplementation((dirPath, cb) => cb(null, []));
         jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {}); 
+        // Mock fs.stat as well for res.download - default success
+        jest.spyOn(fs, 'stat').mockImplementation((path, cb) => cb(null, { size: 1234, isFile: () => true }));
 
-        // Reset axios mock (using the explicitly mocked instance)
-        mockAxiosInstance.mockClear();
-        mockAxiosInstance.mockResolvedValue({ data: {}, status: 200 }); // Reset default
+        // Reset the archive client mock
+        mockCallArchiveService.mockClear();
+        mockCallArchiveService.mockResolvedValue({}); // Reset default to resolve with empty object
 
         // Reset formidable mock parse function
         mockParse.mockImplementation((req, cb) => { // Reset the parse function directly
             // Default mock: no file uploaded
             cb(null, {}, {}); 
         });
+        
+        // Reset uuid mock - Access the mocked function directly
+        require("uuid").v4.mockClear(); // Correct way to access the mock function
+        require("uuid").v4.mockReturnValue(mockGeneratedFileId);
     });
 
     afterEach(() => {
@@ -112,15 +125,14 @@ describe("File Routes (/api/files)", () => {
             mimetype: "text/plain",
             size: 100,
         };
+        const expectedTempFilePath = path.join(uploadDir, `${mockGeneratedFileId}.txt`);
 
         it("should successfully upload a file and register with Archive Service", async () => {
             mockParse.mockImplementation((req, cb) => {
                 cb(null, {}, { file: [mockFile] });
             });
-            mockAxiosInstance.mockResolvedValueOnce({ 
-                data: { message: "Registered", fileId: expect.any(String) }, 
-                status: 201 
-            });
+            // Mock the successful response from callArchiveService
+            mockCallArchiveService.mockResolvedValueOnce({ message: "Registered", fileId: mockGeneratedFileId });
 
             const response = await request(app)
                 .post("/api/files/upload")
@@ -129,15 +141,21 @@ describe("File Routes (/api/files)", () => {
 
             expect(response.status).toBe(201);
             expect(response.body).toHaveProperty("message", "File uploaded and registered successfully.");
-            expect(response.body).toHaveProperty("fileId");
+            expect(response.body).toHaveProperty("fileId", mockGeneratedFileId);
             expect(response.body).toHaveProperty("filename", "test.txt");
-            expect(fs.rename).toHaveBeenCalled();
-            expect(mockAxiosInstance).toHaveBeenCalledWith(expect.objectContaining({
-                method: "post",
-                url: `${archiveServiceUrl}/api/archive/register`,
-                data: expect.objectContaining({ filename: "test.txt", size: 100 }),
-                headers: { Authorization: `Bearer ${token}` }
-            }));
+            expect(fs.rename).toHaveBeenCalledWith(mockFile.filepath, expectedTempFilePath, expect.any(Function));
+            // Check if callArchiveService was called correctly
+            expect(mockCallArchiveService).toHaveBeenCalledWith(
+                "post",
+                "/api/archive/register",
+                expect.objectContaining({ 
+                    fileId: mockGeneratedFileId,
+                    filename: "test.txt", 
+                    size: 100,
+                    tempPath: expectedTempFilePath 
+                }),
+                { Authorization: `Bearer ${token}` }
+            );
         });
 
         it("should return 400 if no file is uploaded", async () => {
@@ -166,11 +184,12 @@ describe("File Routes (/api/files)", () => {
             expect(fs.unlink).toHaveBeenCalledWith(mockFile.filepath, expect.any(Function)); 
         });
 
-        it("should return 500 if Archive Service registration fails (non-axios error)", async () => {
+        it("should return 500 if Archive Service registration fails (non-service error)", async () => {
             mockParse.mockImplementation((req, cb) => {
                 cb(null, {}, { file: [mockFile] });
             });
-            mockAxiosInstance.mockRejectedValueOnce(new Error("Network Error")); // Simulate generic error
+            // Simulate a generic error (no 'response' property)
+            mockCallArchiveService.mockRejectedValueOnce(new Error("Network Error")); 
 
             const response = await request(app)
                 .post("/api/files/upload")
@@ -179,14 +198,16 @@ describe("File Routes (/api/files)", () => {
 
             expect(response.status).toBe(500);
             expect(response.body).toHaveProperty("message", "Could not communicate with Archive Service for registration.");
-            expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining(response.body.fileId), expect.any(Function)); 
+            // Check if unlink was called on the expected temporary file path
+            expect(fs.unlink).toHaveBeenCalledWith(expectedTempFilePath, expect.any(Function)); 
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
             mockParse.mockImplementation((req, cb) => {
                 cb(null, {}, { file: [mockFile] });
             });
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(503, { message: "Service Unavailable" }));
+            // Simulate a service error (with 'response' property)
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(503, { message: "Service Unavailable" }));
 
             const response = await request(app)
                 .post("/api/files/upload")
@@ -195,7 +216,8 @@ describe("File Routes (/api/files)", () => {
 
             expect(response.status).toBe(502); // Expect Bad Gateway if dependent service fails
             expect(response.body).toHaveProperty("message", "Archive Service error during registration.");
-            expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining(response.body.fileId), expect.any(Function)); 
+            // Check if unlink was called on the expected temporary file path
+            expect(fs.unlink).toHaveBeenCalledWith(expectedTempFilePath, expect.any(Function)); 
         });
 
         it("should return 401 if not authenticated", async () => {
@@ -211,28 +233,39 @@ describe("File Routes (/api/files)", () => {
         const filePath = `/path/to/storage/${fileId}.pdf`;
 
         it("should download the file if found in Archive Service", async () => {
-            mockAxiosInstance.mockResolvedValueOnce({ 
-                data: { fileId: fileId, filename: filename, path: filePath }, 
-                status: 200 
+            // Mock successful response from callArchiveService
+            mockCallArchiveService.mockResolvedValueOnce({ fileId: fileId, filename: filename, path: filePath });
+            // Ensure fs.stat returns success for the specific path
+            jest.spyOn(fs, 'stat').mockImplementation((p, cb) => {
+                if (p === filePath) {
+                    cb(null, { size: 5678, isFile: () => true });
+                } else {
+                    cb(new Error('File not found'));
+                }
             });
-            jest.spyOn(fs, 'existsSync').mockReturnValueOnce(true); 
 
             const response = await request(app)
                 .get(`/api/files/download/${fileId}`)
                 .set("Authorization", `Bearer ${token}`);
 
-            expect(response.status).toBe(200);
-            expect(mockAxiosInstance).toHaveBeenCalledWith(expect.objectContaining({
-                method: "get",
-                url: `${archiveServiceUrl}/api/archive/info/${fileId}`,
-                headers: { Authorization: `Bearer ${token}` }
-            }));
-            expect(fs.existsSync).toHaveBeenCalledWith(filePath);
-            expect(response.headers["content-disposition"]).toBe(`attachment; filename="${filename}"`);
+            // Check status and headers set by res.download
+            expect(response.status).toBe(200); 
+            expect(mockCallArchiveService).toHaveBeenCalledWith(
+                "get",
+                `/api/archive/info/${fileId}`,
+                {},
+                { Authorization: `Bearer ${token}` }
+            );
+            // expect(fs.existsSync).toHaveBeenCalledWith(filePath); // NO LONGER USED
+            expect(fs.stat).toHaveBeenCalledWith(filePath, expect.any(Function)); // Check if stat was called
+            // Check headers set by res.download
+            expect(response.headers['content-disposition']).toBe(`attachment; filename="${filename}"`);
+            // Supertest handles the download stream, we don't need to mock res.download directly
         });
 
         it("should return 404 if file info not found in Archive Service", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(404, { message: "Not Found" }));
+            // Simulate 404 error from service
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(404, { message: "Not Found" }));
 
             const response = await request(app)
                 .get(`/api/files/download/${fileId}`)
@@ -243,11 +276,17 @@ describe("File Routes (/api/files)", () => {
         });
 
         it("should return 404 if file not found at storage location", async () => {
-             mockAxiosInstance.mockResolvedValueOnce({ 
-                data: { fileId: fileId, filename: filename, path: filePath }, 
-                status: 200 
+             mockCallArchiveService.mockResolvedValueOnce({ fileId: fileId, filename: filename, path: filePath });
+             // Ensure fs.stat returns ENOENT error for the specific path
+            jest.spyOn(fs, 'stat').mockImplementation((p, cb) => {
+                if (p === filePath) {
+                    const error = new Error('File not found');
+                    error.code = 'ENOENT'; // Simulate file not found error
+                    cb(error);
+                } else {
+                    cb(null, { size: 123, isFile: () => true }); // Default success for other paths
+                }
             });
-            jest.spyOn(fs, 'existsSync').mockReturnValueOnce(false); 
 
             const response = await request(app)
                 .get(`/api/files/download/${fileId}`)
@@ -255,10 +294,11 @@ describe("File Routes (/api/files)", () => {
 
             expect(response.status).toBe(404);
             expect(response.body).toHaveProperty("message", "File not found at storage location.");
+            expect(fs.stat).toHaveBeenCalledWith(filePath, expect.any(Function)); // Verify stat was called
         });
 
-        it("should return 500 if Archive Service call fails unexpectedly (non-axios error)", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(new Error("Internal Server Error"));
+        it("should return 500 if Archive Service call fails unexpectedly (non-service error)", async () => {
+            mockCallArchiveService.mockRejectedValueOnce(new Error("Internal Server Error"));
 
             const response = await request(app)
                 .get(`/api/files/download/${fileId}`)
@@ -269,7 +309,7 @@ describe("File Routes (/api/files)", () => {
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(500, { message: "Server Error" }));
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(500, { message: "Server Error" }));
 
             const response = await request(app)
                 .get(`/api/files/download/${fileId}`)
@@ -289,7 +329,7 @@ describe("File Routes (/api/files)", () => {
     describe("GET /", () => {
         it("should list files from Archive Service", async () => {
             const mockFileList = { files: [{ fileId: "f1", filename: "a.txt" }, { fileId: "f2", filename: "b.pdf" }], total: 2 };
-            mockAxiosInstance.mockResolvedValueOnce({ data: mockFileList, status: 200 });
+            mockCallArchiveService.mockResolvedValueOnce(mockFileList);
 
             const response = await request(app)
                 .get("/api/files/")
@@ -298,16 +338,16 @@ describe("File Routes (/api/files)", () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toEqual(mockFileList);
-            expect(mockAxiosInstance).toHaveBeenCalledWith(expect.objectContaining({
-                method: "get",
-                url: `${archiveServiceUrl}/api/archive/search`,
-                params: { limit: '10', offset: '0' }, 
-                headers: { Authorization: `Bearer ${token}` }
-            }));
+            expect(mockCallArchiveService).toHaveBeenCalledWith(
+                "get",
+                "/api/archive/search",
+                { params: { limit: '10', offset: '0' } }, 
+                { Authorization: `Bearer ${token}` }
+            );
         });
 
-        it("should return 500 if Archive Service call fails (non-axios error)", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(new Error("Service Error"));
+        it("should return 500 if Archive Service call fails (non-service error)", async () => {
+            mockCallArchiveService.mockRejectedValueOnce(new Error("Service Error"));
 
             const response = await request(app)
                 .get("/api/files/")
@@ -318,7 +358,7 @@ describe("File Routes (/api/files)", () => {
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(500, { message: "Server Error" }));
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(500, { message: "Server Error" }));
 
             const response = await request(app)
                 .get("/api/files/")
@@ -341,7 +381,7 @@ describe("File Routes (/api/files)", () => {
 
         it("should update metadata via Archive Service", async () => {
             const updatedInfo = { fileId: fileId, filename: "meta.txt", ...updates };
-            mockAxiosInstance.mockResolvedValueOnce({ data: updatedInfo, status: 200 });
+            mockCallArchiveService.mockResolvedValueOnce(updatedInfo);
 
             const response = await request(app)
                 .put(`/api/files/metadata/${fileId}`)
@@ -351,12 +391,12 @@ describe("File Routes (/api/files)", () => {
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty("message", "Metadata updated successfully.");
             expect(response.body).toHaveProperty("fileInfo", updatedInfo);
-            expect(mockAxiosInstance).toHaveBeenCalledWith(expect.objectContaining({
-                method: "put",
-                url: `${archiveServiceUrl}/api/archive/metadata/${fileId}`,
-                data: updates,
-                headers: { Authorization: `Bearer ${token}` }
-            }));
+            expect(mockCallArchiveService).toHaveBeenCalledWith(
+                "put",
+                `/api/archive/metadata/${fileId}`,
+                updates,
+                { Authorization: `Bearer ${token}` }
+            );
         });
 
         it("should return 400 if no update data is provided", async () => {
@@ -370,7 +410,7 @@ describe("File Routes (/api/files)", () => {
         });
 
         it("should return 404 if file not found in Archive Service", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(404, { message: "Not Found" }));
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(404, { message: "Not Found" }));
 
             const response = await request(app)
                 .put(`/api/files/metadata/${fileId}`)
@@ -381,8 +421,8 @@ describe("File Routes (/api/files)", () => {
             expect(response.body).toHaveProperty("message", "File not found in archive.");
         });
 
-        it("should return 500 if Archive Service call fails unexpectedly (non-axios error)", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(new Error("Internal Error"));
+        it("should return 500 if Archive Service call fails unexpectedly (non-service error)", async () => {
+            mockCallArchiveService.mockRejectedValueOnce(new Error("Internal Error"));
 
             const response = await request(app)
                 .put(`/api/files/metadata/${fileId}`)
@@ -394,7 +434,7 @@ describe("File Routes (/api/files)", () => {
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(500, { message: "Server Error" }));
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(500, { message: "Server Error" }));
 
             const response = await request(app)
                 .put(`/api/files/metadata/${fileId}`)
@@ -415,8 +455,15 @@ describe("File Routes (/api/files)", () => {
     describe("DELETE /:fileId", () => {
         const fileId = "delete-test-id";
 
+        // Reset mocks specifically for DELETE tests to ensure correct setup
+        beforeEach(() => {
+            mockCallArchiveService.mockClear();
+            mockCallArchiveService.mockResolvedValue({}); // Default success
+        });
+
         it("should request deletion from Archive Service", async () => {
-            mockAxiosInstance.mockResolvedValueOnce({ data: { message: "Deletion initiated" }, status: 200 });
+            // No need to mock again if default is resolve
+            // mockCallArchiveService.mockResolvedValueOnce({ message: "Deletion initiated" });
 
             const response = await request(app)
                 .delete(`/api/files/${fileId}`)
@@ -424,15 +471,16 @@ describe("File Routes (/api/files)", () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty("message", `File ${fileId} deletion initiated successfully.`);
-            expect(mockAxiosInstance).toHaveBeenCalledWith(expect.objectContaining({
-                method: "delete",
-                url: `${archiveServiceUrl}/api/archive/${fileId}`,
-                headers: { Authorization: `Bearer ${token}` }
-            }));
+            expect(mockCallArchiveService).toHaveBeenCalledWith(
+                "delete",
+                `/api/archive/${fileId}`,
+                {},
+                { Authorization: `Bearer ${token}` }
+            );
         });
 
         it("should return 404 if file not found in Archive Service", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(404, { message: "Not Found" }));
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(404, { message: "Not Found" }));
 
             const response = await request(app)
                 .delete(`/api/files/${fileId}`)
@@ -442,8 +490,8 @@ describe("File Routes (/api/files)", () => {
             expect(response.body).toHaveProperty("message", "File not found in archive.");
         });
 
-        it("should return 500 if Archive Service call fails unexpectedly (non-axios error)", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(new Error("Internal Error"));
+        it("should return 500 if Archive Service call fails unexpectedly (non-service error)", async () => {
+            mockCallArchiveService.mockRejectedValueOnce(new Error("Internal Error"));
 
             const response = await request(app)
                 .delete(`/api/files/${fileId}`)
@@ -454,7 +502,7 @@ describe("File Routes (/api/files)", () => {
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
-            mockAxiosInstance.mockRejectedValueOnce(createAxiosError(500, { message: "Server Error" }));
+            mockCallArchiveService.mockRejectedValueOnce(createServiceError(500, { message: "Server Error" }));
 
             const response = await request(app)
                 .delete(`/api/files/${fileId}`)

@@ -27,6 +27,7 @@ const callArchiveService = async (method, endpoint, data = {}, headers = {}) => 
         } else {
             config.data = data; // Use data for POST/PUT
         }
+        // Use the default export axios(config)
         const response = await axios(config);
         logger.info(`Archive Service responded for ${method.toUpperCase()} ${endpoint}`, { status: response.status });
         return response.data;
@@ -43,20 +44,34 @@ const callArchiveService = async (method, endpoint, data = {}, headers = {}) => 
 
 // Helper function to handle Archive Service errors in responses
 const handleServiceError = (res, error, contextMessage, fileId = null) => {
-    logger.error(`${contextMessage} failed:`, { fileId, error: error.message, status: error.response?.status });
+    // Log detailed error information
+    logger.error(`${contextMessage} failed:`, {
+        fileId,
+        errorMessage: error.message,
+        // errorStack: error.stack, // Stack trace can be very verbose, log conditionally if needed
+        axiosResponseStatus: error.response?.status,
+        axiosResponseData: error.response?.data,
+        hasResponseProperty: error.hasOwnProperty("response")
+    });
+
     if (error.response) {
+        logger.info(`Handling error with response property. Status: ${error.response.status}`);
         // Error from the service itself
-        if (error.response.status === 404) {
+        const status = error.response.status;
+        if (status === 404) {
+            logger.warn(`Mapping to 404 Not Found.`);
             res.status(404).send({ message: "File not found in archive." });
-        } else if (error.response.status >= 500) {
+        } else if (status >= 500) {
+            logger.warn(`Mapping to 502 Bad Gateway due to downstream ${status}.`);
             // Service unavailable or internal error
-            res.status(502).send({ message: `Archive Service error during ${contextMessage}.`, serviceStatus: error.response.status, serviceError: error.response.data });
+            res.status(502).send({ message: `Archive Service error during ${contextMessage}.`, serviceStatus: status, serviceError: error.response.data });
         } else {
+            logger.warn(`Mapping to downstream status ${status}.`);
             // Other client errors from service (e.g., 400, 401, 403)
-            // Pass through the status and message from the service error if possible
-            res.status(error.response.status).send({ message: `Archive Service error: ${error.response.data?.message || error.message}`, serviceError: error.response.data });
+            res.status(status).send({ message: `Archive Service error: ${error.response.data?.message || error.message}`, serviceError: error.response.data });
         }
     } else {
+        logger.error(`Handling error without response property. Mapping to 500 Internal Server Error.`);
         // Network error or other issue calling the service (error doesn't have a response property)
         res.status(500).send({ message: `Could not communicate with Archive Service for ${contextMessage}.`, error: error.message });
     }

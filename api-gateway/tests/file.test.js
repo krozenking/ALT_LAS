@@ -14,16 +14,11 @@ jest.mock("../src/utils/logger", () => ({
     error: jest.fn(),
 }));
 
-// Mock axios for service calls
+// Mock axios for service calls (Simplified instance mock)
 const mockAxiosInstance = jest.fn().mockResolvedValue({ data: {}, status: 200 });
 jest.mock("axios", () => ({
   __esModule: true,
-  default: mockAxiosInstance,
-  // Mock other methods if they were used directly
-  get: jest.fn().mockResolvedValue({ data: {}, status: 200 }),
-  post: jest.fn().mockResolvedValue({ data: {}, status: 200 }),
-  put: jest.fn().mockResolvedValue({ data: {}, status: 200 }),
-  delete: jest.fn().mockResolvedValue({ data: {}, status: 200 }),
+  default: mockAxiosInstance, // Mock the default export used as axios(config)
 }));
 
 // Mock formidable
@@ -183,7 +178,7 @@ describe("File Routes (/api/files)", () => {
                 .send();
 
             expect(response.status).toBe(500);
-            expect(response.body).toHaveProperty("message", "File uploaded but failed to register with Archive Service.");
+            expect(response.body).toHaveProperty("message", "Could not communicate with Archive Service for registration.");
             expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining(response.body.fileId), expect.any(Function)); 
         });
         
@@ -199,7 +194,7 @@ describe("File Routes (/api/files)", () => {
                 .send();
 
             expect(response.status).toBe(502); // Expect Bad Gateway if dependent service fails
-            expect(response.body).toHaveProperty("message", "Archive Service registration failed.");
+            expect(response.body).toHaveProperty("message", "Archive Service error during registration.");
             expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining(response.body.fileId), expect.any(Function)); 
         });
 
@@ -270,7 +265,7 @@ describe("File Routes (/api/files)", () => {
                 .set("Authorization", `Bearer ${token}`);
                 
             expect(response.status).toBe(500);
-            expect(response.body).toHaveProperty("message", "Error retrieving file information.");
+            expect(response.body).toHaveProperty("message", "Could not communicate with Archive Service for retrieving file information.");
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
@@ -281,7 +276,7 @@ describe("File Routes (/api/files)", () => {
                 .set("Authorization", `Bearer ${token}`);
                 
             expect(response.status).toBe(502);
-            expect(response.body).toHaveProperty("message", "Error retrieving file information from Archive Service.");
+            expect(response.body).toHaveProperty("message", "Archive Service error during retrieving file information.");
         });
 
         it("should return 401 if not authenticated", async () => {
@@ -319,7 +314,7 @@ describe("File Routes (/api/files)", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.status).toBe(500);
-            expect(response.body).toHaveProperty("message", "Could not list files.");
+            expect(response.body).toHaveProperty("message", "Could not communicate with Archive Service for listing files.");
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
@@ -330,7 +325,7 @@ describe("File Routes (/api/files)", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.status).toBe(502);
-            expect(response.body).toHaveProperty("message", "Could not list files from Archive Service.");
+            expect(response.body).toHaveProperty("message", "Archive Service error during listing files.");
         });
 
         it("should return 401 if not authenticated", async () => {
@@ -395,7 +390,7 @@ describe("File Routes (/api/files)", () => {
                 .send(updates);
 
             expect(response.status).toBe(500);
-            expect(response.body).toHaveProperty("message", "Could not update metadata.");
+            expect(response.body).toHaveProperty("message", "Could not communicate with Archive Service for updating metadata.");
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
@@ -407,7 +402,7 @@ describe("File Routes (/api/files)", () => {
                 .send(updates);
 
             expect(response.status).toBe(502);
-            expect(response.body).toHaveProperty("message", "Could not update metadata in Archive Service.");
+            expect(response.body).toHaveProperty("message", "Archive Service error during updating metadata.");
         });
 
         it("should return 401 if not authenticated", async () => {
@@ -455,7 +450,7 @@ describe("File Routes (/api/files)", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.status).toBe(500);
-            expect(response.body).toHaveProperty("message", "Could not initiate file deletion.");
+            expect(response.body).toHaveProperty("message", "Could not communicate with Archive Service for initiating file deletion."); 
         });
         
         it("should return 502 if Archive Service returns 5xx error", async () => {
@@ -466,7 +461,7 @@ describe("File Routes (/api/files)", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(response.status).toBe(502);
-            expect(response.body).toHaveProperty("message", "Could not initiate file deletion in Archive Service.");
+            expect(response.body).toHaveProperty("message", "Archive Service error during initiating file deletion.");
         });
 
         it("should return 401 if not authenticated", async () => {

@@ -33,8 +33,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(helmet());
 app.use(compression()); // Add compression middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(requestLogger); // Use named import
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 100 })); // Use named import and provide options
 

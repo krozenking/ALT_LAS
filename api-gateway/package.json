@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/compression": "^1.7.5",
     "@types/response-time": "^2.3.8",
     "@types/uuid": "^10.0.0",
     "axios": "^1.9.0",
     "bcrypt": "^5.1.1",
+    "compression": "^1.8.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-healthcheck": "^0.1.0",

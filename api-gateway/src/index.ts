@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression'; // Import compression middleware
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
@@ -31,6 +32,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware yapılandırması
 app.use(cors());
 app.use(helmet());
+app.use(compression()); // Add compression middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger); // Use named import

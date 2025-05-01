@@ -199,3 +199,38 @@ Bu bölümde, `plan_maker_prompt.md` ve `docs/developer-guide.md` belgeleri teme
 ---
 *(Diğer bileşenlerin denetimi buraya eklenecek)*
 
+
+
+### 2.6 `os-integration-service` Denetimi
+
+*   **Dil/Teknoloji:** Rust, Actix-web (muhtemelen API için), Tokio (asenkron çalışma zamanı), Platform-spesifik kütüphaneler (windows, cocoa, x11rb)
+*   **Kodlama Standartları (1.1):**
+    *   `developer-guide.md` `rustfmt` ve `clippy` kullanılmasını belirtiyor.
+    *   `Cargo.toml` ve `Cargo.lock` dosyaları mevcut.
+    *   `Cargo.toml` dosyasında `edition = "2024"` belirtilmiş, bu Rust'ın daha yeni bir sürümünün hedeflendiğini gösteriyor (muhtemelen bir yazım hatası, 2021 olmalı, ancak kontrol edilmeli).
+    *   **Bulgu:** Standart Rust araçlarının kullanıldığı varsayılabilir. Kodun kendisi incelenerek `clippy` önerilerine ve genel Rust API Guidelines'a uyulup uyulmadığı kontrol edilmelidir. Edition 2024 kontrol edilmeli.
+*   **Mikroservis/Modülerlik/Bağımsızlık (1.2):**
+    *   Actix-web bağımlılığı, servisin bir API sunduğunu düşündürüyor.
+    *   Platform-spesifik bağımlılıklar (`windows`, `cocoa`, `x11rb`), servisin çalıştığı işletim sistemine özgü işlevler (örn: bildirimler, pencere yönetimi, sistem bilgisi) sağladığını gösteriyor. Bu, servisin net bir sorumluluğu olduğunu düşündürür.
+    *   `src` klasörünün varlığı modüler bir yapıya işaret ediyor, ancak iç yapı incelenmeli.
+    *   `cfg-if` bağımlılığı, platforma özgü kod bloklarını yönetmek için kullanılıyor olabilir.
+    *   **Bulgu:** Belirli bir sorumluluğa (OS entegrasyonu) odaklanmış bir mikroservis yapısına uygun olabilir. API sınırları ve diğer servislerle etkileşimler (varsa) kod incelenerek doğrulanmalıdır.
+*   **Test Yeterliliği (1.3):**
+    *   `tests` klasörü mevcut.
+    *   `developer-guide.md` `cargo test` kullanılmasını belirtiyor.
+    *   Platforma özgü kodların test edilmesi zor olabilir, test stratejisi incelenmelidir.
+    *   **Bulgu:** Test altyapısı mevcut. Testlerin kapsamı, kalitesi ve platforma özgü kodları nasıl ele aldığı kod incelenerek ve testler çalıştırılarak değerlendirilmelidir.
+*   **Lisans Uyumluluğu (1.4):**
+    *   `Cargo.toml` dosyasında lisans "MIT/Apache-2.0" olarak belirtilmiş. Bu iyi bir durumdur.
+    *   Bağımlılıklar (`tokio`, `actix-web`, `serde`, `anyhow`, `thiserror`, `cfg-if`, `chrono`, `windows`, `objc`, `cocoa`, `core-foundation`, `x11rb`) genellikle izin veren lisanslara (MIT, Apache 2.0, BSD) sahiptir.
+    *   **Bulgu:** Lisans belirtilmiş ve bağımlılıkların lisansları büyük olasılıkla uygun. Otomatik bir araçla (örn: `cargo-deny`) kontrol edilebilir.
+*   **Diğer Kalite Faktörleri (1.5):**
+    *   `log` ve `env_logger` bağımlılıkları loglama yapıldığını gösteriyor.
+    *   `anyhow` ve `thiserror` bağımlılıkları, daha iyi hata yönetimi için kullanıldığını gösteriyor.
+    *   **Bulgu:** Loglama ve hata yönetimi gibi kalite faktörlerine dikkat edilmiş görünüyor. Güvenlik detayları kod incelenerek anlaşılmalıdır.
+
+*   **Genel Değerlendirme (os-integration-service):** Bileşen, platforma özgü işlevler sağlayan, belirli bir amaca hizmet eden bir servis gibi görünüyor. Lisans belirtilmiş, test ve loglama altyapısı mevcut. Hata yönetimine önem verilmiş. Kodun iç yapısı, modülerliği, platforma özgü kodların yönetimi ve test stratejisi detaylı incelenmelidir. `edition = "2024"` kontrol edilmelidir.
+
+---
+*(Diğer bileşenlerin denetimi buraya eklenecek)*
+

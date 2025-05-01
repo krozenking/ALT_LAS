@@ -1,7 +1,8 @@
-const mcache = require("memory-cache");
+import redisClient from "../utils/redisClient"; // Import the configured Redis client
+import logger from "../utils/logger";
 
 const cacheMiddleware = (duration) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     // Only cache GET requests
     if (req.method !== "GET") {
       return next();
@@ -9,33 +10,53 @@ const cacheMiddleware = (duration) => {
 
     // Use originalUrl or url as the key, consider query params
     const key = "__express__" + (req.originalUrl || req.url);
-    const cachedBody = mcache.get(key);
+    let cachedBody = null;
+
+    try {
+      cachedBody = await redisClient.get(key);
+    } catch (err) {
+      logger.error(`Redis GET error for key ${key}:`, err);
+      // If Redis fails, proceed without caching
+      return next();
+    }
 
     if (cachedBody) {
-      // console.log(`Cache hit for ${key}`);
+      // logger.info(`Redis Cache hit for ${key}`);
       // Send the cached response
-      // Need to handle different content types, assuming JSON for now
       try {
         res.setHeader("X-Cache", "HIT");
-        res.setHeader("Content-Type", "application/json"); // Assume JSON
-        res.send(cachedBody);
+        // Attempt to parse as JSON, fallback to sending as is
+        try {
+          res.setHeader("Content-Type", "application/json");
+          res.send(JSON.parse(cachedBody));
+        } catch (parseError) {
+          // If not JSON, send as plain text or original content type if stored
+          // For simplicity, sending as plain text here. Could store content-type in Redis too.
+          res.setHeader("Content-Type", "text/plain"); 
+          res.send(cachedBody);
+        }
       } catch (e) {
-        // If sending fails (e.g., headers already sent), log and ignore
-        console.error("Error sending cached response:", e);
+        logger.error("Error sending cached response:", e);
       }
-      return; // Important: stop further processing
+      return; // Stop further processing
     } else {
-      // console.log(`Cache miss for ${key}`);
+      // logger.info(`Redis Cache miss for ${key}`);
       res.setHeader("X-Cache", "MISS");
-      // Override res.send to cache the response
+      // Override res.send to cache the response in Redis
       const originalSend = res.send;
       res.send = (body) => {
         // Only cache successful responses (2xx)
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          // Cache the response body for the specified duration (in seconds)
-          // memory-cache uses milliseconds
-          mcache.put(key, body, duration * 1000);
-          // console.log(`Cached response for ${key} for ${duration} seconds`);
+          try {
+            // Store the body in Redis with expiration (EX = seconds)
+            // Stringify JSON bodies before storing
+            const bodyToCache = (typeof body === "string") ? body : JSON.stringify(body);
+            redisClient.set(key, bodyToCache, "EX", duration)
+              .then(() => { /* logger.info(`Redis Cached response for ${key} for ${duration} seconds`); */ })
+              .catch(err => logger.error(`Redis SET error for key ${key}:`, err));
+          } catch (err) {
+            logger.error(`Error caching response body for key ${key}:`, err);
+          }
         }
         // Call the original send method
         originalSend.call(res, body);

@@ -218,3 +218,25 @@ Tüm UI bağımlılıkları, kapalı kaynak ticari kullanım ile uyumlu lisansla
 Bu güncellenmiş görev listesi, ALT_LAS projesinin UI/UX geliştirme sürecini detaylandırmaktadır. Tamamlanan bileşenler üzerine inşa ederek, erişilebilirlik, performans, bildirim sistemi, gelişmiş ekran yakalama ve adaptif düzen sistemi gibi alanlarda iyileştirmeler yapılacaktır. Lisans uyumluluğu ve kapsamlı dokümantasyon da öncelikli görevler arasındadır.
 
 Bu görevlerin tamamlanması, ALT_LAS'ın kullanıcı arayüzünün UI-TARS-desktop'tan daha gelişmiş, tema desteğine sahip ve kullanıcı dostu olmasını sağlayacaktır.
+
+
+
+## Yönetici Tarafından Atanan Öncelikli UI/UX Görevleri (Mayıs 2025)
+
+Proje Yöneticisi tarafından belirlenen ve önceliklendirilen yeni UI/UX görevleri aşağıdadır. Bu görevler, mevcut "Yeni Görevler" bölümündeki planlamayı tamamlayıcı niteliktedir ve projenin genel ilerlemesi için kritik öneme sahiptir.
+
+### Öncelik 1: Panel Sistemi Kullanılabilirlik İyileştirmeleri
+- **Görev PM.5.1:** Panel sürükle-bırak ve yeniden boyutlandırma işlemleri sırasında gelişmiş görsel geri bildirimler (vurgulanan bırakma alanları, hayalet panel vb.) implemente et. (Tahmini Süre: 2 gün)
+- **Görev PM.5.2:** Paneller arasında gezinme, yeniden boyutlandırma ve taşıma işlemleri için klavye kısayolları tanımla ve implemente et. (Tahmini Süre: 2 gün)
+
+### Öncelik 2: Glassmorphism Efektleri - Tutarlılık ve Erişilebilirlik
+- **Görev PM.5.3:** Glassmorphism efektinin (bulanıklık, opaklık, yarıçap vb.) tutarlı uygulanması için net bir stil rehberi oluştur veya mevcut olanı güncelle. (Tahmini Süre: 1 gün)
+- **Görev PM.5.4:** Glassmorphism uygulamasını WCAG kontrast ve okunabilirlik yönergelerine göre gözden geçir. Yüksek kontrast temaları için ayarlamalar veya alternatifler tanımla. (Tahmini Süre: 2 gün)
+
+### Öncelik 3: Tema Sistemi - Mod Entegrasyonu
+- **Görev PM.5.5:** Tema sistemi içinde farklı çalışma modları (Normal, Dream, Explore, Chaos) için belirgin görsel varyasyonlar (renk dışında, ince animasyon/stil farklılıkları gibi) implemente et. (Tahmini Süre: 3 gün)
+
+### Öncelik 4: Komut Çubuğu - Etkileşim Geri Bildirimi
+- **Görev PM.5.6:** Komut çubuğunda, bir komut işlenirken görsel geri bildirim (örneğin, yükleme göstergesi) implemente et. (Tahmini Süre: 1 gün)
+- **Görev PM.5.7:** Geçersiz komutlar veya backend işleme hataları için kullanıcı dostu hata mesajları tasarla ve implemente et. (Tahmini Süre: 1 gün) **Not:** Bu görev, backend (Runner Service, AI Orchestrator) ile koordinasyon gerektirebilir.
+

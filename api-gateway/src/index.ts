@@ -64,7 +64,7 @@ app.use(routeAuthorization);
 // Servis rotaları
 app.use("/api/segmentation", segmentationRoutes);
 app.use("/api/runner", runnerRoutes);
-app.use("/api/archive", archiveRoutes);
+app.use("/api/archive", cacheMiddleware(60), archiveRoutes); // Cache archive GETs for 60s
 app.use("/api/services", serviceRoutes);
 app.use("/api/commands", commandRoutes); // Use command routes
 app.use("/api/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests

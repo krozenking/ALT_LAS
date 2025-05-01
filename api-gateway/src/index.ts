@@ -15,6 +15,7 @@ import runnerRoutes from './routes/runnerRoutes';
 import archiveRoutes from './routes/archiveRoutes';
 import serviceRoutes from "./routes/serviceRoutes";
 import commandRoutes from "./routes/commandRoutes"; // Import command routes
+import fileRoutes from "./routes/files"; // Import file routes
 // import healthRoutes from "./routes/healthRoutes"; // Removed, handled by setupHealthCheck
 import { setupMetrics, setupHealthCheck } from './utils/monitoring'; // Import monitoring setup
 import logger from './utils/logger';
@@ -54,6 +55,7 @@ app.use('/api/runner', authenticateJWT);
 app.use('/api/archive', authenticateJWT);
 app.use("/api/services", authenticateJWT);
 app.use("/api/commands", authenticateJWT); // Add command routes with auth
+app.use("/api/files", authenticateJWT); // Add file routes with auth
 
 // Route bazlı yetkilendirme
 app.use(routeAuthorization);
@@ -64,6 +66,7 @@ app.use('/api/runner', runnerRoutes);
 app.use("/api/archive", archiveRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/commands", commandRoutes); // Use command routes
+app.use("/api/files", fileRoutes); // Use file routes
 
 // 404 handler
 app.use((req: Request, res: Response) => {

@@ -9,6 +9,7 @@ import { routeAuthorization } from './middleware/routeAuthMiddleware';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware'; // Use named import
 import { requestLogger } from './middleware/loggingMiddleware'; // Use named import
 import { rateLimiter } from './middleware/rateLimiter'; // Use named import
+import cacheMiddleware from './middleware/cache'; // Import cache middleware
 import authRoutes from './routes/authRoutes';
 import segmentationRoutes from './routes/segmentationRoutes';
 import runnerRoutes from './routes/runnerRoutes';
@@ -61,12 +62,12 @@ app.use("/api/files", authenticateJWT); // Add file routes with auth
 app.use(routeAuthorization);
 
 // Servis rotaları
-app.use('/api/segmentation', segmentationRoutes);
-app.use('/api/runner', runnerRoutes);
+app.use("/api/segmentation", segmentationRoutes);
+app.use("/api/runner", runnerRoutes);
 app.use("/api/archive", archiveRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/commands", commandRoutes); // Use command routes
-app.use("/api/files", fileRoutes); // Use file routes
+app.use("/api/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests
 
 // 404 handler
 app.use((req: Request, res: Response) => {

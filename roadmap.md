@@ -2,9 +2,11 @@
 
 ## 1. Genel Bakış
 
-Bu belge, ALT_LAS projesinin geliştirme sürecini, aşamalarını ve zaman çizelgesini detaylandırmaktadır. Proje, modüler bir yaklaşımla geliştirilecek ve her bir aşama belirli hedeflere ulaşmayı amaçlayacaktır.
+Bu belge, ALT_LAS projesinin geliştirme sürecini, aşamalarını ve genel 32 haftalık zaman çizelgesini detaylandırmaktadır. Proje, modüler bir yaklaşımla geliştirilecek ve her bir aşama belirli hedeflere ulaşmayı amaçlayacaktır.
 
 ## 2. Geliştirme Aşamaları
+
+**Not:** Aşağıda belirtilen 32 haftalık genel yol haritası, projenin tamamlanması için öngörülen toplam süreyi göstermektedir. Her bir işçi için daha detaylı, 12 haftalık görev planları [İşçi Detaylı Görevler (worker_tasks_detailed.md)](worker_tasks_detailed.md) belgesinde bulunmaktadır. Bu 12 haftalık planlar, genel yol haritasının ilk aşamalarını (özellikle Aşama 1 ve Aşama 2'nin önemli bir kısmını) kapsamaktadır ve projenin başlangıç ivmesini sağlamayı hedefler.
 
 ### Aşama 1: Temel Altyapı ve Prototip (8 Hafta)
 
@@ -178,7 +180,7 @@ Her sprint'in %20'si teknik borç azaltmaya ayrılacaktır:
 ## 7. Kaynaklar ve Gereksinimler
 
 ### Geliştirme Ekibi
-- 8 geliştirici (detaylar görev bölümünde)
+- 8 geliştirici (detaylar [İşçi Görev Dağılımı (Özet)](worker_tasks.md) belgesinde)
 - 1 proje yöneticisi
 - 1 UI/UX tasarımcı
 - 1 QA uzmanı
@@ -203,3 +205,4 @@ Her sprint'in %20'si teknik borç azaltmaya ayrılacaktır:
 - Kullanıcı memnuniyeti (beta testlerinde)
 - Ticari lisans uyumluluğu
 - Dokümantasyon tamamlanması
+

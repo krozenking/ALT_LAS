@@ -77,9 +77,8 @@ Detaylı dokümantasyon için aşağıdaki belgelere bakın:
 
 - [Mimari Tasarım](architecture.md)
 - [Geliştirme Yol Haritası](roadmap.md)
-- [İşçi Görev Dağılımı](worker_tasks.md)
-- [API Referansı](docs/api-reference.md) (Güncellenmiş API Gateway dokümantasyonu için `api-gateway/swagger.yaml` dosyasına bakın)
-- [Geliştirici Kılavuzu](docs/developer-guide.md)
+- [İşçi Görev Dağılımı (Özet)](worker_tasks.md) (Detaylı plan için [İşçi Detaylı Görevler](worker_tasks_detailed.md))
+- [API Referansı](api-gateway/swagger.yaml) (Swagger UI üzerinden veya YAML dosyası olarak incelenebilir. Eski `docs/api-reference.md` güncel olmayabilir.)- [Geliştirici Kılavuzu](docs/developer-guide.md)
 - [Kullanıcı Kılavuzu](docs/user-guide.md)
 
 ## Lisans

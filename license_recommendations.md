@@ -1,47 +1,63 @@
-# License Compatibility Report for ALT_LAS Project
+# License Compatibility Report & Recommendations for ALT_LAS Project
 
 ## Summary
-After thorough analysis of all dependencies used in the ALT_LAS project, we have determined that **all current dependencies are compatible with closed-source commercial use**. No license replacements are necessary at this time.
+Analysis of dependencies reveals that **most core components use licenses compatible with closed-source commercial use (MIT, BSD, Apache 2.0)**. However, certain components mentioned in the architecture, specifically **Grafana (AGPLv3)** for monitoring and **Coqui TTS (MPL 2.0)** for voice processing, present potential licensing conflicts with the project's commercial goals. Immediate attention and decisions are required regarding these components.
 
-## Current Dependencies and License Status
+## Core Dependencies and License Status (Compatible ✅)
 
 ### API Gateway (Node.js)
-All dependencies use the MIT license, which is fully compatible with closed-source commercial use:
-- express (MIT)
-- cors (MIT)
-- helmet (MIT)
-- jsonwebtoken (MIT)
-- morgan (MIT)
-- swagger-ui-express (MIT)
-- yamljs (MIT)
-- Development dependencies: jest, nodemon, supertest (all MIT)
+- All dependencies use the MIT license.
 
 ### Segmentation Service (Python)
-All dependencies use either MIT or BSD licenses, both of which are fully compatible with closed-source commercial use:
-- fastapi (MIT)
-- pydantic (MIT)
-- uvicorn (BSD)
-- pyparsing (MIT)
+- Dependencies use MIT or BSD licenses.
 
-## License Requirements for Commercial Use
+### Runner Service (Rust)
+- Dependencies primarily use MIT/Apache 2.0 licenses.
 
-While no replacements are needed, the team should ensure the following requirements are met for license compliance:
+### Archive Service (Go)
+- Dependencies primarily use BSD-3-Clause/Apache 2.0/PostgreSQL License.
 
-### For MIT Licensed Libraries
-- Include the original copyright notice and license text in your software distribution
-- This can be done by maintaining a "licenses" or "third-party notices" file in your project
+### UI Components (React, Electron, React Native)
+- Dependencies primarily use the MIT license.
 
-### For BSD Licensed Libraries (uvicorn)
-- Include the original copyright notice
-- Include the license text
-- Do not use the names of the copyright holders or contributors to endorse derived products without permission
+### OS Integration (Rust/C++)
+- Dependencies primarily use MIT/Apache 2.0 licenses.
+
+### AI Orchestrator, Local LLM, Computer Vision (Python, C++)
+- Dependencies primarily use MIT, BSD, Apache 2.0 licenses.
+
+## Potential Licensing Issues & Recommendations (Action Required ⚠️)
+
+1.  **Grafana (Monitoring):**
+    *   **License:** AGPLv3
+    *   **Issue:** AGPL is a strong copyleft (viral) license. If Grafana is modified and offered as a service, or potentially even tightly integrated and distributed, it could require the entire project's source code to be released under AGPL.
+    *   **Recommendation:**
+        *   **Option A (Preferred for Commercial):** Use the MIT-licensed alternative **Chronograf** mentioned in `architecture.md` if its features suffice.
+        *   **Option B (Requires Legal Review):** Use Grafana strictly internally without modification or distribution, *after* obtaining legal counsel confirming this usage doesn't trigger AGPL obligations for the rest of the project.
+        *   **Decision Needed:** Choose between Chronograf, using Grafana with legal review, or finding another permissively licensed alternative.
+
+2.  **Coqui TTS (Voice Processing):**
+    *   **License:** MPL 2.0
+    *   **Issue:** MPL 2.0 requires modifications made to MPL-licensed *files* to be shared under MPL. While not as viral as AGPL, it can complicate proprietary development if modifications to Coqui TTS code itself are needed.
+    *   **Recommendation:**
+        *   **Option A (Preferred for Commercial):** Replace Coqui TTS with a permissively licensed alternative like **Piper TTS (MIT)** as suggested in `architecture.md`.
+        *   **Option B (Less Ideal):** Use Coqui TTS without modifying its source files, ensuring a clear boundary between it and proprietary code. This might limit flexibility.
+        *   **Decision Needed:** Confirm the switch to Piper TTS or another MIT/Apache/BSD licensed alternative.
+
+## General License Compliance Requirements
+
+For all included third-party libraries, ensure the following:
+
+- **Attribution:** Include original copyright notices.
+- **License Text:** Include the full text of the applicable licenses (MIT, BSD, Apache 2.0, etc.) in your software distribution (e.g., in a "licenses" or "third-party notices" file).
+- **Specific Restrictions:** Adhere to any specific clauses (e.g., BSD's non-endorsement clause).
 
 ## Recommendations for Future Development
 
-1. **License Tracking**: Implement a process to track licenses of new dependencies before they are added to the project
-2. **License Documentation**: Maintain an up-to-date document listing all third-party libraries and their licenses
-3. **Dependency Review**: Conduct periodic reviews of dependencies to ensure continued license compliance
-4. **License Education**: Ensure all team members understand which licenses are compatible with the project's commercial goals
+1.  **Strict License Vetting**: Before adding *any* new dependency, verify its license is compatible (MIT, Apache 2.0, BSD preferred). Avoid GPL/AGPL/MPL unless explicitly approved after legal review.
+2.  **Automated License Scanning**: Integrate tools like FOSSA, Snyk Open Source, or trivy into the CI/CD pipeline to automatically scan for license compliance issues.
+3.  **Maintain License Documentation**: Keep `license_analysis.md` up-to-date with all dependencies and their licenses.
+4.  **Dependency Review**: Periodically review dependencies for license changes or vulnerabilities.
 
 ## Conclusion
-The ALT_LAS project is currently in full compliance with license requirements for closed-source commercial use. No immediate actions are required regarding license compatibility.
+The core of the ALT_LAS project is built on commercially friendly licenses. However, **immediate decisions are required regarding Grafana and Coqui TTS** to ensure the entire project remains compatible with closed-source commercial distribution goals. Replacing them with permissively licensed alternatives (Chronograf, Piper TTS) is the safest path.

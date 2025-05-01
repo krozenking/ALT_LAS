@@ -4,23 +4,39 @@ const formidable = require("formidable");
 const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const axios = require("axios"); // Import axios
-const logger = require("../src/utils/logger"); // Import logger
+const axios = require("axios");
+const logger = require("../src/utils/logger");
 
-// Define a directory for temporary uploads
+// Define a directory for temporary uploads - might be phased out with Archive Service integration
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // TODO: Move service URLs to config
-const SEGMENTATION_SERVICE_URL = process.env.SEGMENTATION_SERVICE_URL || "http://localhost:3001"; // Example URL, adjust as needed
+const ARCHIVE_SERVICE_URL = process.env.ARCHIVE_SERVICE_URL || "http://localhost:3003"; // Example URL
+
+// Helper function to interact with Archive Service
+const callArchiveService = async (method, endpoint, data = {}, headers = {}) => {
+    const url = `${ARCHIVE_SERVICE_URL}${endpoint}`;
+    logger.info(`Calling Archive Service: ${method.toUpperCase()} ${url}`, { data });
+    try {
+        const response = await axios({ method, url, data, headers });
+        logger.info(`Archive Service responded for ${method.toUpperCase()} ${endpoint}`, { status: response.status });
+        return response.data;
+    } catch (error) {
+        logger.error(`Error calling Archive Service (${method.toUpperCase()} ${endpoint}):`, {
+            error: error.message,
+            url: url,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        throw error; // Re-throw to be handled by the caller
+    }
+};
 
 // File upload endpoint
 router.post("/upload", (req, res, next) => {
-  // Use host from the original request for service calls if running in same network
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-
   const form = formidable({ uploadDir: uploadDir, keepExtensions: true });
 
   form.parse(req, (err, fields, files) => {
@@ -30,7 +46,6 @@ router.post("/upload", (req, res, next) => {
     }
 
     const file = files.file;
-
     if (!file || file.length === 0) {
         logger.warn("File upload attempt with no file.");
         return res.status(400).send({ message: "No file uploaded." });
@@ -39,8 +54,8 @@ router.post("/upload", (req, res, next) => {
     const uploadedFile = file[0];
     const fileId = uuidv4();
     const originalFilename = uploadedFile.originalFilename;
-    // Store file with unique ID to avoid collisions and simplify referencing
-    const newFilePath = path.join(uploadDir, `${fileId}${path.extname(originalFilename)}`); 
+    const fileExt = path.extname(originalFilename);
+    const newFilePath = path.join(uploadDir, `${fileId}${fileExt}`);
 
     fs.rename(uploadedFile.filepath, newFilePath, async (renameErr) => {
         if (renameErr) {
@@ -51,48 +66,45 @@ router.post("/upload", (req, res, next) => {
             return res.status(500).send({ message: "Error finalizing file upload.", error: renameErr.message });
         }
 
-        logger.info(`File uploaded and saved as: ${newFilePath}`, { fileId: fileId, filename: originalFilename });
+        logger.info(`File uploaded locally: ${newFilePath}`, { fileId: fileId, filename: originalFilename });
 
-        // Notify Segmentation Service about the new file
-        // TODO: Refactor this into a dedicated service client/layer
+        // Register file with Archive Service
         try {
-            // Assuming Segmentation Service has an endpoint to process uploaded files
-            // The gateway should ideally proxy this request instead of knowing the direct URL
-            // Using relative path assuming gateway proxies /api/segmentation
-            const segmentationEndpoint = `${baseUrl}/api/segmentation/process`; 
-            logger.info(`Notifying Segmentation Service at ${segmentationEndpoint}`, { fileId: fileId, filename: originalFilename });
-            
-            // Send file metadata (ID, name, maybe path if shared volume)
-            await axios.post(segmentationEndpoint, { 
-                fileId: fileId,
-                filename: originalFilename,
-                // Pass auth token if needed by segmentation service
-                // headers: { Authorization: req.headers.authorization } 
-            }, {
-                // Pass necessary headers, especially Authorization if needed
-                headers: { Authorization: req.headers.authorization } 
-            });
+            const archiveResponse = await callArchiveService(
+                "post", 
+                "/api/archive/register", // Assuming an endpoint to register new files
+                { 
+                    fileId: fileId,
+                    filename: originalFilename,
+                    size: uploadedFile.size,
+                    mimeType: uploadedFile.mimetype,
+                    // Potential: Add user ID, project ID etc. from req context
+                    // Potential: Add local path if Archive Service needs to move/copy it
+                    tempPath: newFilePath 
+                },
+                { Authorization: req.headers.authorization } // Pass auth header
+            );
 
-            logger.info("Successfully notified Segmentation Service.", { fileId: fileId });
+            logger.info("Successfully registered file with Archive Service.", { fileId: fileId, archiveResponse });
+            
+            // TODO: Optionally notify Segmentation Service (consider if Archive should do this)
+
             res.status(201).send({ 
-                message: "File uploaded successfully and segmentation process initiated.", 
+                message: "File uploaded and registered successfully.", 
                 fileId: fileId, 
                 filename: originalFilename
             });
 
         } catch (serviceError) {
-            logger.error("Error notifying Segmentation Service:", { 
-                error: serviceError.message, 
-                fileId: fileId, 
-                response: serviceError.response?.data 
+            logger.error("Error registering file with Archive Service:", { fileId: fileId });
+            // Critical error: If archive registration fails, we might need to roll back the upload
+            fs.unlink(newFilePath, (unlinkErr) => {
+                if (unlinkErr) logger.error("Error cleaning up failed registration:", { error: unlinkErr.message, path: newFilePath });
             });
-            // Decide on error handling: Should the upload fail if notification fails?
-            // For now, return success but include a warning/note.
-            res.status(202).send({ // 202 Accepted: Upload OK, but downstream processing might have issues
-                message: "File uploaded successfully, but could not initiate segmentation process.", 
+            res.status(500).send({ 
+                message: "File uploaded but failed to register with Archive Service.", 
                 fileId: fileId, 
                 filename: originalFilename,
-                warning: "Failed to notify Segmentation Service.",
                 serviceError: serviceError.message
             });
         }
@@ -101,87 +113,120 @@ router.post("/upload", (req, res, next) => {
 });
 
 // File download endpoint
-router.get("/download/:fileId", (req, res) => {
+router.get("/download/:fileId", async (req, res) => {
   const { fileId } = req.params;
-  // TODO: Implement secure file download logic, potentially fetching from Archive Service or shared storage
-  // This needs a way to map fileId back to a filename/path
-  // For now, search for file starting with fileId in uploadDir
-  fs.readdir(uploadDir, (err, files) => {
-      if (err) {
-          logger.error("Error reading upload directory for download:", { error: err.message, fileId });
-          return res.status(500).send({ message: "Could not access file storage.", error: err.message });
-      }
-      const foundFile = files.find(f => f.startsWith(fileId));
-      if (foundFile) {
-          const filePath = path.join(uploadDir, foundFile);
-          res.download(filePath, foundFile.substring(fileId.length + 1), (downloadErr) => { // Send original name
-              if (downloadErr) {
-                  logger.error("Error downloading file:", { error: downloadErr.message, fileId, path: filePath });
-                  // Avoid sending detailed error messages to client
-                  if (!res.headersSent) {
-                      res.status(500).send({ message: "Could not download the file." });
-                  }
-              }
-          });
+  try {
+    // Get file metadata/location from Archive Service
+    const fileInfo = await callArchiveService(
+        "get", 
+        `/api/archive/info/${fileId}`, // Assuming endpoint to get file info
+        {},
+        { Authorization: req.headers.authorization }
+    );
+
+    // TODO: Implement actual download logic based on fileInfo (e.g., path, S3 URL)
+    // For now, assume it returns a path similar to local storage
+    const filePath = fileInfo.path || path.join(uploadDir, `${fileId}${path.extname(fileInfo.filename)}`); // Placeholder path logic
+    const originalFilename = fileInfo.filename || `${fileId}.unknown`;
+
+    if (fs.existsSync(filePath)) {
+        res.download(filePath, originalFilename, (downloadErr) => {
+            if (downloadErr) {
+                logger.error("Error downloading file:", { error: downloadErr.message, fileId, path: filePath });
+                if (!res.headersSent) {
+                    res.status(500).send({ message: "Could not download the file." });
+                }
+            }
+        });
+    } else {
+        logger.warn("File info found in archive, but file not found at path:", { fileId, path: filePath });
+        res.status(404).send({ message: "File not found at storage location." });
+    }
+
+  } catch (serviceError) {
+      logger.error("Error retrieving file info from Archive Service:", { fileId });
+      if (serviceError.response?.status === 404) {
+          res.status(404).send({ message: "File not found in archive." });
       } else {
-          res.status(404).send({ message: "File not found." });
+          res.status(500).send({ message: "Error retrieving file information.", serviceError: serviceError.message });
       }
-  });
+  }
 });
 
 // File listing/search endpoint
-router.get("/", (req, res) => {
-  // TODO: Implement file listing logic, potentially querying Archive Service
-  fs.readdir(uploadDir, (err, files) => {
-      if (err) {
-          logger.error("Error reading upload directory:", { error: err.message });
-          return res.status(500).send({ message: "Could not list files.", error: err.message });
-      }
-      // Map files to include ID and original name (if possible)
-      const fileList = files.map(f => {
-          const parts = f.split(".");
-          const ext = parts.pop();
-          const id = parts.join("."); // Assuming filename is UUID.ext
-          // This is a simplification; original name isn't stored here
-          return { fileId: id, storedName: f }; 
-      });
-      res.status(200).send({ files: fileList }); // Basic listing for now
-  });
+router.get("/", async (req, res) => {
+  try {
+    // Get file list from Archive Service
+    const fileList = await callArchiveService(
+        "get", 
+        "/api/archive/search", // Assuming endpoint for listing/searching
+        { params: req.query }, // Pass query params for searching/filtering
+        { Authorization: req.headers.authorization }
+    );
+    res.status(200).send(fileList); 
+
+  } catch (serviceError) {
+      logger.error("Error listing files from Archive Service:", { query: req.query });
+      res.status(500).send({ message: "Could not list files.", serviceError: serviceError.message });
+  }
 });
 
-// Placeholder for file metadata management endpoint
-router.put("/metadata/:fileId", (req, res) => {
+// File metadata management endpoint
+router.put("/metadata/:fileId", async (req, res) => {
   const { fileId } = req.params;
-  // TODO: Implement metadata update logic, potentially interacting with Archive Service
-  logger.warn("Metadata update endpoint called but not implemented.", { fileId });
-  res.status(501).send({ message: `Metadata management for ${fileId} not implemented yet.` });
+  const metadataUpdates = req.body;
+
+  if (!metadataUpdates || Object.keys(metadataUpdates).length === 0) {
+      return res.status(400).send({ message: "No metadata updates provided." });
+  }
+
+  try {
+    // Update metadata via Archive Service
+    const updatedInfo = await callArchiveService(
+        "put", 
+        `/api/archive/metadata/${fileId}`, // Assuming endpoint for metadata update
+        metadataUpdates,
+        { Authorization: req.headers.authorization }
+    );
+    logger.info("Successfully updated metadata in Archive Service.", { fileId, updates: metadataUpdates });
+    res.status(200).send({ message: "Metadata updated successfully.", fileInfo: updatedInfo });
+
+  } catch (serviceError) {
+      logger.error("Error updating metadata in Archive Service:", { fileId, updates: metadataUpdates });
+      if (serviceError.response?.status === 404) {
+          res.status(404).send({ message: "File not found in archive." });
+      } else {
+          res.status(500).send({ message: "Could not update metadata.", serviceError: serviceError.message });
+      }
+  }
 });
 
 // File deletion endpoint
-router.delete("/:fileId", (req, res) => {
+router.delete("/:fileId", async (req, res) => {
     const { fileId } = req.params;
-    // TODO: Implement secure file deletion logic, potentially coordinating with Archive Service
-    // Find the actual file name based on fileId
-    fs.readdir(uploadDir, (err, files) => {
-        if (err) {
-            logger.error("Error reading upload directory for deletion:", { error: err.message, fileId });
-            return res.status(500).send({ message: "Could not access file storage.", error: err.message });
-        }
-        const foundFile = files.find(f => f.startsWith(fileId));
-        if (foundFile) {
-            const filePath = path.join(uploadDir, foundFile);
-            fs.unlink(filePath, (unlinkErr) => {
-                if (unlinkErr) {
-                    logger.error("Error deleting file:", { error: unlinkErr.message, fileId, path: filePath });
-                    return res.status(500).send({ message: "Could not delete the file.", error: unlinkErr.message });
-                }
-                logger.info(`File deleted successfully: ${filePath}`, { fileId });
-                res.status(200).send({ message: `File ${fileId} deleted successfully.` });
-            });
+    try {
+        // Request deletion from Archive Service
+        await callArchiveService(
+            "delete", 
+            `/api/archive/${fileId}`, // Assuming endpoint for deletion
+            {},
+            { Authorization: req.headers.authorization }
+        );
+        logger.info(`File deletion requested successfully from Archive Service: ${fileId}`);
+        
+        // Optional: Clean up local temp file if it still exists (Archive Service might handle this)
+        // fs.readdir(uploadDir, (err, files) => { ... find and unlink ... });
+
+        res.status(200).send({ message: `File ${fileId} deletion initiated successfully.` });
+
+    } catch (serviceError) {
+        logger.error("Error requesting file deletion from Archive Service:", { fileId });
+        if (serviceError.response?.status === 404) {
+            res.status(404).send({ message: "File not found in archive." });
         } else {
-            res.status(404).send({ message: "File not found." });
+            res.status(500).send({ message: "Could not initiate file deletion.", serviceError: serviceError.message });
         }
-    });
+    }
 });
 
 

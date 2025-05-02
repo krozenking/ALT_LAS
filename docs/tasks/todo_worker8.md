@@ -87,3 +87,27 @@ Bu doğrulama süreci, projenin şeffaf ve doğru bir şekilde ilerlemesini sağ
 - Tüm değişiklikler küçük, mantıksal commit'ler halinde doğrudan `main` dalına push edilecektir.
 - Bu kural, proje genelinde dallanma karmaşıklığını azaltmak ve sürekli entegrasyonu teşvik etmek amacıyla getirilmiştir.
 
+
+
+## Yönetici Tarafından Atanan Kapsamlı Önerilerden Gelen Görevler (Mayıs 2025)
+
+Proje Yöneticisi tarafından belirlenen ve önceliklendirilen yeni görevler aşağıdadır. Bu görevler, mevcut planlamayı tamamlayıcı niteliktedir ve projenin genel güvenliği, istikrarı ve kalitesi için kritik öneme sahiptir.
+
+### Öncelik 1 (En Yüksek - Temel Güvenlik, İstikrar, Süreç)
+- **Görev PM.8.1 (Güvenlik 1.4):** Servisler arası güvenli iletişim (örneğin, mTLS) uygulayın ve tüm servislerde en az ayrıcalık erişimini zorunlu kılın (Liderlik). (Tahmini Süre: 5 gün - Diğer çalışanlarla koordinasyon gerektirir)
+- **Görev PM.8.2 (Güvenlik 4.4):** Kapsamlı tehdit modellemesi yapın. Sandbox uygulama etkinliğini gözden geçirin ve gelecekteki sızma testi için plan yapın. (Tahmini Süre: 3 gün)
+- **Görev PM.8.3 (KG 4.6):** Güvenlik odaklı test senaryoları (negatif testler, yetkilendirme, potansiyel sanal alan kaçışları) geliştirin ve yürütün (KG ile koordinasyon). (Tahmini Süre: 4 gün)
+- **Görev PM.8.4 (Güvenlik 6.4):** Sağlam veri erişim kontrolleri uygulayın ve bekleyen ve aktarılan veriler için şifrelemeyi sağlayın (Liderlik). (Tahmini Süre: 4 gün - Diğer çalışanlarla koordinasyon gerektirir)
+- **Görev PM.8.5 (DevOps 4.5):** Güvenlik tarama araçlarını (SAST, DAST, bağımlılık taraması) CI/CD ardışık düzenine entegre edin (İlgili çalışanlarla koordinasyon). (Tahmini Süre: 3 gün)
+- **Görev PM.8.6 (Veri Bilimci 1.10):** Tüm servisler için performans metriklerinin (gecikme, hata oranları, kaynak kullanımı) sağlam bir şekilde toplanmasını ve analiz edilmesini sağlayın (DevOps rolü, ilgili çalışanlarla koordinasyon). (Tahmini Süre: 4 gün)
+- **Görev PM.8.7 (DevOps 9.5 / YMimar 9.2):** Altyapı direncini (replikasyon, yük devretme) artırın ve kritik servis etkileşimleri için devre kesici/yeniden deneme gibi desenleri uygulayın (DevOps rolü, ilgili çalışanlarla koordinasyon). (Tahmini Süre: 5 gün)
+- **Görev PM.8.8 (DevOps 7.5):** Performans verilerine dayanarak altyapıyı (kaynak tahsisi, ağ yapılandırması) sürekli olarak ayarlayın (DevOps rolü). (Tahmini Süre: Sürekli)
+- **Görev PM.8.9 (DevOps 5.5):** Çapraz platform derleme, paketleme ve dağıtım süreçlerini otomatikleştirin (DevOps rolü, ilgili çalışanlarla koordinasyon). (Tahmini Süre: 5 gün)
+- **Görev PM.8.10 (KG 8.2):** Tüm bileşenlerde test kapsamını (birim, entegrasyon, E2E) genişletmeye yönelik çalışmalara katkıda bulunun (Tüm çalışanlar ve KG ile koordinasyon). (Tahmini Süre: Sürekli)
+
+### Öncelik 2 (Yüksek - Bileşen Kalitesi)
+- **Görev PM.8.11 (Güvenlik 2.4):** YZ modellerine veri gönderirken veri gizliliğini sağlayın (gerektiğinde anonimleştirme/maskeleme). Yaygın YZ saldırılarına karşı savunmaları araştırın (İşçi 7 ile koordinasyon). (Tahmini Süre: 3 gün)
+
+### Öncelik 3 (Orta - Uzun Vadeli Kalite)
+- **Görev PM.8.12 (KG 9.6):** Sistem direncini arızalara karşı test etmek için kaos mühendisliği uygulamalarını tanıtın (KG ile koordinasyon). (Tahmini Süre: 4 gün)
+

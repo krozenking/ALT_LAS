@@ -89,3 +89,18 @@ Bu liste, İşçi 5 (UI/UX Geliştirici) için `worker5_updated_tasks.md` belges
   - [ ] Kullanım örnekleri ve kod parçacıkları
   - [ ] Tema ve stil rehberi
   - [ ] Geliştirici kılavuzu ve en iyi uygulamalar
+
+
+
+## Yönetici Tarafından Atanan Kapsamlı Önerilerden Gelen Görevler (Mayıs 2025)
+
+Proje Yöneticisi tarafından belirlenen ve önceliklendirilen yeni görevler aşağıdadır. Bu görevler, mevcut planlamayı tamamlayıcı niteliktedir ve projenin genel kalitesi, güvenliği ve kullanıcı deneyimi için önemlidir.
+
+### Öncelik 2 (Yüksek - Bileşen Kalitesi ve Temel Süreç Geliştirme)
+- **Görev PM.5.8 (UI/UX 3.3 / KG 8.3):** UI geliştirme boyunca Erişilebilirliğe (WCAG uyumluluğu) öncelik verin ve uygulayın. UI test otomasyonunun uygulanmasında KG ile koordineli çalışın. (Tahmini Süre: Sürekli)
+- **Görev PM.5.9 (Güvenlik 3.4):** İstemci tarafında (UI) katı girdi doğrulama ve temizleme (input validation/sanitization) uygulayın. (Tahmini Süre: 3 gün)
+- **Görev PM.5.10 (KG 3.6 / KG 5.6):** Desteklenen platformlar, tarayıcılar ve işletim sistemi sürümleri genelinde kapsamlı UI testlerinin yapılmasına destek olun (KG ile koordinasyon). (Tahmini Süre: Koordinasyon)
+
+### Öncelik 3 (Orta - İleri Geliştirmeler ve Uzun Vadeli Kalite)
+- **Görev PM.5.11 (UI/UX 5.3):** Yerel görünüm ve hissi (native look-and-feel) ALT_LAS marka kimliğiyle dengeleyin; işletim sistemi entegrasyonlarının (tepsi, bildirimler) etkili kullanımını sağlayın. (Tahmini Süre: 4 gün)
+

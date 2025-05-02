@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express'; // Added Request, Response, NextFunction
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
@@ -38,7 +38,7 @@ router.use(authenticateJWT);
  *         description: Sunucu hatası
  */
 router.get('/versions', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     // Önbellekten kontrol et
     const cacheKey = 'api:versions';
     const cachedVersions = await redisClient.get(cacheKey);
@@ -89,7 +89,7 @@ router.get('/versions',
  *         description: Sunucu hatası
  */
 router.get('/versions/current', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     // Önbellekten kontrol et
     const cacheKey = 'api:versions:current';
     const cachedVersion = await redisClient.get(cacheKey);
@@ -145,7 +145,7 @@ router.get('/versions/current',
  *         description: Sunucu hatası
  */
 router.get('/versions/:version/endpoints', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const version = req.params.version;
     
     // Geçerli versiyonları kontrol et
@@ -274,7 +274,7 @@ router.get('/versions/:version/endpoints',
  *         description: Sunucu hatası
  */
 router.get('/versions/:version/status', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const version = req.params.version;
     
     // Geçerli versiyonları kontrol et
@@ -337,7 +337,7 @@ router.get('/versions/:version/status',
  *         description: Sunucu hatası
  */
 router.get('/versions/compatibility', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     // Önbellekten kontrol et
     const cacheKey = 'api:versions:compatibility';
     const cachedCompatibility = await redisClient.get(cacheKey);
@@ -386,7 +386,7 @@ router.get('/versions/compatibility',
  *         description: Sunucu hatası
  */
 router.get('/versions/migration', 
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     // Önbellekten kontrol et
     const cacheKey = 'api:versions:migration';
     const cachedMigration = await redisClient.get(cacheKey);
@@ -427,3 +427,4 @@ router.get('/versions/migration',
 );
 
 export default router;
+

@@ -184,7 +184,12 @@ class ServiceDiscoveryManager {
       }
     } catch (error) {
       instance.status = "inactive";
-      logger.warn(`Servis örneği sağlık kontrolü hatası: ${instance.serviceName} (${instance.baseUrl}) - ${error.message}`);
+      // Handle unknown error type
+      let errorMessage = 'Bilinmeyen bir hata oluştu';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      logger.warn(`Servis örneği sağlık kontrolü hatası: ${instance.serviceName} (${instance.baseUrl}) - ${errorMessage}`);
       return false;
     }
   }
@@ -385,3 +390,4 @@ class ServiceDiscoveryManager {
 const serviceDiscovery = new ServiceDiscoveryManager();
 
 export default serviceDiscovery;
+

@@ -11,11 +11,11 @@ const cacheMiddleware = (duration: number) => {
 
     // Use originalUrl or url as the key, consider query params
     const key = "__express__" + (req.originalUrl || req.url);
-    let cachedBody = null;
+    let cachedBody: string | null = null; // Explicitly type as string | null
 
     try {
       cachedBody = await redisClient.get(key);
-    } catch (err) {
+    } catch (err: any) { // Add type for err
       logger.error(`Redis GET error for key ${key}:`, err);
       // If Redis fails, proceed without caching
       return next();
@@ -29,43 +29,51 @@ const cacheMiddleware = (duration: number) => {
         // Attempt to parse as JSON, fallback to sending as is
         try {
           res.setHeader("Content-Type", "application/json");
-          res.send(JSON.parse(cachedBody));
+          res.send(JSON.parse(cachedBody)); // No return here
         } catch (parseError) {
           // If not JSON, send as plain text or original content type if stored
           // For simplicity, sending as plain text here. Could store content-type in Redis too.
           res.setHeader("Content-Type", "text/plain"); 
-          res.send(cachedBody);
+          res.send(cachedBody); // No return here
         }
-      } catch (e) {
+      } catch (e: any) { // Add type for e
         logger.error("Error sending cached response:", e);
+        // If sending cached response fails, maybe proceed?
+        // Depending on desired behavior, could call next() or just end response.
+        // For now, let's just log and end.
+        if (!res.headersSent) {
+          res.status(500).send("Error retrieving cached response");
+        }
       }
-      return; // Stop further processing
+      return; // Stop further processing after attempting to send cached response
     } else {
       // logger.info(`Redis Cache miss for ${key}`);
       res.setHeader("X-Cache", "MISS");
       // Override res.send to cache the response in Redis
-      const originalSend = res.send;
-      res.send = (body) => {
+      const originalSend = res.send.bind(res); // Bind context
+
+      // Define the new send function with a matching signature (approximated)
+      res.send = (body?: any): Response => { 
         // Only cache successful responses (2xx)
-        if (res.statusCode >= 200 && res.statusCode < 300) {
+        if (res.statusCode >= 200 && res.statusCode < 300 && body != null) { // Check if body is not null/undefined
           try {
             // Store the body in Redis with expiration (EX = seconds)
             // Stringify JSON bodies before storing
             const bodyToCache = (typeof body === "string") ? body : JSON.stringify(body);
-            redisClient.set(key, bodyToCache, "EX", duration)
+            redisClient.set(key, bodyToCache, { EX: duration }) // Use options object for EX
               .then(() => { /* logger.info(`Redis Cached response for ${key} for ${duration} seconds`); */ })
-              .catch(err => logger.error(`Redis SET error for key ${key}:`, err));
-          } catch (err) {
+              .catch((err: any) => logger.error(`Redis SET error for key ${key}:`, err)); // Add type for err
+          } catch (err: any) { // Add type for err
             logger.error(`Error caching response body for key ${key}:`, err);
           }
         }
-        // Call the original send method
-        originalSend.call(res, body);
+        // Call the original send method with the original context and return its result
+        return originalSend.call(res, body);
       };
       next();
     }
   };
 };
 
-module.exports = cacheMiddleware;
+export default cacheMiddleware;
 

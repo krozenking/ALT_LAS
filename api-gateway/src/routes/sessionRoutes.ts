@@ -46,8 +46,9 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => { // Added t
   if (!userId) {
     return res.status(401).json({ message: 'User ID not found in token' });
   }
-  const sessions = await getUserActiveSessions(userId);
-  logger.info(`Kullanıcı ${userId} oturumları listelendi`);
+  const userIdString = String(userId); // Convert to string
+  const sessions = await getUserActiveSessions(userIdString);
+  logger.info(`Kullanıcı ${userIdString} oturumları listelendi`);
   res.json(sessions);
 }));
 
@@ -81,16 +82,17 @@ router.delete('/:deviceId', asyncHandler(async (req: Request, res: Response) => 
   if (!userId) {
     return res.status(401).json({ message: 'User ID not found in token' });
   }
-  const session = await getUserSessionByDevice(userId, deviceId);
+  const userIdString = String(userId); // Convert to string
+  const session = await getUserSessionByDevice(userIdString, deviceId);
   if (session) {
     await invalidateSession(session.id);
-    logger.info(`Kullanıcı ${userId} cihaz ${deviceId} oturumu sonlandırıldı`);
+    logger.info(`Kullanıcı ${userIdString} cihaz ${deviceId} oturumu sonlandırıldı`);
     res.json({ 
       message: 'Oturum başarıyla sonlandırıldı',
       success: true
     });
   } else {
-    logger.warn(`Kullanıcı ${userId} için cihaz ${deviceId} ile ilişkili aktif oturum bulunamadı`);
+    logger.warn(`Kullanıcı ${userIdString} için cihaz ${deviceId} ile ilişkili aktif oturum bulunamadı`);
     res.status(404).json({ 
       message: 'Belirtilen cihaz için aktif oturum bulunamadı',
       success: false
@@ -119,8 +121,9 @@ router.delete('/', asyncHandler(async (req: Request, res: Response) => { // Adde
   if (!userId) {
     return res.status(401).json({ message: 'User ID not found in token' });
   }
-  await invalidateAllUserSessions(userId);
-  logger.info(`Kullanıcı ${userId} tüm oturumları sonlandırıldı`);
+  const userIdString = String(userId); // Convert to string
+  await invalidateAllUserSessions(userIdString);
+  logger.info(`Kullanıcı ${userIdString} tüm oturumları sonlandırıldı`);
   res.json({ 
     message: 'Tüm oturumlar başarıyla sonlandırıldı'
     // count information might need adjustment based on service return
@@ -157,7 +160,7 @@ router.get(
   authorizePermissions('read:users'),
   asyncHandler(async (req: Request, res: Response) => { // Added types
     const targetUserId = req.params.userId;
-    const sessions = await getUserActiveSessions(targetUserId);
+    const sessions = await getUserActiveSessions(targetUserId); // Already string from params
     logger.info(`Admin ${req.user?.id} tarafından kullanıcı ${targetUserId} oturumları listelendi`);
     res.json(sessions);
   })
@@ -193,7 +196,7 @@ router.delete(
   authorizePermissions('manage:users'),
   asyncHandler(async (req: Request, res: Response) => { // Added types
     const targetUserId = req.params.userId;
-    await invalidateAllUserSessions(targetUserId);
+    await invalidateAllUserSessions(targetUserId); // Already string from params
     logger.info(`Admin ${req.user?.id} tarafından kullanıcı ${targetUserId} tüm oturumları sonlandırıldı`);
     res.json({ 
       message: 'Kullanıcı oturumları başarıyla sonlandırıldı'

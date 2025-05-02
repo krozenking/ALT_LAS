@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express'; // Added Request, Response, NextFunction
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
@@ -63,7 +63,7 @@ router.use(authenticateJWT);
  */
 router.get('/:key', 
   requireResourcePermission('cache', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const key = req.params.key;
     
     logger.debug(`Önbellekten veri getiriliyor: ${key}`);
@@ -126,7 +126,7 @@ router.get('/:key',
  */
 router.put('/:key', 
   requireResourcePermission('cache', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const key = req.params.key;
     const { value, ttl } = req.body;
     
@@ -179,7 +179,7 @@ router.put('/:key',
  */
 router.delete('/:key', 
   requireResourcePermission('cache', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const key = req.params.key;
     
     logger.debug(`Önbellekten veri siliniyor: ${key}`);
@@ -220,7 +220,7 @@ router.delete('/:key',
  */
 router.get('/:key/ttl', 
   requireResourcePermission('cache', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const key = req.params.key;
     
     logger.debug(`Önbellekteki verinin TTL'i getiriliyor: ${key}`);
@@ -279,7 +279,7 @@ router.get('/:key/ttl',
  */
 router.put('/:key/ttl', 
   requireResourcePermission('cache', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const key = req.params.key;
     const { ttl } = req.body;
     
@@ -333,7 +333,7 @@ router.put('/:key/ttl',
  */
 router.get('/keys/:pattern', 
   requireResourcePermission('cache', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const pattern = req.params.pattern;
     
     logger.debug(`Önbellekteki anahtarlar listeleniyor: ${pattern}`);
@@ -367,7 +367,7 @@ router.get('/keys/:pattern',
  */
 router.post('/flush', 
   requireResourcePermission('cache', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     logger.warn(`Önbellek temizleniyor (${req.user?.username} tarafından)`);
     await redisClient.flushall();
     
@@ -378,3 +378,4 @@ router.post('/flush',
 );
 
 export default router;
+

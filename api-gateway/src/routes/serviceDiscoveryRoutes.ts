@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express'; // Added Request, Response, NextFunction
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles, authorizePermissions } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
@@ -171,7 +171,7 @@ router.use(authenticateJWT);
  */
 router.get('/', 
   requireResourcePermission('services', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const services = serviceRegistry.getAllServices();
     logger.info(`Servisler listelendi: ${services.length} servis`);
     res.json(services);
@@ -204,7 +204,7 @@ router.get('/',
  */
 router.get('/:serviceId', 
   requireResourcePermission('services', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const service = serviceRegistry.getService(req.params.serviceId);
     
     if (!service) {
@@ -260,7 +260,7 @@ router.get('/:serviceId',
  */
 router.post('/', 
   requireResourcePermission('services', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const { id, name, url, status = 'up', metadata = {} } = req.body;
     
     if (!id || !name || !url) {
@@ -326,7 +326,7 @@ router.post('/',
  */
 router.put('/:serviceId', 
   requireResourcePermission('services', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const serviceId = req.params.serviceId;
     const service = serviceRegistry.getService(serviceId);
     
@@ -377,7 +377,7 @@ router.put('/:serviceId',
  */
 router.delete('/:serviceId', 
   requireResourcePermission('services', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const serviceId = req.params.serviceId;
     const success = serviceRegistry.deregisterService(serviceId);
     
@@ -416,7 +416,7 @@ router.delete('/:serviceId',
  */
 router.post('/:serviceId/heartbeat', 
   requireResourcePermission('services', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const serviceId = req.params.serviceId;
     const success = serviceRegistry.updateHeartbeat(serviceId);
     
@@ -470,7 +470,7 @@ router.post('/:serviceId/heartbeat',
  */
 router.put('/:serviceId/status', 
   requireResourcePermission('services', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const serviceId = req.params.serviceId;
     const { status } = req.body;
     
@@ -515,7 +515,7 @@ router.put('/:serviceId/status',
  */
 router.get('/search', 
   requireResourcePermission('services', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const { name } = req.query;
     
     if (!name || typeof name !== 'string') {
@@ -529,3 +529,4 @@ router.get('/search',
 );
 
 export default router;
+

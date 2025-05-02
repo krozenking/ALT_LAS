@@ -41,8 +41,9 @@ router.get('/my-roles', async (req: Request, res: Response, next: NextFunction) 
     if (!userId) {
       throw new UnauthorizedError('Kimlik doğrulaması gerekli');
     }
+    const userIdString = String(userId); // Convert to string
 
-    const user = await authService.getUserById(userId);
+    const user = await authService.getUserById(userIdString);
     if (!user) {
       throw new NotFoundError('Kullanıcı bulunamadı');
     }
@@ -88,9 +89,10 @@ router.get('/my-permissions', async (req: Request, res: Response, next: NextFunc
     if (!userId) {
       throw new UnauthorizedError('Kimlik doğrulaması gerekli');
     }
+    const userIdString = String(userId); // Convert to string
 
     // Kullanıcının tüm izinlerini al (doğrudan ve rollerden gelen)
-    const permissions = await authService.getUserPermissions(userId);
+    const permissions = await authService.getUserPermissions(userIdString);
     
     // İzin detaylarını al
     const permissionDetails = permissions.map(permName => {
@@ -144,13 +146,14 @@ router.post('/check-permission', async (req: Request, res: Response, next: NextF
     if (!userId) {
       throw new UnauthorizedError('Kimlik doğrulaması gerekli');
     }
+    const userIdString = String(userId); // Convert to string
 
     if (!permission) {
       throw new BadRequestError('İzin adı gereklidir');
     }
 
     // Kullanıcının tüm izinlerini al
-    const permissions = await authService.getUserPermissions(userId);
+    const permissions = await authService.getUserPermissions(userIdString);
     
     // İzin kontrolü
     const hasPermission = permissions.includes(permission);
@@ -204,13 +207,14 @@ router.post('/check-resource-permission', async (req: Request, res: Response, ne
     if (!userId) {
       throw new UnauthorizedError('Kimlik doğrulaması gerekli');
     }
+    const userIdString = String(userId); // Convert to string
 
     if (!resource || !action) {
       throw new BadRequestError('Kaynak ve işlem adı gereklidir');
     }
 
     // Kullanıcı rollerini al
-    const user = await authService.getUserById(userId);
+    const user = await authService.getUserById(userIdString);
     if (!user) {
       throw new NotFoundError('Kullanıcı bulunamadı');
     }
@@ -269,7 +273,7 @@ router.get(
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.params; // userId from params is already string
 
       const user = await authService.getUserById(userId);
       if (!user) {
@@ -348,7 +352,7 @@ router.put(
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.params; // userId from params is already string
       const { roles } = req.body;
 
       if (!Array.isArray(roles)) {
@@ -427,7 +431,7 @@ router.get(
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.params; // userId from params is already string
 
       // Kullanıcının tüm izinlerini al (doğrudan ve rollerden gelen)
       const permissions = await authService.getUserPermissions(userId);
@@ -508,7 +512,7 @@ router.put(
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.params; // userId from params is already string
       const { permissions } = req.body;
 
       if (!Array.isArray(permissions)) {
@@ -567,3 +571,4 @@ routeAuthManager.addRoutePermission({
 });
 
 export default router;
+

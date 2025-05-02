@@ -101,9 +101,9 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const services = {
-        segmentation: await checkServiceHealth(segmentationService),
-        runner: await checkServiceHealth(runnerService),
-        archive: await checkServiceHealth(archiveService)
+        segmentation: await checkServiceHealth(segmentationService, 'segmentation'), // Pass service name
+        runner: await checkServiceHealth(runnerService, 'runner'), // Pass service name
+        archive: await checkServiceHealth(archiveService, 'archive') // Pass service name
       };
       
       // Genel durum belirleme
@@ -181,7 +181,7 @@ router.get(
           });
       }
       
-      const healthStatus = await checkServiceHealth(service);
+      const healthStatus = await checkServiceHealth(service, serviceName); // Pass service name
       
       res.status(200).json({
         service: serviceName,
@@ -259,13 +259,14 @@ router.get(
 /**
  * Servis sağlık durumunu kontrol eder
  * @param service Kontrol edilecek servis
+ * @param serviceName Servisin adı (bildirimler için)
  * @returns Sağlık durumu
  */
 async function checkServiceHealth(service: any, serviceName?: string): Promise<{ status: string, lastCheck: string, details?: any }> {
+  const timestamp = new Date().toISOString();
   try {
     const isHealthy = await service.healthCheck();
     const status = isHealthy ? 'ok' : 'critical';
-    const timestamp = new Date().toISOString();
     
     // Send notification if service is not healthy
     if (!isHealthy) {
@@ -282,26 +283,30 @@ async function checkServiceHealth(service: any, serviceName?: string): Promise<{
       lastCheck: timestamp
     };
   } catch (error) {
-    const timestamp = new Date().toISOString();
-    logger.error(`Servis sağlık kontrolü başarısız: ${error.message}`);
+    let errorMessage = 'Bilinmeyen bir hata oluştu';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    logger.error(`Servis sağlık kontrolü başarısız: ${errorMessage}`);
     
     // Send notification for service check error
     notificationService.sendAlert('error', {
       serviceName,
       status: 'critical',
-      message: `Servis sağlık kontrolü hatası: ${error.message}`,
+      message: `Servis sağlık kontrolü hatası: ${errorMessage}`,
       timestamp,
-      details: { error: error.message }
+      details: { error: errorMessage }
     });
     
     return {
       status: 'critical',
       lastCheck: timestamp,
       details: {
-        error: error.message
+        error: errorMessage
       }
     };
   }
 }
 
 export default router;
+

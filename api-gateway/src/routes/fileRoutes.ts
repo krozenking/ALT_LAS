@@ -1,4 +1,14 @@
-import { Router } from 'express';
+// Augment Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any; // Assuming user is attached by auth middleware
+      services?: any; // Assuming services are attached by withServiceIntegration
+    }
+  }
+}
+
+import { Router, Request, Response, NextFunction } from 'express'; // Added Request, Response, NextFunction
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
@@ -12,7 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Dosya yükleme için multer yapılandırması
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => { // Added types
     const uploadDir = path.join(__dirname, '../../uploads');
     
     // Dizin yoksa oluştur
@@ -22,7 +32,7 @@ const storage = multer.diskStorage({
     
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => { // Added types
     // Benzersiz dosya adı oluştur
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
     const ext = path.extname(file.originalname);
@@ -31,7 +41,7 @@ const storage = multer.diskStorage({
 });
 
 // Dosya filtreleme
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => { // Added Request type
   // İzin verilen dosya uzantıları
   const allowedExtensions = ['.alt', '.last', '.atlas'];
   const ext = path.extname(file.originalname).toLowerCase();
@@ -39,6 +49,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
+    // Pass an Error object to the callback
     cb(new Error('Sadece .alt, .last ve .atlas uzantılı dosyalar kabul edilir'));
   }
 };
@@ -97,7 +108,7 @@ router.use(withServiceIntegration);
 router.post('/upload', 
   requireResourcePermission('files', 'write'),
   upload.single('file'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     if (!req.file) {
       throw new BadRequestError('Dosya yüklenemedi');
     }
@@ -198,7 +209,7 @@ router.post('/upload',
  */
 router.get('/alt/:fileId', 
   requireResourcePermission('files', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const fileId = req.params.fileId;
     
     logger.info(`Alt dosyası indiriliyor: ${fileId}`);
@@ -246,7 +257,7 @@ router.get('/alt/:fileId',
  */
 router.get('/last/:fileId', 
   requireResourcePermission('files', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const fileId = req.params.fileId;
     
     logger.info(`Last dosyası indiriliyor: ${fileId}`);
@@ -294,7 +305,7 @@ router.get('/last/:fileId',
  */
 router.get('/atlas/:fileId', 
   requireResourcePermission('files', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const fileId = req.params.fileId;
     
     logger.info(`Atlas dosyası indiriliyor: ${fileId}`);
@@ -352,7 +363,7 @@ router.get('/atlas/:fileId',
  */
 router.get('/list', 
   requireResourcePermission('files', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const type = req.query.type as string;
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -425,7 +436,7 @@ router.get('/list',
  */
 router.get('/search', 
   requireResourcePermission('files', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const type = req.query.type as string;
     const searchQuery = req.query.query as string;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -496,7 +507,7 @@ router.get('/search',
  */
 router.get('/metadata/:type/:fileId', 
   requireResourcePermission('files', 'read'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const type = req.params.type;
     const fileId = req.params.fileId;
     
@@ -571,7 +582,7 @@ router.get('/metadata/:type/:fileId',
  */
 router.put('/metadata/:type/:fileId', 
   requireResourcePermission('files', 'write'),
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => { // Added types
     const type = req.params.type;
     const fileId = req.params.fileId;
     const { metadata } = req.body;
@@ -586,24 +597,83 @@ router.put('/metadata/:type/:fileId',
     
     logger.info(`${type} dosyası metadata'sı güncelleniyor: ${fileId}`);
     
-    let updateResult;
+    let updatedMetadata;
     if (type === 'alt') {
-      updateResult = await req.services?.segmentation.put(`/api/files/alt/${fileId}/metadata`, { metadata });
+      updatedMetadata = await req.services?.segmentation.put(`/api/files/alt/${fileId}/metadata`, { metadata });
     } else if (type === 'last') {
-      updateResult = await req.services?.runner.put(`/api/files/last/${fileId}/metadata`, { metadata });
+      updatedMetadata = await req.services?.runner.put(`/api/files/last/${fileId}/metadata`, { metadata });
     } else if (type === 'atlas') {
-      updateResult = await req.services?.archive.put(`/api/files/atlas/${fileId}/metadata`, { metadata });
+      updatedMetadata = await req.services?.archive.put(`/api/files/atlas/${fileId}/metadata`, { metadata });
     }
     
-    if (!updateResult) {
+    if (!updatedMetadata) {
       throw new NotFoundError('Dosya bulunamadı veya metadata güncellenemedi');
     }
     
-    res.json({
-      message: 'Metadata başarıyla güncellendi',
-      metadata: updateResult.metadata
-    });
+    res.json(updatedMetadata);
+  })
+);
+
+/**
+ * @swagger
+ * /api/files/{type}/{fileId}:
+ *   delete:
+ *     summary: Dosyayı siler
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: type
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [alt, last, atlas]
+ *       - name: fileId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Dosya başarıyla silindi
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       403:
+ *         description: Yetki hatası
+ *       404:
+ *         description: Dosya bulunamadı
+ *       500:
+ *         description: Sunucu hatası
+ */
+router.delete('/:type/:fileId', 
+  requireResourcePermission('files', 'write'),
+  asyncHandler(async (req: Request, res: Response) => { // Added types
+    const type = req.params.type;
+    const fileId = req.params.fileId;
+    
+    if (!['alt', 'last', 'atlas'].includes(type)) {
+      throw new BadRequestError('Geçerli bir dosya tipi belirtilmelidir (alt, last, atlas)');
+    }
+    
+    logger.info(`${type} dosyası siliniyor: ${fileId}`);
+    
+    let deleteResult;
+    if (type === 'alt') {
+      deleteResult = await req.services?.segmentation.delete(`/api/files/alt/${fileId}`);
+    } else if (type === 'last') {
+      deleteResult = await req.services?.runner.delete(`/api/files/last/${fileId}`);
+    } else if (type === 'atlas') {
+      deleteResult = await req.services?.archive.delete(`/api/files/atlas/${fileId}`);
+    }
+    
+    if (!deleteResult || !deleteResult.deleted) {
+      throw new NotFoundError('Dosya bulunamadı veya silinemedi');
+    }
+    
+    res.json({ message: 'Dosya başarıyla silindi' });
   })
 );
 
 export default router;
+

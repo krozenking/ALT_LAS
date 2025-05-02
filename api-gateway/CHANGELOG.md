@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased] - 2025-05-02
+
+### Added
+- **User Management API:** Implemented basic CRUD operations for users via `/api/v1/users` endpoints.
+  - Added `userService.ts` with in-memory user storage and logic for create, get all, get by ID, update, delete, and get details for auth.
+  - Added `userRoutes.ts` to define Express routes for user management.
+  - Integrated `userRoutes` into `index.ts`, applying JWT authentication.
+- **User Service Tests:** Added unit tests (`userService.test.ts`) covering the functionality of `userService.ts`.
+- **Test Configuration:** Created a dedicated TypeScript configuration for tests (`tsconfig.test.json`) to ensure correct compilation during testing.
+
+### Fixed
+- **TypeScript Syntax Errors:** Resolved persistent TypeScript syntax errors encountered during testing, primarily caused by an invalid regex pattern (containing newline characters) used for email validation in `userService.ts`.
+- **Jest Configuration:** Updated `jest.config.js` to explicitly use `tsconfig.test.json` and define the transformation for `.ts` files, resolving issues with `ts-jest` processing.
+
 ## [Unreleased] - 2025-04-29
 
 ### Added

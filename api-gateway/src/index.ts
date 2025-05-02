@@ -18,6 +18,7 @@ import archiveRoutes from './routes/archiveRoutes';
 import serviceRoutes from "./routes/serviceRoutes";
 import commandRoutes from "./routes/commandRoutes"; // Import command routes
 import fileRoutes from "./routes/files"; // Import file routes
+import userRoutes from "./routes/userRoutes"; // Import user routes
 // import healthRoutes from "./routes/healthRoutes"; // Removed, handled by setupHealthCheck
 import { setupMetrics, setupHealthCheck } from './utils/monitoring'; // Import monitoring setup
 import logger from './utils/logger';
@@ -59,6 +60,7 @@ app.use("/api/v1/archive", authenticateJWT);
 app.use("/api/v1/services", authenticateJWT);
 app.use("/api/v1/commands", authenticateJWT); // Add command routes with auth
 app.use("/api/v1/files", authenticateJWT); // Add file routes with auth
+app.use("/api/v1/users", authenticateJWT); // Apply JWT auth to user routes
 
 // Route bazlı yetkilendirme
 app.use(routeAuthorization);
@@ -70,6 +72,7 @@ app.use("/api/v1/archive", cacheMiddleware(60), archiveRoutes); // Cache archive
 app.use("/api/v1/services", serviceRoutes);
 app.use("/api/v1/commands", commandRoutes); // Use command routes
 app.use("/api/v1/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests
+app.use("/api/v1/users", userRoutes); // Use user routes
 
 // 404 handler
 app.use((req: Request, res: Response) => {

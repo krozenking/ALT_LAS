@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json", // Inherit from the main config
+  "compilerOptions": {
+    "outDir": "./dist-test" // Optional: Use a different output directory for tests if needed
+  },
+  "include": [
+    "src/**/*", // Include source files
+    "tests/**/*" // Explicitly include test files
+  ],
+  "exclude": [
+    "node_modules" // Only exclude node_modules
+  ]
+}
+

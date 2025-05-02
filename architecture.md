@@ -80,11 +80,13 @@ ALT_LAS, üç temel dosya tipine dayalı bir iş akışı kullanır:
 - **Lisans**: MIT
 - **Sorumluluklar**: Donanım kontrolü, sensör verileri, çevre birimleri
 - **Teknolojiler**: PyUSB, BlueZ, HIDAPI
+- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır.
 
 #### Network Service (Go)
 - **Lisans**: BSD-3-Clause
 - **Sorumluluklar**: Ağ yönetimi, cihaz keşfi, güvenlik duvarı kontrolü
 - **Teknolojiler**: Go, libpcap, nftables
+- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır.
 
 ### 4.4. Yapay Zeka Katmanı (AI Layer)
 
@@ -107,8 +109,7 @@ ALT_LAS, üç temel dosya tipine dayalı bir iş akışı kullanır:
 - **Lisans**: MIT
 - **Sorumluluklar**: Ses tanıma, ses sentezi
 - **Teknolojiler**: Whisper (MIT), Coqui TTS (MPL 2.0 → MIT alternatifi bulunacak)
-
-### 4.5. Güvenlik Katmanı (Security Layer)
+- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır. Coqui TTS lisansı (MPL 2.0) ticari kullanım için uygun olmadığından, MIT lisanslı bir alternatif (örneğin Piper TTS) araştırılacaktır.### 4.5. Güvenlik Katmanı (Security Layer)
 
 #### Policy Enforcement (Rust)
 - **Lisans**: MIT/Apache 2.0

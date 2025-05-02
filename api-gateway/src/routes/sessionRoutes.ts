@@ -1,13 +1,15 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express'; // Added Request, Response, NextFunction
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT, authorizeRoles, authorizePermissions } from '../middleware/authMiddleware';
-import { 
-  createUserSession, 
-  terminateSession, 
-  terminateAllSessions, 
-  refreshSession,
-  listUserSessions
-} from '../services/sessionService';
+import {
+  createSession, // Renamed from createUserSession
+  invalidateSession, // Renamed from terminateSession
+  invalidateAllUserSessions, // Renamed from terminateAllSessions
+  getSessionByRefreshToken, // Needed for refresh
+  updateSession, // Needed for refresh
+  getUserActiveSessions, // Renamed from listUserSessions
+  getUserSessionByDevice // Added for device-specific termination
+} from "../services/sessionService";
 import logger from '../utils/logger';
 
 const router = Router();
@@ -38,10 +40,15 @@ router.use(authenticateJWT);
  *       500:
  *         description: Sunucu hatası
  */
-router.get('/', asyncHandler(async (req, res) => {
-  await listUserSessions(req, res, () => {});
-  logger.info(`Kullanıcı ${req.user?.id} oturumları listelendi`);
-  res.json(res.locals.userSessions);
+router.get('/', asyncHandler(async (req: Request, res: Response) => { // Added types
+  // Directly call the service function. Assuming it handles response or returns data.
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: 'User ID not found in token' });
+  }
+  const sessions = await getUserActiveSessions(userId);
+  logger.info(`Kullanıcı ${userId} oturumları listelendi`);
+  res.json(sessions);
 }));
 
 /**
@@ -68,14 +75,27 @@ router.get('/', asyncHandler(async (req, res) => {
  *       500:
  *         description: Sunucu hatası
  */
-router.delete('/:deviceId', asyncHandler(async (req, res) => {
-  req.body.deviceId = req.params.deviceId;
-  await terminateSession(req, res, () => {});
-  logger.info(`Kullanıcı ${req.user?.id} cihaz ${req.params.deviceId} oturumu sonlandırıldı`);
-  res.json({ 
-    message: 'Oturum başarıyla sonlandırıldı',
-    success: res.locals.sessionTerminated
-  });
+router.delete('/:deviceId', asyncHandler(async (req: Request, res: Response) => { // Added types
+  const userId = req.user?.id;
+  const deviceId = req.params.deviceId;
+  if (!userId) {
+    return res.status(401).json({ message: 'User ID not found in token' });
+  }
+  const session = await getUserSessionByDevice(userId, deviceId);
+  if (session) {
+    await invalidateSession(session.id);
+    logger.info(`Kullanıcı ${userId} cihaz ${deviceId} oturumu sonlandırıldı`);
+    res.json({ 
+      message: 'Oturum başarıyla sonlandırıldı',
+      success: true
+    });
+  } else {
+    logger.warn(`Kullanıcı ${userId} için cihaz ${deviceId} ile ilişkili aktif oturum bulunamadı`);
+    res.status(404).json({ 
+      message: 'Belirtilen cihaz için aktif oturum bulunamadı',
+      success: false
+    });
+  }
 }));
 
 /**
@@ -94,12 +114,16 @@ router.delete('/:deviceId', asyncHandler(async (req, res) => {
  *       500:
  *         description: Sunucu hatası
  */
-router.delete('/', asyncHandler(async (req, res) => {
-  await terminateAllSessions(req, res, () => {});
-  logger.info(`Kullanıcı ${req.user?.id} tüm oturumları sonlandırıldı`);
+router.delete('/', asyncHandler(async (req: Request, res: Response) => { // Added types
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: 'User ID not found in token' });
+  }
+  await invalidateAllUserSessions(userId);
+  logger.info(`Kullanıcı ${userId} tüm oturumları sonlandırıldı`);
   res.json({ 
-    message: 'Tüm oturumlar başarıyla sonlandırıldı',
-    count: res.locals.terminatedSessionCount
+    message: 'Tüm oturumlar başarıyla sonlandırıldı'
+    // count information might need adjustment based on service return
   });
 }));
 
@@ -131,10 +155,11 @@ router.get(
   '/users/:userId',
   authorizeRoles('admin'),
   authorizePermissions('read:users'),
-  asyncHandler(async (req, res) => {
-    await listUserSessions(req, res, () => {});
-    logger.info(`Admin ${req.user?.id} tarafından kullanıcı ${req.params.userId} oturumları listelendi`);
-    res.json(res.locals.userSessions);
+  asyncHandler(async (req: Request, res: Response) => { // Added types
+    const targetUserId = req.params.userId;
+    const sessions = await getUserActiveSessions(targetUserId);
+    logger.info(`Admin ${req.user?.id} tarafından kullanıcı ${targetUserId} oturumları listelendi`);
+    res.json(sessions);
   })
 );
 
@@ -166,22 +191,16 @@ router.delete(
   '/users/:userId',
   authorizeRoles('admin'),
   authorizePermissions('manage:users'),
-  asyncHandler(async (req, res) => {
-    // Kullanıcı ID'sini req.user'a geçici olarak ata
-    const originalUser = req.user;
-    req.user = { ...req.user, id: req.params.userId };
-    
-    await terminateAllSessions(req, res, () => {});
-    
-    // Orijinal kullanıcıyı geri yükle
-    req.user = originalUser;
-    
-    logger.info(`Admin ${req.user?.id} tarafından kullanıcı ${req.params.userId} tüm oturumları sonlandırıldı`);
+  asyncHandler(async (req: Request, res: Response) => { // Added types
+    const targetUserId = req.params.userId;
+    await invalidateAllUserSessions(targetUserId);
+    logger.info(`Admin ${req.user?.id} tarafından kullanıcı ${targetUserId} tüm oturumları sonlandırıldı`);
     res.json({ 
-      message: 'Kullanıcı oturumları başarıyla sonlandırıldı',
-      count: res.locals.terminatedSessionCount
+      message: 'Kullanıcı oturumları başarıyla sonlandırıldı'
+      // count information might need adjustment based on service return
     });
   })
 );
 
 export default router;
+

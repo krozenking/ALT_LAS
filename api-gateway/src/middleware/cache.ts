@@ -1,8 +1,9 @@
+import { Request, Response, NextFunction } from "express";
 import redisClient from "../utils/redisClient"; // Import the configured Redis client
 import logger from "../utils/logger";
 
-const cacheMiddleware = (duration) => {
-  return async (req, res, next) => {
+const cacheMiddleware = (duration: number) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     // Only cache GET requests
     if (req.method !== "GET") {
       return next();

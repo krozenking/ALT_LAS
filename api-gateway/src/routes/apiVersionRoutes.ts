@@ -4,7 +4,7 @@ import { authenticateJWT } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
 import logger from '../utils/logger';
 import compression from 'compression';
-import { redisClient } from '../services/cacheService';
+import redisClient from '../utils/redisClient';
 
 const router = Router();
 

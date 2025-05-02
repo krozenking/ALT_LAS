@@ -18,9 +18,9 @@ type CreateUserData = { username: string; email: string; roles?: string[] };
 interface IUserService {
   createUser(userData: CreateUserData): Promise<User>; // Restored
   getAllUsers(): Promise<User[]>;
-  // getUserById(id: string): Promise<User | null>; // Commented out
-  // updateUser(id: string, updateData: Partial<Omit<User, "id" | "createdAt" | "updatedAt">>): Promise<User | null>; // Commented out
-  // deleteUser(id: string): Promise<boolean>; // Commented out
+  getUserById(id: string): Promise<User | null>; // Restored
+  updateUser(id: string, updateData: Partial<Omit<User, "id" | "createdAt" | "updatedAt">>): Promise<User | null>; // Restored
+  deleteUser(id: string): Promise<boolean>; // Restored
   // getUserDetailsForAuth(userId: string): Promise<Express.User | null>; // Commented out
 }
 
@@ -70,7 +70,6 @@ const userService: IUserService = {
     return Array.from(users.values());
   },
 
-  /* // Commented out getUserById
   async getUserById(id: string): Promise<User | null> {
     const user = users.get(id);
     if (!user) {
@@ -78,9 +77,7 @@ const userService: IUserService = {
     }
     return user;
   },
-  */
 
-  /* // Commented out updateUser
   async updateUser(id: string, updateData: Partial<Omit<User, "id" | "createdAt" | "updatedAt">>): Promise<User | null> {
     const user = users.get(id);
     if (!user) {
@@ -110,9 +107,7 @@ const userService: IUserService = {
     console.log(`User updated: ${updatedUser.username} (ID: ${updatedUser.id})`);
     return updatedUser;
   },
-  */
 
-  /* // Commented out deleteUser
   async deleteUser(id: string): Promise<boolean> {
     const deleted = users.delete(id);
     if (!deleted) {
@@ -121,7 +116,6 @@ const userService: IUserService = {
     console.log(`User deleted: (ID: ${id})`);
     return true;
   },
-  */
 
   /* // Commented out getUserDetailsForAuth
   async getUserDetailsForAuth(userId: string): Promise<Express.User | null> {

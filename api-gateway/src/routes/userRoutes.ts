@@ -2,7 +2,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import userService from '../services/userService';
 import { authenticateJWT, authorizeRoles } from '../middleware/authMiddleware';
-import { NotFoundError, BadRequestError } from '../utils/errors';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../utils/errors';
 import logger from '../utils/logger';
 
 const router = express.Router();

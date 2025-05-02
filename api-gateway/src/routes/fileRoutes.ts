@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
-import { withServiceIntegration } from '../services/serviceIntegration';
+import withServiceIntegration from '../services/serviceIntegration';
 import logger from '../utils/logger';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 import multer from 'multer';

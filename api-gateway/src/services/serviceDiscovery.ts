@@ -4,6 +4,7 @@ import logger from '../utils/logger';
 // Servis örneği bilgisi arayüzü
 interface ServiceInstance {
   instanceId: string; // Benzersiz örnek ID (örn: baseUrl)
+  serviceName: string; // Added serviceName
   baseUrl: string;
   version: string;
   status: "active" | "inactive" | "degraded";

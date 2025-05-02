@@ -10,14 +10,14 @@ import { routeAuthorization } from './middleware/routeAuthMiddleware';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware'; // Use named import
 import { requestLogger } from './middleware/loggingMiddleware'; // Use named import
 import { rateLimiter } from './middleware/rateLimiter'; // Use named import
-import cacheMiddleware from './middleware/cache'; // Import cache middleware
+import cacheMiddleware from './middleware/cache.js';
 import authRoutes from './routes/authRoutes';
 import segmentationRoutes from './routes/segmentationRoutes';
 import runnerRoutes from './routes/runnerRoutes';
 import archiveRoutes from './routes/archiveRoutes';
 import serviceRoutes from "./routes/serviceRoutes";
 import commandRoutes from "./routes/commandRoutes"; // Import command routes
-import fileRoutes from "./routes/files"; // Import file routes
+import fileRoutes from "./routes/fileRoutes"; // Import file routes
 import userRoutes from "./routes/userRoutes"; // Import user routes
 // import healthRoutes from "./routes/healthRoutes"; // Removed, handled by setupHealthCheck
 import { setupMetrics, setupHealthCheck } from './utils/monitoring'; // Import monitoring setup

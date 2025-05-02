@@ -722,3 +722,149 @@ Bu öneriler, ALT_LAS'ın kullanıcı arayüzünün UI-TARS-desktop'tan daha gel
 
 Tüm bu öneriler, kod kalite standartlarına uygun, test edilebilir ve modüler bir şekilde uygulanmalıdır. Her bir özellik, kullanıcı geri bildirimleri doğrultusunda sürekli olarak iyileştirilmelidir.
 
+
+# ALT_LAS Projesi İçin Küçük ve Etkili Öneriler (100 Adet)
+
+**Hazırlayan:** Proje Yöneticisi (Farklı Uzmanlık Alanlarından Derlenmiştir)
+**Tarih:** 02 Mayıs 2025
+
+**Giriş:**
+Bu bölüm, ALT_LAS projesinin çeşitli yönlerini iyileştirmek amacıyla 10 farklı uzmanlık alanından gelen, daha küçük ölçekli, uygulanabilir ve hızlı etki yaratabilecek 100 öneriyi içermektedir. Bu öneriler, daha önce sunulan kapsamlı önerilere ek olarak düşünülmelidir.
+
+---
+
+## Bölüm 3: Küçük ve Etkili Öneriler (10 Uzmanlık x 10 Öneri)
+
+### 1. Yazılım Mimarı Önerileri (Kod Yapısı, API Tutarlılığı, Bağımlılık Yönetimi)
+
+1.  **API Yanıt Formatı Lint Kuralı:** Tüm servislerde API yanıt formatlarının tutarlılığını sağlamak için bir linter kuralı ekleyin.
+2.  **Ortak Yardımcı Kütüphane:** Sık kullanılan yardımcı fonksiyonları (örn. tarih formatlama, string işlemleri) ortak bir kütüphaneye taşıyarak kod tekrarını azaltın.
+3.  **Temel Sağlık Kontrolü Endpoint'leri:** Tüm mikroservislere basit `/healthz` (sağlık kontrolü) endpoint'leri ekleyin.
+4.  **Kütüphane Seçim Süreci Dokümantasyonu:** Belirli kütüphaneleri veya framework'leri seçme nedenlerini belgeleyin.
+5.  **İstek Takip ID'leri:** Servisler arası hata ayıklamayı kolaylaştırmak için istek takip ID'leri (request tracing IDs) uygulayın.
+6.  **Veri Sahipliği Sınırları:** Servisler arasındaki veri sahipliği sınırlarını net bir şekilde tanımlayın.
+7.  **Standart Log Formatı:** Tüm servislerde log formatlarını standartlaştırın (örn. JSON formatı).
+8.  **Çekirdek Servis Bağımlılıkları:** Çekirdek servislerdeki harici bağımlılıkları gözden geçirin ve minimuma indirin.
+9.  **Basit Yapılandırma Önbelleği:** Sık erişilen, kritik olmayan yapılandırma verileri için basit bir önbellekleme mekanizması ekleyin.
+10. **API Versiyonlama Stratejisi:** API versiyonlamasını nasıl yöneteceğinize dair net bir strateji tanımlayın.
+
+### 2. Yapay Zeka Mühendisi Önerileri (Model İzleme, Veri İşleme, Küçük Optimizasyonlar)
+
+1.  **Model Girdi/Çıktı Loglama:** YZ model çağrıları için temel girdi parametrelerini ve çıktı güven skorlarını loglayın.
+2.  **Düşük Güvenlikli Tahmin İşaretleme:** Düşük güven skoruna sahip YZ tahminlerini inceleme için işaretleyecek basit bir mekanizma uygulayın.
+3.  **YZ Girdi Veri Doğrulama:** YZ modellerine giden girdiler için basit veri doğrulama kontrolleri ekleyin.
+4.  **Küçük Modelleri Keşfetme:** Kritik olmayan, yüksek frekanslı görevler için daha küçük, daha hızlı modeller kullanmayı araştırın.
+5.  **YZ Servis Format Dokümantasyonu:** Her YZ servisinin beklenen girdi/çıktı formatlarını net bir şekilde belgeleyin.
+6.  **Temel YZ Kaynak İzleme:** YZ modellerinin kaynak kullanımını (CPU/GPU/RAM) temel düzeyde izleyin.
+7.  **Basit UI Geri Bildirimi:** UI'da YZ sonuçları için basit bir geri bildirim mekanizması (örn. beğen/beğenme butonu) ekleyin.
+8.  **Model Bağımlılık Güncelleme:** Model bağımlılıklarını (örn. ONNX Runtime, llama.cpp) düzenli olarak güncelleyin.
+9.  **Basit Benchmark Script'i:** Zaman içindeki çıkarım hızını takip etmek için küçük bir benchmark script'i oluşturun.
+10. **Standart YZ Hata Kodları:** YZ servisleri tarafından döndürülen hata kodlarını standartlaştırın.
+
+### 3. UI/UX Tasarımcısı Önerileri (Mikro Etkileşimler, Tutarlılık, Kullanılabilirlik)
+
+1.  **İnce Hover Efektleri:** Tüm etkileşimli elemanlara ince hover (üzerine gelme) efektleri ekleyin.
+2.  **Tutarlı Boşluk/Hizalama:** Tüm UI bileşenlerinde tutarlı boşluk ve hizalama sağlayın.
+3.  **İkon Butonları İçin Tooltip'ler:** İkon butonlarının işlevini açıklamak için tooltip'ler (ipucu metinleri) kullanın.
+4.  **Yükleme Göstergeleri:** Veri çekme durumları için yükleme çemberleri (spinners) veya iskelet ekranlar (skeletons) uygulayın.
+5.  **Onay Diyalogları Standardizasyonu:** Onay diyaloglarının görünümünü ve yerleşimini standartlaştırın.
+6.  **Klavye Odak Göstergeleri:** Klavye ile gezinirken odaklanılan elemanın göstergesini iyileştirin.
+7.  **Girdi Alanlarına Temizle Butonu:** Uygun olan girdi alanlarına "Temizle" (X) butonu ekleyin.
+8.  **Kullanıcı Dostu Hata Mesajları:** Hata mesajlarının anlaşılır olduğundan ve çözüm önerdiğinden emin olun.
+9.  **Dokunmatik Hedef Alanları:** Dokunmatik arayüzlerde tıklanabilir alanları biraz daha büyütün.
+10. **Kaydırılabilir İçerik Göstergesi:** İçeriğin kaydırılabilir olduğunu gösteren görsel bir ipucu ekleyin (örn. ince kaydırma çubuğu).
+
+### 4. Siber Güvenlik Uzmanı Önerileri (Sıkılaştırma, Loglama, Hijyen)
+
+1.  **En Az Ayrıcalık Prensibi:** Tüm servislerin yalnızca gerekli olan en az ayrıcalıkla çalıştığından emin olun.
+2.  **Web Güvenlik Başlıkları:** Web'e açık uygulamalara güvenlik başlıkları (örn. CSP, HSTS) ekleyin.
+3.  **Temel API Hız Sınırlama:** Halka açık API endpoint'lerinde temel hız sınırlaması (rate limiting) uygulayın.
+4.  **Düzenli Bağımlılık Taraması:** Bağımlılıkları bilinen zafiyetlere karşı düzenli olarak tarayın (örn. `npm audit`, `cargo audit`).
+5.  **Hassas Veri Güvenliği:** Hassas yapılandırmaların (API anahtarları, şifreler) koda gömülmediğinden veya Git'e gönderilmediğinden emin olun.
+6.  **Kimlik Doğrulama Loglaması:** Başarılı ve başarısız kimlik doğrulama denemelerini loglayın.
+7.  **Dosya Yükleme Güvenliği:** Dosya yükleme mekanizmalarını potansiyel zafiyetlere karşı gözden geçirin.
+8.  **Dizin Listelemeyi Devre Dışı Bırakma:** Web sunucularında dizin listelemeyi devre dışı bırakın.
+9.  **Varsayılan Kimlik Bilgileri:** Tüm üçüncü parti servisler/veritabanları için varsayılan kimlik bilgilerinin değiştirildiğinden emin olun.
+10. **Temel Girdi Temizleme (Backend):** Backend servisleri tarafından alınan tüm kullanıcı girdilerinde temel girdi temizleme (input sanitization) uygulayın.
+
+### 5. DevOps Mühendisi Önerileri (CI/CD, İzleme, Altyapı)
+
+1.  **CI Derleme Süresi Takibi:** CI ardışık düzenine derleme süresi takibi ekleyin.
+2.  **Otomatik Artifact Temizliği:** Eski Docker imajlarının/derleme çıktılarının otomatik temizlenmesini uygulayın.
+3.  **Temel Altyapı İzleme:** Dağıtım ortamları için temel altyapı izlemesi (CPU, RAM, Disk) ekleyin.
+4.  **Merkezi Loglama:** Basit bir log toplama aracı kullanarak uygulama loglarını merkezileştirin.
+5.  **Standart Yerel Kurulum Script'i:** Yerel geliştirme ortamı kurulumu için standart bir script oluşturun.
+6.  **CI'a Linter Ekleme:** CI ardışık düzenine kod stili ve Dockerfile linter'ları ekleyin.
+7.  **Dağıtım Sağlık Kontrolleri:** Dağıtım yapılandırmalarına temel sağlık kontrolleri ekleyin (örn. Kubernetes readiness/liveness probları).
+8.  **Dağıtım Süreci Dokümantasyonu:** Dağıtım sürecini net bir şekilde belgeleyin.
+9.  **Tutarlı Ortam Değişkeni Adlandırması:** Servisler arasında tutarlı ortam değişkeni adlandırması sağlayın.
+10. **CI Hata Bildirimleri:** CI derleme hataları için otomatik bildirimler ekleyin.
+
+### 6. Kalite Güvence (QA) Mühendisi Önerileri (Test Kapsamı, Test Türleri, Raporlama)
+
+1.  **Kritik Yardımcı Fonksiyon Testleri:** Kritik yardımcı fonksiyonlar için birim testleri ekleyin.
+2.  **Temel API Kontrat Testi:** Servisler arasında temel API kontrat testi uygulayın.
+3.  **Manuel UI Test Kontrol Listesi:** Yaygın kullanıcı akışları için manuel UI testi kontrol listesi oluşturun.
+4.  **Kenar Durum Testleri:** Kenar durumlar ve geçersiz girdiler için testler ekleyin.
+5.  **Test Verisi Dokümantasyonu:** Test verisinin nasıl oluşturulacağını veya elde edileceğini belgeleyin.
+6.  **Basit Hata Takip Şablonu:** Hata raporlama için basit bir şablon uygulayın.
+7.  **Temel Görsel Regresyon Testi:** Anahtar UI bileşenleri için temel görsel regresyon testi ekleyin.
+8.  **Temel Erişilebilirlik Testleri:** Temel erişilebilirlik özelliklerini test edin (klavye navigasyonu, ekran okuyucu).
+9.  **Farklı Ağ Koşulları Testi:** Testleri farklı ağ koşullarında (gecikme, paket kaybı) çalıştırın.
+10. **Loglama Doğrulama Testleri:** Kritik olaylar için log çıktısını doğrulayan testler ekleyin.
+
+### 7. Ürün Yöneticisi Önerileri (Geri Bildirim, Netlik, Küçük İyileştirmeler)
+
+1.  **Basit Geri Bildirim Seçeneği:** Uygulama içine basit bir "Geri Bildirim Gönder" seçeneği ekleyin.
+2.  **Mod Açıklamaları:** Her modun (Normal, Dream vb.) amacını kısa uygulama içi açıklamalarla netleştirin.
+3.  **Hata Mesajı Yönlendirmeleri:** Hata mesajlarının ilgili dokümantasyona veya destek kanallarına bağlantı verdiğinden emin olun.
+4.  **Başlangıç Akışı İncelemesi:** Yeni kullanıcı başlangıç akışını potansiyel sürtünme noktaları açısından gözden geçirin.
+5.  **Özellik Başarı Metrikleri:** Belirli bir özellik için anahtar başarı metrikleri tanımlayın (örn. komut çubuğu kullanım oranı).
+6.  **Kafa Karıştıran UI Öğeleri Geri Bildirimi:** Kullanıcıların kafasını en çok karıştıran UI öğeleri hakkında geri bildirim toplayın.
+7.  **Hata Düzeltme Önceliklendirmesi:** Hata düzeltmelerini kullanıcı etkisine göre (sıklık, ciddiyet) önceliklendirin.
+8.  **Versiyon Numarası Gösterimi:** Kolayca erişilebilir bir yerde (örn. "Hakkında" sayfası) versiyon numarasını gösterin.
+9.  **Basit Rakip Analizi:** Belirli bir özellik için basit bir rakip analizi yapın.
+10. **Kullanıcı Persona'ları Oluşturma:** Eğer henüz yoksa, temel kullanıcı persona'ları oluşturun.
+
+### 8. Teknik Yazar Önerileri (Dokümantasyon Netliği, Tutarlılığı, Erişilebilirliği)
+
+1.  **ALT_LAS Terimler Sözlüğü:** ALT_LAS'a özgü terimler için bir sözlük oluşturun.
+2.  **"Son Güncelleme" Tarihleri:** Tüm dokümantasyon sayfalarına "Son Güncelleme" tarihleri ekleyin.
+3.  **Tutarlı Terminoloji:** Tüm dokümantasyon ve UI metinlerinde tutarlı terminoloji kullanın.
+4.  **Kod Vurgulama:** Dokümantasyondaki tüm kod örneklerine sözdizimi vurgulaması ekleyin.
+5.  **Basit "Başlarken" Kılavuzu:** Yeni kullanıcılar için basit bir "Başlarken" kılavuzu oluşturun.
+6.  **İç Bağlantılar:** İlgili dokümantasyon sayfaları arasında iç bağlantılar ekleyin.
+7.  **Netlik ve Kısalık İncelemesi:** Dokümantasyonu netlik ve kısalık açısından gözden geçirin.
+8.  **Görsel Alt Metinleri:** Dokümantasyondaki tüm görsellere alt metin (alt text) ekleyin.
+9.  **Yeni Özellik Dokümantasyon Şablonu:** Yeni özellikleri veya API endpoint'lerini belgelemek için bir şablon oluşturun.
+10. **Dokümantasyon Arama Çubuğu:** Dokümantasyon sitesine (varsa) bir arama çubuğu ekleyin.
+
+### 9. Veritabanı Yöneticisi (DBA) Önerileri (*.atlas* - PostgreSQL Odaklı)
+
+1.  **Temel Veritabanı İzleme:** Veritabanı bağlantı sayıları ve sorgu gecikmesi için temel izleme uygulayın.
+2.  **Yedekleme Planı Dokümantasyonu:** *.atlas* veritabanı için düzenli bir yedekleme planı tanımlayın ve belgeleyin.
+3.  **Yavaş Sorgu İncelemesi:** Yavaş sorguları gözden geçirin ve ilgili indekslerin eklenmesini önerin.
+4.  **Anahtar/Kısıtlama Doğrulaması:** Şemada birincil ve yabancı anahtarların doğru tanımlandığından emin olun.
+5.  **Şema Yorumları:** Karmaşık tablo şemalarına veya sütunlara yorumlar ekleyin.
+6.  **Geri Yükleme Süreci Dokümantasyonu:** Veritabanını yedekten geri yükleme sürecini belgeleyin.
+7.  **Disk Kullanımı İzleme:** Veritabanı disk kullanımını izleyin ve düşük disk alanı için uyarılar ayarlayın.
+8.  **Veritabanı Kullanıcı Ayrıcalıkları:** Veritabanı kullanıcı ayrıcalıklarını gözden geçirin ve en az ayrıcalık prensibinin uygulandığından emin olun.
+9.  **Tablo Boyutu Analizi:** Tablo boyutlarını analiz edin ve bölümleme veya arşivleme için potansiyel adayları belirleyin (uzun vadeli).
+10. **Tutarlı Adlandırma Kuralları:** Tablolar ve sütunlar için tutarlı adlandırma kuralları sağlayın.
+
+### 10. Müşteri Destek Temsilcisi Önerileri (Yaygın Sorunlar, Yardım Kaynakları, İletişim)
+
+1.  **Hazır Yanıtlar Oluşturma:** Sıkça sorulan sorular için hazır yanıtlar oluşturun.
+2.  **Yükseltme Süreci Dokümantasyonu:** Karmaşık sorunları geliştirme ekibine yükseltme sürecini belgeleyin.
+3.  **En Yaygın 5 Sorunu Belirleme:** Destek etkileşimlerine dayanarak en yaygın 5 kullanıcı sorununu belirleyin.
+4.  **Hata Mesajı İyileştirme Önerileri:** Kullanıcı kafa karışıklığına dayanarak hata mesajlarında iyileştirmeler önerin.
+5.  **Uygulama İçi Yardım Erişilebilirliği:** Yardım dokümantasyonunun uygulama içinden kolayca keşfedilebilir olduğundan emin olun.
+6.  **Basit SSS Bölümü:** Yaygın destek sorgularına dayalı basit bir SSS (Sıkça Sorulan Sorular) bölümü oluşturun.
+7.  **Zorlanılan Özellikler Geri Bildirimi:** Kullanıcıların zorlandığı özellikler hakkında ürün ekibine geri bildirim sağlayın.
+8.  **Kafa Karıştıran UI İçin İpuçları:** Kafa karıştıran UI öğeleri için tooltip'ler veya yardım ikonları eklenmesini önerin.
+9.  **Destek Kanalı Özellik İstekleri Takibi:** Destek kanalları aracılığıyla gelen özellik isteklerini takip edin.
+10. **Zamanında Sorun Bildirimi Onayı:** Kullanıcıların sorun bildirdiklerinde zamanında onay aldıklarından emin olun.
+
+---
+
+

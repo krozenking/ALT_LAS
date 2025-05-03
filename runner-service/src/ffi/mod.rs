@@ -5,6 +5,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use log::{info, error, warn, debug};
+use lazy_static::lazy_static;
 
 use crate::alt_file::models::{AltFile, AltMode};
 use crate::task_manager::models::TaskResult;

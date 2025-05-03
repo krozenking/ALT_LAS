@@ -5,13 +5,18 @@ use std::sync::Arc;
 use log::{info, debug, warn, error};
 use async_trait::async_trait;
 use std::time::{Duration, Instant};
+use chrono::{DateTime, Utc};
 use futures::{stream, StreamExt};
 use std::future::Future;
 use std::pin::Pin;
+use uuid::Uuid;
+use serde_json;
 
-use crate::alt_file::models::{AltFile, Task, TaskStatus};
+use crate::alt_file::models::{AltFile, Task}; // Removed TaskStatus
+use crate::task_manager::models::TaskStatus; // Import TaskStatus from task_manager::models
 use crate::ai_service::AiClient;
-use crate::last_file::{LastFile, LastFileProcessor, TaskResult};
+use crate::last_file::LastFile;
+use crate::task_manager::models::{TaskResult, TaskStatus as TaskManagerStatus}; // Alias TaskStatus
 
 /// Configuration for the task manager
 #[derive(Debug, Clone)]
@@ -74,9 +79,9 @@ pub struct TaskExecutionInfo {
     /// Status of the task execution
     pub status: TaskExecutionStatus,
     /// Start time of the task execution
-    pub start_time: Option<Instant>,
+    pub start_time: Option<DateTime<Utc>>,
     /// End time of the task execution
-    pub end_time: Option<Instant>,
+    pub end_time: Option<DateTime<Utc>>,
     /// Duration of the task execution in milliseconds
     pub duration_ms: Option<u64>,
     /// Number of retries
@@ -109,72 +114,81 @@ impl TaskExecutionInfo {
     
     /// Marks the task as started
     pub fn mark_started(&mut self) {
-        self.start_time = Some(Instant::now());
+        self.start_time = Some(Utc::now());
         self.status = TaskExecutionStatus::Running;
     }
     
     /// Marks the task as completed
     pub fn mark_completed(&mut self, output: Option<String>) {
-        self.end_time = Some(Instant::now());
+        self.end_time = Some(Utc::now());
         self.status = TaskExecutionStatus::Completed;
         self.output = output;
-        
+
         if let (Some(start), Some(end)) = (self.start_time, self.end_time) {
-            self.duration_ms = Some(end.duration_since(start).as_millis() as u64);
+            self.duration_ms = Some(end.signed_duration_since(start).num_milliseconds() as u64);
         }
     }
     
     /// Marks the task as failed
     pub fn mark_failed(&mut self, error: String) {
-        self.end_time = Some(Instant::now());
+        self.end_time = Some(Utc::now());
         self.status = TaskExecutionStatus::Failed(error.clone());
         self.error = Some(error);
-        
+
         if let (Some(start), Some(end)) = (self.start_time, self.end_time) {
-            self.duration_ms = Some(end.duration_since(start).as_millis() as u64);
+            self.duration_ms = Some(end.signed_duration_since(start).num_milliseconds() as u64);
         }
     }
     
     /// Marks the task as cancelled
     pub fn mark_cancelled(&mut self) {
-        self.end_time = Some(Instant::now());
+        self.end_time = Some(Utc::now());
         self.status = TaskExecutionStatus::Cancelled;
-        
+
         if let (Some(start), Some(end)) = (self.start_time, self.end_time) {
-            self.duration_ms = Some(end.duration_since(start).as_millis() as u64);
+            self.duration_ms = Some(end.signed_duration_since(start).num_milliseconds() as u64);
         }
     }
     
     /// Marks the task as timed out
     pub fn mark_timed_out(&mut self) {
-        self.end_time = Some(Instant::now());
+        self.end_time = Some(Utc::now());
         self.status = TaskExecutionStatus::TimedOut;
         self.error = Some("Task timed out".to_string());
-        
+
         if let (Some(start), Some(end)) = (self.start_time, self.end_time) {
-            self.duration_ms = Some(end.duration_since(start).as_millis() as u64);
+            self.duration_ms = Some(end.signed_duration_since(start).num_milliseconds() as u64);
         }
     }
     
     /// Converts the TaskExecutionInfo to a TaskResult
     pub fn to_task_result(&self) -> TaskResult {
         let status = match &self.status {
-            TaskExecutionStatus::Completed => TaskStatus::Completed,
-            TaskExecutionStatus::Failed(_) => TaskStatus::Failed,
-            TaskExecutionStatus::Cancelled => TaskStatus::Cancelled,
-            TaskExecutionStatus::TimedOut => TaskStatus::Failed,
-            _ => TaskStatus::Pending,
+            TaskExecutionStatus::Completed => TaskManagerStatus::Completed,
+            TaskExecutionStatus::Failed(_) => TaskManagerStatus::Failed,
+            TaskExecutionStatus::Cancelled => TaskManagerStatus::Cancelled,
+            TaskExecutionStatus::TimedOut => TaskManagerStatus::Timeout, // Corrected mapping
+            _ => TaskManagerStatus::Pending,
         };
-        
+
+        // Attempt to parse output string as JSON
+        let output_json: Option<serde_json::Value> = self.output.as_ref().and_then(|s| {
+            serde_json::from_str(s).map_err(|e| {
+                warn!("Failed to parse task output as JSON for task {}: {}", self.task_id, e);
+                e
+            }).ok()
+        });
+
         TaskResult {
             task_id: self.task_id.clone(),
+            execution_id: Uuid::new_v4().to_string(), // Generate a new execution_id
             status,
-            output: self.output.clone(),
-            error: self.error.clone(),
-            start_time: None, // Convert Instant to DateTime if needed
-            end_time: None,   // Convert Instant to DateTime if needed
+            start_time: self.start_time.unwrap_or_else(Utc::now), // Use start_time or default
+            end_time: self.end_time, // Use end_time from TaskExecutionInfo
             duration_ms: self.duration_ms,
-            metadata: None,
+            output: output_json, // Use parsed JSON output
+            error: self.error.clone(),
+            metadata: Some(HashMap::new()), // Initialize metadata
         }
     }
 }
@@ -247,7 +261,7 @@ impl TaskManager {
         info!("Processing ALT file: {}", alt_file.id);
         
         // Create a new LAST file
-        let mut last_file = LastFile::new(alt_file);
+        let mut last_file = LastFile::new(alt_file, Some(alt_file.title.clone()));
         
         // Build dependency graph
         self.build_dependency_graph(alt_file).await?;
@@ -266,8 +280,7 @@ impl TaskManager {
         }
         
         // Update success rate and processing time
-        last_file.update_success_rate();
-        last_file.update_total_processing_time();
+        last_file.complete_execution();
         
         Ok(last_file)
     }
@@ -331,17 +344,17 @@ impl TaskManager {
     
     /// Processes all queued tasks
     async fn process_tasks(&self) -> Result<(), String> {
-        let mut futures = Vec::new();
+        let mut futures: Vec<Pin<Box<dyn Future<Output = Result<(), String>> + Send>>> = Vec::new();
         
         // Start worker tasks
         for _ in 0..self.config.max_concurrent_tasks {
             let worker_future = self.worker_loop();
-            futures.push(worker_future);
+            futures.push(Box::pin(worker_future));
         }
         
         // Start cancel listener
         let cancel_future = self.cancel_listener();
-        futures.push(cancel_future);
+        futures.push(Box::pin(cancel_future));
         
         // Wait for all tasks to complete
         futures::future::join_all(futures).await;
@@ -399,13 +412,13 @@ impl TaskManager {
                 .and_then(|value| value.as_str())
                 .unwrap_or("default");
             
-            self.task_handlers.get(task_type).cloned()
+            self.task_handlers.get(task_type)
         };
         
         let result = if let Some(handler) = handler_opt {
             // Execute the task with timeout
-            let timeout_seconds = task.timeout_seconds.unwrap_or(self.config.default_timeout_seconds);
-            let timeout_duration = Duration::from_secs(timeout_seconds);
+            let timeout_seconds = task.timeout_seconds.unwrap_or(self.config.default_timeout_seconds as u32);
+            let timeout_duration = Duration::from_secs(timeout_seconds.into());
             
             match tokio::time::timeout(timeout_duration, handler.handle_task(&task)).await {
                 Ok(Ok(output)) => {

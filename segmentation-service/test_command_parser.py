@@ -298,9 +298,9 @@ class TestCommandParser(unittest.TestCase):
 
     def test_identify_dependencies_multiple(self):
         """Test identifying multiple dependencies"""
-        segment1 = TaskSegment(id="s1", content="Task 1")
-        segment2 = TaskSegment(id="s2", content="Task 2")
-        segment3 = TaskSegment(id="s3", content="Task 3")
+        segment1 = TaskSegment(id="s1", content="Task 1", task_type="generic") # Added task_type
+        segment2 = TaskSegment(id="s2", content="Task 2", task_type="generic") # Added task_type
+        segment3 = TaskSegment(id="s3", content="Task 3", task_type="generic") # Added task_type
         segments = [segment1, segment2, segment3]
         
         command = "Do Task 1 then Task 2 and after that Task 3"
@@ -316,8 +316,8 @@ class TestCommandParser(unittest.TestCase):
 
     def test_identify_dependencies_no_indicator(self):
         """Test dependency identification without explicit indicators (sequential assumption)"""
-        segment1 = TaskSegment(id="s1", content="Task 1")
-        segment2 = TaskSegment(id="s2", content="Task 2")
+        segment1 = TaskSegment(id="s1", content="Task 1", task_type="generic") # Added task_type
+        segment2 = TaskSegment(id="s2", content="Task 2", task_type="generic") # Added task_type
         segments = [segment1, segment2]
         
         command = "Do Task 1. Do Task 2."

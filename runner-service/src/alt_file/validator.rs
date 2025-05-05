@@ -1,5 +1,5 @@
-use log::{info, warn, debug, error};
-use super::models::{AltFile, Task, TaskStatus, Priority};
+use log::{info, warn, debug};
+use super::models::{AltFile, Task};
 use std::collections::{HashSet};
 
 /// Validates an ALT file structure and logic

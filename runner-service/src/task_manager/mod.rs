@@ -261,7 +261,7 @@ impl TaskManager {
         info!("Processing ALT file: {}", alt_file.id);
         
         // Create a new LAST file
-        let mut last_file = LastFile::new(alt_file, Some(alt_file.title.clone()));
+        let mut last_file = LastFile::new(alt_file.id.clone(), alt_file.title.clone(), alt_file.mode.clone().unwrap_or_default(), alt_file.persona.clone());
         
         // Build dependency graph
         self.build_dependency_graph(alt_file).await?;
@@ -276,11 +276,12 @@ impl TaskManager {
         let task_executions = self.task_executions.lock().await;
         for (task_id, execution_info) in task_executions.iter() {
             let task_result = execution_info.to_task_result();
-            last_file.add_task_result(task_result);
+            last_file.add_task_result(task_id.clone(), task_result);
         }
         
         // Update success rate and processing time
-        last_file.complete_execution();
+        last_file.calculate_success_rate();
+        last_file.calculate_execution_time();
         
         Ok(last_file)
     }

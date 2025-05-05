@@ -1,5 +1,5 @@
-use log::{info, debug, warn};
-use std::path::{Path, PathBuf};
+use log::{info, debug};
+use std::path::{PathBuf};
 use std::fs;
 use std::io;
 use std::collections::HashMap;
@@ -7,44 +7,44 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::alt_file::models::{AltFile, Task, TaskStatus};
+use crate::alt_file::models::{AltFile, TaskStatus};
 use crate::ai_service::AiClient;
 
-/// Configuration for the LastFileProcessor
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LastFileProcessorConfig {
-    /// Directory to output LAST files
-    pub output_dir: PathBuf,
-    /// Whether to enable compression for LAST files
-    pub enable_compression: bool,
-    /// Whether to enable HTML export
-    pub enable_html_export: bool,
-    /// Whether to enable graph visualization
-    pub enable_graph_visualization: bool,
-    /// Whether to enable artifact extraction
-    pub enable_artifact_extraction: bool,
-    /// Whether to enable AI enhancement
-    pub enable_ai_enhancement: bool,
-    /// Whether to use parallel processing
-    pub parallel_processing: bool,
-    /// Maximum number of worker threads
-    pub max_workers: usize,
-}
-
-impl Default for LastFileProcessorConfig {
-    fn default() -> Self {
-        Self {
-            output_dir: PathBuf::from("./output"),
-            enable_compression: true,
-            enable_html_export: true,
-            enable_graph_visualization: true,
-            enable_artifact_extraction: true,
-            enable_ai_enhancement: false,
-            parallel_processing: true,
-            max_workers: 4,
-        }
-    }
-}
+// /// Configuration for the LastFileProcessor
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct LastFileProcessorConfig {
+//     /// Directory to output LAST files
+//     pub output_dir: PathBuf,
+//     /// Whether to enable compression for LAST files
+//     pub enable_compression: bool,
+//     /// Whether to enable HTML export
+//     pub enable_html_export: bool,
+//     /// Whether to enable graph visualization
+//     pub enable_graph_visualization: bool,
+//     /// Whether to enable artifact extraction
+//     pub enable_artifact_extraction: bool,
+//     /// Whether to enable AI enhancement
+//     pub enable_ai_enhancement: bool,
+//     /// Whether to use parallel processing
+//     pub parallel_processing: bool,
+//     /// Maximum number of worker threads
+//     pub max_workers: usize,
+// }
+// 
+// impl Default for LastFileProcessorConfig {
+//     fn default() -> Self {
+//         Self {
+//             output_dir: PathBuf::from("./output"),
+//             enable_compression: true,
+//             enable_html_export: true,
+//             enable_graph_visualization: true,
+//             enable_artifact_extraction: true,
+//             enable_ai_enhancement: false,
+//             parallel_processing: true,
+//             max_workers: 4,
+//         }
+//     }
+// }
 
 /// Represents a task result in the LAST file
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -167,160 +167,160 @@ impl LastFile {
     }
 }
 
-/// Processor for generating LAST files
-pub struct LastFileProcessor {
-    config: LastFileProcessorConfig,
-    ai_client: Option<Box<dyn AiClient>>,
-}
-
-impl LastFileProcessor {
-    /// Creates a new LastFileProcessor with default configuration
-    pub fn new() -> Self {
-        Self {
-            config: LastFileProcessorConfig::default(),
-            ai_client: None,
-        }
-    }
-
-    /// Creates a new LastFileProcessor with custom configuration
-    pub fn with_config(config: LastFileProcessorConfig) -> Self {
-        Self {
-            config,
-            ai_client: None,
-        }
-    }
-
-    /// Sets the AI client for the processor
-    pub fn with_ai_client(mut self, ai_client: Box<dyn AiClient>) -> Self {
-        self.ai_client = Some(ai_client);
-        self
-    }
-
-    /// Processes an ALT file and generates a LAST file
-    pub fn process(&self, alt_file: &AltFile) -> io::Result<LastFile> {
-        info!("Processing ALT file: {}", alt_file.id);
-        
-        if self.config.parallel_processing {
-            self.process_parallel(alt_file)
-        } else {
-            self.process_sequential(alt_file)
-        }
-    }
-
-    /// Processes an ALT file in parallel
-    fn process_parallel(&self, alt_file: &AltFile) -> io::Result<LastFile> {
-        debug!("Processing ALT file in parallel mode");
-        
-        let mut last_file = LastFile::new(alt_file);
-        
-        // In a real implementation, this would use tokio or rayon for parallel processing
-        // For now, we'll just call the sequential implementation
-        
-        // Create a dependency graph
-        let dependency_graph = self.create_dependency_graph(alt_file);
-        
-        // Process tasks in parallel based on dependencies
-        // This is a simplified implementation
-        
-        // Update success rate and processing time
-        last_file.update_success_rate();
-        last_file.update_total_processing_time();
-        
-        // Save the LAST file
-        self.save_last_file(&last_file)?;
-        
-        Ok(last_file)
-    }
-
-    /// Processes an ALT file sequentially
-    fn process_sequential(&self, alt_file: &AltFile) -> io::Result<LastFile> {
-        debug!("Processing ALT file in sequential mode");
-        
-        let mut last_file = LastFile::new(alt_file);
-        
-        // Process each task in sequence
-        for task in &alt_file.tasks {
-            let start_time = Utc::now();
-            
-            // Process the task
-            // In a real implementation, this would call the appropriate handler
-            
-            let end_time = Utc::now();
-            let duration = (end_time.timestamp_millis() - start_time.timestamp_millis()) as u64;
-            
-            // Create a task result
-            let task_result = TaskResult {
-                task_id: task.id.clone(),
-                status: TaskStatus::Completed, // Assume success for now
-                output: Some("Task completed successfully".to_string()),
-                error: None,
-                start_time: Some(start_time),
-                end_time: Some(end_time),
-                duration_ms: Some(duration),
-                metadata: None,
-            };
-            
-            // Add the task result to the LAST file
-            last_file.add_task_result(task_result);
-        }
-        
-        // Update success rate and processing time
-        last_file.update_success_rate();
-        last_file.update_total_processing_time();
-        
-        // Save the LAST file
-        self.save_last_file(&last_file)?;
-        
-        Ok(last_file)
-    }
-
-    /// Creates a dependency graph for the tasks
-    fn create_dependency_graph(&self, alt_file: &AltFile) -> HashMap<String, Vec<String>> {
-        let mut graph = HashMap::new();
-        
-        for task in &alt_file.tasks {
-            let dependencies = task.dependencies.clone().unwrap_or_else(Vec::new);
-            graph.insert(task.id.clone(), dependencies);
-        }
-        
-        graph
-    }
-
-    /// Saves a LAST file to disk
-    fn save_last_file(&self, last_file: &LastFile) -> io::Result<PathBuf> {
-        // Create the output directory if it doesn't exist
-        fs::create_dir_all(&self.config.output_dir)?;
-        
-        // Generate the file path
-        let file_name = format!("{}.last.json", last_file.id);
-        let file_path = self.config.output_dir.join(file_name);
-        
-        // Serialize the LAST file to JSON
-        let json = serde_json::to_string_pretty(last_file)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-        
-        // Write the JSON to disk
-        fs::write(&file_path, json)?;
-        
-        info!("LAST file saved to: {:?}", file_path);
-        
-        Ok(file_path)
-    }
-}
-
-/// Generator for LAST files
-pub struct LastFileGenerator {
-    processor: LastFileProcessor,
-}
-
-impl LastFileGenerator {
-    /// Creates a new LastFileGenerator
-    pub fn new(processor: LastFileProcessor) -> Self {
-        Self { processor }
-    }
-    
-    /// Generates a LAST file from an ALT file
-    pub fn generate(&self, alt_file: &AltFile) -> io::Result<LastFile> {
-        self.processor.process(alt_file)
-    }
-}
+// /// Processor for generating LAST files
+// pub struct LastFileProcessor {
+//     config: LastFileProcessorConfig,
+//     ai_client: Option<Box<dyn AiClient>>,
+// }
+// 
+// impl LastFileProcessor {
+//     /// Creates a new LastFileProcessor with default configuration
+//     pub fn new() -> Self {
+//         Self {
+//             config: LastFileProcessorConfig::default(),
+//             ai_client: None,
+//         }
+//     }
+// 
+//     /// Creates a new LastFileProcessor with custom configuration
+//     pub fn with_config(config: LastFileProcessorConfig) -> Self {
+//         Self {
+//             config,
+//             ai_client: None,
+//         }
+//     }
+// 
+//     /// Sets the AI client for the processor
+//     pub fn with_ai_client(mut self, ai_client: Box<dyn AiClient>) -> Self {
+//         self.ai_client = Some(ai_client);
+//         self
+//     }
+// 
+//     /// Processes an ALT file and generates a LAST file
+//     pub fn process(&self, alt_file: &AltFile) -> io::Result<LastFile> {
+//         info!("Processing ALT file: {}", alt_file.id);
+//         
+//         if self.config.parallel_processing {
+//             self.process_parallel(alt_file)
+//         } else {
+//             self.process_sequential(alt_file)
+//         }
+//     }
+// 
+//     /// Processes an ALT file in parallel
+//     fn process_parallel(&self, alt_file: &AltFile) -> io::Result<LastFile> {
+//         debug!("Processing ALT file in parallel mode");
+//         
+//         let mut last_file = LastFile::new(alt_file);
+//         
+//         // In a real implementation, this would use tokio or rayon for parallel processing
+//         // For now, we'll just call the sequential implementation
+//         
+//         // Create a dependency graph
+//         let dependency_graph = self.create_dependency_graph(alt_file);
+//         
+//         // Process tasks in parallel based on dependencies
+//         // This is a simplified implementation
+//         
+//         // Update success rate and processing time
+//         last_file.update_success_rate();
+//         last_file.update_total_processing_time();
+//         
+//         // Save the LAST file
+//         self.save_last_file(&last_file)?;
+//         
+//         Ok(last_file)
+//     }
+// 
+//     /// Processes an ALT file sequentially
+//     fn process_sequential(&self, alt_file: &AltFile) -> io::Result<LastFile> {
+//         debug!("Processing ALT file in sequential mode");
+//         
+//         let mut last_file = LastFile::new(alt_file);
+//         
+//         // Process each task in sequence
+//         for task in &alt_file.tasks {
+//             let start_time = Utc::now();
+//             
+//             // Process the task
+//             // In a real implementation, this would call the appropriate handler
+//             
+//             let end_time = Utc::now();
+//             let duration = (end_time.timestamp_millis() - start_time.timestamp_millis()) as u64;
+//             
+//             // Create a task result
+//             let task_result = TaskResult {
+//                 task_id: task.id.clone(),
+//                 status: TaskStatus::Completed, // Assume success for now
+//                 output: Some("Task completed successfully".to_string()),
+//                 error: None,
+//                 start_time: Some(start_time),
+//                 end_time: Some(end_time),
+//                 duration_ms: Some(duration),
+//                 metadata: None,
+//             };
+//             
+//             // Add the task result to the LAST file
+//             last_file.add_task_result(task_result);
+//         }
+//         
+//         // Update success rate and processing time
+//         last_file.update_success_rate();
+//         last_file.update_total_processing_time();
+//         
+//         // Save the LAST file
+//         self.save_last_file(&last_file)?;
+//         
+//         Ok(last_file)
+//     }
+// 
+//     /// Creates a dependency graph for the tasks
+//     fn create_dependency_graph(&self, alt_file: &AltFile) -> HashMap<String, Vec<String>> {
+//         let mut graph = HashMap::new();
+//         
+//         for task in &alt_file.tasks {
+//             let dependencies = task.dependencies.clone().unwrap_or_else(Vec::new);
+//             graph.insert(task.id.clone(), dependencies);
+//         }
+//         
+//         graph
+//     }
+// 
+//     /// Saves a LAST file to disk
+//     fn save_last_file(&self, last_file: &LastFile) -> io::Result<PathBuf> {
+//         // Create the output directory if it doesn't exist
+//         fs::create_dir_all(&self.config.output_dir)?;
+//         
+//         // Generate the file path
+//         let file_name = format!("{}.last.json", last_file.id);
+//         let file_path = self.config.output_dir.join(file_name);
+//         
+//         // Serialize the LAST file to JSON
+//         let json = serde_json::to_string_pretty(last_file)
+//             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+//         
+//         // Write the JSON to disk
+//         fs::write(&file_path, json)?;
+//         
+//         info!("LAST file saved to: {:?}", file_path);
+//         
+//         Ok(file_path)
+//     }
+// }
+// 
+// /// Generator for LAST files
+// pub struct LastFileGenerator {
+//     processor: LastFileProcessor,
+// }
+// 
+// impl LastFileGenerator {
+//     /// Creates a new LastFileGenerator
+//     pub fn new(processor: LastFileProcessor) -> Self {
+//         Self { processor }
+//     }
+//     
+//     /// Generates a LAST file from an ALT file
+//     pub fn generate(&self, alt_file: &AltFile) -> io::Result<LastFile> {
+//         self.processor.process(alt_file)
+//     }
+// }

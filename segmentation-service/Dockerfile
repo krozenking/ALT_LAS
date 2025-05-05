@@ -3,10 +3,10 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Copy requirements file
-COPY requirements_updated.txt requirements.txt
+COPY requirements_updated.txt .
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_updated.txt
 
 # Copy application code
 COPY . .

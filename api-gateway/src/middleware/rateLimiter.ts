@@ -75,5 +75,17 @@ export const cleanupRateLimiter = (): void => {
   });
 };
 
-// Otomatik temizleme (5 dakikada bir)
-setInterval(cleanupRateLimiter, 5 * 60 * 1000);
+// Otomatik temizleme (5 dakikada bir) - Test ortamında çalıştırma
+let cleanupInterval: NodeJS.Timeout | null = null;
+if (process.env.NODE_ENV !== 'test') {
+  cleanupInterval = setInterval(cleanupRateLimiter, 5 * 60 * 1000);
+}
+
+// Fonksiyonu dışa aktararak testlerde interval'i temizleyebilme
+export const stopRateLimiterCleanup = (): void => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    // logger.info("Rate limiter cleanup interval stopped."); // Logger eklemek isteyebilirsiniz
+  }
+};

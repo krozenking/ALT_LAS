@@ -156,18 +156,18 @@ export const handlePasswordResetRequest = async (req: Request, res: Response, ne
     const user = await authService.getUserByEmail(email);
     
     // Kullanıcı bulunamazsa bile güvenlik için başarılı yanıt döndür
-    if (!user) {
-      logger.warn(`Şifre sıfırlama talebi: Kullanıcı bulunamadı - ${email}`);
+    if (!user || !user.id || !user.username) { // Ensure user and required fields exist
+      logger.warn(`Şifre sıfırlama talebi: Kullanıcı veya gerekli alanlar bulunamadı - ${email}`);
       res.json({ 
         message: 'E-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama talimatları gönderilecektir.' 
       });
       return;
     }
     
-    // Token oluştur
+    // Token oluştur (user.id is now guaranteed to be string)
     const token = passwordResetService.generateToken(user.id);
     
-    // E-posta gönder
+    // E-posta gönder (user.username is now guaranteed to be string)
     await passwordResetService.sendPasswordResetEmail(email, token, user.username);
     
     res.json({ 
@@ -194,19 +194,15 @@ export const handlePasswordReset = async (req: Request, res: Response, next: Nex
       throw new BadRequestError('Şifre en az 8 karakter uzunluğunda olmalıdır');
     }
     
-    // Token'ı doğrula
-    const userId = passwordResetService.validateToken(token);
-    if (!userId) {
-      throw new UnauthorizedError('Geçersiz veya süresi dolmuş token');
-    }
+    // Token'ı doğrula ve şifreyi güncelle (authService halleder)
+    await authService.resetPassword(token, newPassword);
     
-    // Şifreyi güncelle
-    await authService.updatePassword(userId, newPassword);
-    
-    // Token'ı geçersiz kıl
+    // Token'ı geçersiz kıl (authService.resetPassword zaten yapıyor, ama burada da kalabilir)
     passwordResetService.invalidateToken(token);
     
-    logger.info(`Kullanıcı ${userId} şifresini sıfırladı`);
+    // Loglama için userId'yi alabiliriz (opsiyonel, resetPassword içinde loglanıyor olabilir)
+    // const userId = passwordResetService.validateToken(token); // Token zaten geçersiz kılındı
+    logger.info(`Şifre sıfırlama işlemi token ile tamamlandı: ${token}`);
     res.json({ message: 'Şifreniz başarıyla sıfırlandı' });
   } catch (error) {
     next(error);

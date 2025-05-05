@@ -77,7 +77,11 @@ router.post('/forgot', async (req: Request, res: Response, next: NextFunction) =
       // await sendPasswordResetEmail(email, resetToken);
       logger.info(`Şifre sıfırlama email'i gönderildi: ${email}`);
     } catch (error) {
-      logger.error(`Email gönderme hatası: ${error.message}`);
+      if (error instanceof Error) {
+        logger.error(`Email gönderme hatası: ${error.message}`);
+      } else {
+        logger.error("Bilinmeyen bir email gönderme hatası oluştu");
+      }
       // Email gönderme hatası kullanıcıya bildirilmemeli
     }
 
@@ -221,6 +225,10 @@ router.post('/change', authenticateJWT, async (req: Request, res: Response, next
     }
 
     // Şifreyi değiştir
+    // Ensure userId is a string before passing to the service
+    if (typeof userId !== 'string') {
+      throw new UnauthorizedError('Geçersiz kullanıcı kimliği türü');
+    }
     await authService.changePassword(userId, currentPassword, newPassword);
 
     // Tüm oturumları sonlandır (isteğe bağlı)

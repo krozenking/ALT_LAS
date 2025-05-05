@@ -1,9 +1,15 @@
 import { Request, Response, NextFunction } from "express";
-import redisClient from "../utils/redisClient"; // Import the configured Redis client
+import redisClient from "../utils/redisClient"; // Import the potentially null Redis client
 import logger from "../utils/logger";
 
 const cacheMiddleware = (duration: number) => {
   return async (req: Request, res: Response, next: NextFunction) => {
+    // If Redis client is not available (e.g., in test env), skip caching
+    if (!redisClient) {
+      logger.debug("Redis client not available, skipping cache middleware.");
+      return next();
+    }
+
     // Only cache GET requests
     if (req.method !== "GET") {
       return next();
@@ -15,10 +21,12 @@ const cacheMiddleware = (duration: number) => {
 
     try {
       // Check Redis status before attempting to get from cache
+      // Ensure redisClient is not null before accessing status
       if (redisClient.status !== "ready") {
         logger.warn("Redis not ready, skipping cache GET.");
         return next();
       }
+      // Ensure redisClient is not null before calling get
       cachedBody = await redisClient.get(key);
     } catch (err: any) { // Add type for err
       logger.error(`Redis GET error for key ${key}:`, err);
@@ -60,12 +68,14 @@ const cacheMiddleware = (duration: number) => {
       // Define the new send function with a matching signature (approximated)
       res.send = (body?: any): Response => { 
         // Only cache successful responses (2xx)
-        if (res.statusCode >= 200 && res.statusCode < 300 && body != null) { // Check if body is not null/undefined
+        // Ensure redisClient is not null before attempting to set cache
+        if (redisClient && res.statusCode >= 200 && res.statusCode < 300 && body != null) { // Check if body is not null/undefined
           try {
             // Store the body in Redis with expiration (EX = seconds)
             // Stringify JSON bodies before storing
             const bodyToCache = (typeof body === "string") ? body : JSON.stringify(body);
-            redisClient.set(key, bodyToCache, 'EX', duration) // Use 'EX' duration syntax
+            // Ensure redisClient is not null before calling set
+            redisClient.set(key, bodyToCache, 'EX', duration)
               .then(() => { /* logger.info(`Redis Cached response for ${key} for ${duration} seconds`); */ })
               .catch((err: any) => logger.error(`Redis SET error for key ${key}:`, err)); // Add type for err
           } catch (err: any) { // Add type for err

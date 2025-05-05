@@ -175,10 +175,11 @@ router.get(
           service = archiveService;
           break;
         default:
-          return res.status(404).json({
+          res.status(404).json({
             status: 'error',
             message: `Servis bulunamadı: ${serviceName}`
           });
+          return; // Explicitly return void after sending response
       }
       
       const healthStatus = await checkServiceHealth(service, serviceName); // Pass service name

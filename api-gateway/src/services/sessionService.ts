@@ -518,14 +518,19 @@ export const getSessionConfig = (): typeof sessionConfig => {
 };
 
 // Periyodik olarak süresi dolmuş oturumları temizle
-const cleanupInterval = setInterval(cleanupExpiredSessions, sessionConfig.cleanupInterval);
-
-// Modül kaldırıldığında interval'i temizle
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports.cleanup = () => {
-    clearInterval(cleanupInterval);
-  };
+let cleanupInterval: NodeJS.Timeout | null = null;
+if (process.env.NODE_ENV !== 'test') {
+  cleanupInterval = setInterval(cleanupExpiredSessions, sessionConfig.cleanupInterval);
 }
+
+// Fonksiyonu dışa aktararak testlerde interval'i temizleyebilme
+export const stopSessionCleanup = (): void => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    logger.info("Session cleanup interval stopped.");
+  }
+};
 
 export default {
   createSession,

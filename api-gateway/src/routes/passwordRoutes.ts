@@ -4,7 +4,7 @@ import { BadRequestError, NotFoundError, UnauthorizedError } from '../utils/erro
 import logger from '../utils/logger';
 import authService from '../services/authService';
 import { routeAuthManager } from '../middleware/routeAuthMiddleware';
-import { sendPasswordResetEmail } from '../services/emailService';
+import emailService from '../services/emailService';
 
 const router = Router();
 

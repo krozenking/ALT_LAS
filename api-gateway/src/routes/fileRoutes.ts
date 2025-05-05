@@ -12,6 +12,26 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
+// Define interfaces for expected service responses
+interface FileUploadResponse {
+  altFileId?: string;
+  lastFileId?: string;
+  atlasFileId?: string;
+}
+
+interface FileDataResponse {
+  content?: string;
+  metadata?: { 
+    originalName?: string;
+    [key: string]: any; // Allow other metadata properties
+  };
+}
+
+interface FileDeleteResponse {
+  deleted?: boolean;
+  message?: string;
+}
+
 // Dosya yükleme için multer yapılandırması
 const storage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => { // Added types
@@ -110,8 +130,8 @@ router.post('/upload',
     
     // Dosya uzantısına göre ilgili servise yönlendir
     const ext = path.extname(file.originalname).toLowerCase();
-    let fileId;
-    let serviceResponse;
+    let fileId: string | undefined;
+    let serviceResponse: any; // Use specific type
     
     // Kullanıcı bilgilerini metadata'ya ekle
     const fileMetadata = {
@@ -129,25 +149,29 @@ router.post('/upload',
       
       if (ext === '.alt') {
         // Segmentation Service'e gönder
-        serviceResponse = await req.services?.segmentation.post('/api/files/alt/upload', {
+        serviceResponse = await req.services?.segmentation.post<FileUploadResponse>('/api/files/alt/upload', {
           content: fileContent.toString('utf-8'),
           metadata: fileMetadata
         });
-        fileId = serviceResponse.altFileId;
+        fileId = serviceResponse?.altFileId;
       } else if (ext === '.last') {
         // Runner Service'e gönder
-        serviceResponse = await req.services?.runner.post('/api/files/last/upload', {
+        serviceResponse = await req.services?.runner.post<FileUploadResponse>('/api/files/last/upload', {
           content: fileContent.toString('utf-8'),
           metadata: fileMetadata
         });
-        fileId = serviceResponse.lastFileId;
+        fileId = serviceResponse?.lastFileId;
       } else if (ext === '.atlas') {
         // Archive Service'e gönder
-        serviceResponse = await req.services?.archive.post('/api/files/atlas/upload', {
+        serviceResponse = await req.services?.archive.post<FileUploadResponse>('/api/files/atlas/upload', {
           content: fileContent.toString('utf-8'),
           metadata: fileMetadata
         });
-        fileId = serviceResponse.atlasFileId;
+        fileId = serviceResponse?.atlasFileId;
+      }
+
+      if (!fileId) {
+        throw new Error("Dosya ID'si alınamadı");
       }
       
       // Geçici dosyayı sil
@@ -511,13 +535,13 @@ router.get('/metadata/:type/:fileId',
     
     let metadata;
     if (type === 'alt') {
-      const fileData = await req.services?.segmentation.get(`/api/files/alt/${fileId}/metadata`);
+      const fileData = await req.services?.segmentation.get<FileDataResponse>(`/api/files/alt/${fileId}/metadata`);
       metadata = fileData?.metadata;
     } else if (type === 'last') {
-      const fileData = await req.services?.runner.get(`/api/files/last/${fileId}/metadata`);
+      const fileData = await req.services?.runner.get<FileDataResponse>(`/api/files/last/${fileId}/metadata`);
       metadata = fileData?.metadata;
     } else if (type === 'atlas') {
-      const fileData = await req.services?.archive.get(`/api/files/atlas/${fileId}/metadata`);
+      const fileData = await req.services?.archive.get<FileDataResponse>(`/api/files/atlas/${fileId}/metadata`);
       metadata = fileData?.metadata;
     }
     
@@ -555,9 +579,7 @@ router.get('/metadata/:type/:fileId',
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               metadata:
- *                 type: object
+ *             description: Güncellenecek metadata alanları
  *     responses:
  *       200:
  *         description: Metadata başarıyla güncellendi
@@ -577,13 +599,13 @@ router.put('/metadata/:type/:fileId',
   asyncHandler(async (req: Request, res: Response) => { // Added types
     const type = req.params.type;
     const fileId = req.params.fileId;
-    const { metadata } = req.body;
+    const metadataUpdates = req.body;
     
     if (!['alt', 'last', 'atlas'].includes(type)) {
       throw new BadRequestError('Geçerli bir dosya tipi belirtilmelidir (alt, last, atlas)');
     }
     
-    if (!metadata || typeof metadata !== 'object') {
+    if (!metadataUpdates || typeof metadataUpdates !== 'object') {
       throw new BadRequestError('Geçerli bir metadata nesnesi gereklidir');
     }
     
@@ -591,11 +613,11 @@ router.put('/metadata/:type/:fileId',
     
     let updatedMetadata;
     if (type === 'alt') {
-      updatedMetadata = await req.services?.segmentation.put(`/api/files/alt/${fileId}/metadata`, { metadata });
+      updatedMetadata = await req.services?.segmentation.put(`/api/files/alt/${fileId}/metadata`, metadataUpdates);
     } else if (type === 'last') {
-      updatedMetadata = await req.services?.runner.put(`/api/files/last/${fileId}/metadata`, { metadata });
+      updatedMetadata = await req.services?.runner.put(`/api/files/last/${fileId}/metadata`, metadataUpdates);
     } else if (type === 'atlas') {
-      updatedMetadata = await req.services?.archive.put(`/api/files/atlas/${fileId}/metadata`, { metadata });
+      updatedMetadata = await req.services?.archive.put(`/api/files/atlas/${fileId}/metadata`, metadataUpdates);
     }
     
     if (!updatedMetadata) {
@@ -639,7 +661,7 @@ router.put('/metadata/:type/:fileId',
  *         description: Sunucu hatası
  */
 router.delete('/:type/:fileId', 
-  requireResourcePermission('files', 'write'),
+  requireResourcePermission('files', 'delete'),
   asyncHandler(async (req: Request, res: Response) => { // Added types
     const type = req.params.type;
     const fileId = req.params.fileId;
@@ -650,13 +672,13 @@ router.delete('/:type/:fileId',
     
     logger.info(`${type} dosyası siliniyor: ${fileId}`);
     
-    let deleteResult;
+    let deleteResult: any;
     if (type === 'alt') {
-      deleteResult = await req.services?.segmentation.delete(`/api/files/alt/${fileId}`);
+      deleteResult = await req.services?.segmentation.delete<FileDeleteResponse>(`/api/files/alt/${fileId}`);
     } else if (type === 'last') {
-      deleteResult = await req.services?.runner.delete(`/api/files/last/${fileId}`);
+      deleteResult = await req.services?.runner.delete<FileDeleteResponse>(`/api/files/last/${fileId}`);
     } else if (type === 'atlas') {
-      deleteResult = await req.services?.archive.delete(`/api/files/atlas/${fileId}`);
+      deleteResult = await req.services?.archive.delete<FileDeleteResponse>(`/api/files/atlas/${fileId}`);
     }
     
     if (!deleteResult || !deleteResult.deleted) {

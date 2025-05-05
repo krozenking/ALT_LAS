@@ -175,7 +175,7 @@ router.get(
           service = archiveService;
           break;
         default:
-          return res.status(404).json({
+          res.status(404).json({
             status: 'error',
             message: `Servis bulunamadı: ${serviceName}`
           });

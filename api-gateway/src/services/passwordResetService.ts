@@ -164,11 +164,20 @@ export const handlePasswordResetRequest = async (req: Request, res: Response, ne
       return;
     }
     
-    // Token oluştur
-    const token = passwordResetService.generateToken(user.id);
+    // Kullanıcı bulunamazsa veya ID yoksa hata yönetimi (veya loglama)
+    if (!user || !user.id || !user.username) {
+      logger.warn(`Şifre sıfırlama talebi: Kullanıcı bilgileri eksik - ${email}`);
+      res.json({ 
+        message: 'E-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama talimatları gönderilecektir.' 
+      });
+      return;
+    }
     
-    // E-posta gönder
-    await passwordResetService.sendPasswordResetEmail(email, token, user.username);
+    // Token oluştur (user.id string olmalı, authService'deki tiplere göre)
+    const token = passwordResetService.generateToken(String(user.id));
+    
+    // E-posta gönder (user.username string olmalı)
+    await passwordResetService.sendPasswordResetEmail(email, token, String(user.username));
     
     res.json({ 
       message: 'E-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama talimatları gönderilecektir.' 
@@ -194,19 +203,12 @@ export const handlePasswordReset = async (req: Request, res: Response, next: Nex
       throw new BadRequestError('Şifre en az 8 karakter uzunluğunda olmalıdır');
     }
     
-    // Token'ı doğrula
-    const userId = passwordResetService.validateToken(token);
-    if (!userId) {
-      throw new UnauthorizedError('Geçersiz veya süresi dolmuş token');
-    }
+    // Token'ı doğrula ve şifreyi güncelle (authService.resetPassword içinde yapılır)
+    await authService.resetPassword(token, newPassword);
     
-    // Şifreyi güncelle
-    await authService.updatePassword(userId, newPassword);
+    // Token geçersiz kılma authService.resetPassword içinde yapılır
     
-    // Token'ı geçersiz kıl
-    passwordResetService.invalidateToken(token);
-    
-    logger.info(`Kullanıcı ${userId} şifresini sıfırladı`);
+    logger.info(`Şifre token ile başarıyla sıfırlandı: ${token}`);
     res.json({ message: 'Şifreniz başarıyla sıfırlandı' });
   } catch (error) {
     next(error);

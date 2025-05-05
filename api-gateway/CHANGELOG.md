@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased] - 2025-05-05
+
+### Fixed
+- **TypeScript Errors:** Resolved multiple TypeScript compilation errors in `healthRoutes.ts`, `passwordRoutes.ts`, and `passwordResetService.ts` related to return types, unknown error types, type mismatches, null/undefined checks, and incorrect method usage.
+- **Redis Test Environment:** Implemented a mock Redis client in `redisClient.ts` for the `NODE_ENV=test` environment. This prevents tests from attempting to connect to a real Redis instance, resolving timeout issues and open handle warnings related to Redis during testing.
+
+### Changed
+- **Pushed Current Progress:** Committed and pushed the current state of the API Gateway codebase to GitHub before addressing outstanding issues.
+- **Prepared for Fixes:** Set up the environment to address TypeScript compilation errors in the authorization service and implement the Redis connection fix for the test environment.
+
 ## [Unreleased] - 2025-05-02
 
 ### Added
@@ -37,4 +47,5 @@
 ### Removed
 - **Old Service Discovery:** Commented out the import and usage of the basic `serviceDiscovery.js` in favor of the enhanced version.
 - **Heartbeat Endpoint:** Removed the dedicated `/api/services/:serviceId/heartbeat` endpoint as health checks in the enhanced service discovery serve a similar purpose.
+
 

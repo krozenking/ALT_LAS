@@ -41,7 +41,7 @@ const router = Router();
  *       500:
  *         description: API Gateway sağlıksız
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const startTime = process.uptime();
     const version = process.env.API_VERSION || '1.0.0';
@@ -98,7 +98,7 @@ router.get(
   '/services',
   authenticateJWT,
   authorizeRoute({ path: '/services', method: 'get', roles: ['admin', 'service'] }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const services = {
         segmentation: await checkServiceHealth(segmentationService, 'segmentation'), // Pass service name
@@ -159,7 +159,7 @@ router.get(
   '/services/:serviceName',
   authenticateJWT,
   authorizeRoute({ path: '/services/:serviceName', method: 'get', roles: ['admin', 'service'] }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { serviceName } = req.params;
       let service;
@@ -216,7 +216,7 @@ router.get(
   '/metrics',
   authenticateJWT,
   authorizeRoute({ path: '/metrics', method: 'get', roles: ['admin', 'service'] }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Burada gerçek metrikler toplanmalı
       // Örnek metrikler:

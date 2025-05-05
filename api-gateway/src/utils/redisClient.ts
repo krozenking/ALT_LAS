@@ -32,11 +32,18 @@ redisClient.on("reconnecting", () => {
   logger.info("Reconnecting to Redis...");
 });
 
-// Optional: Graceful shutdown
+// Function to disconnect the client gracefully
+export const disconnectRedis = async () => {
+  if (redisClient.status === "ready" || redisClient.status === "connecting") {
+    logger.info("Disconnecting Redis client...");
+    await redisClient.quit();
+    logger.info("Redis client disconnected.");
+  }
+};
+
+// Optional: Graceful shutdown for the main process
 process.on("SIGINT", async () => {
-  logger.info("Disconnecting Redis client...");
-  await redisClient.quit();
-  logger.info("Redis client disconnected.");
+  await disconnectRedis();
   process.exit(0);
 });
 

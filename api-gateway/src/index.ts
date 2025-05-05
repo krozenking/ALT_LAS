@@ -14,19 +14,25 @@ import { rateLimiter, cleanup as cleanupRateLimiter } from './middleware/rateLim
 import { cleanup as cleanupSessionService } from './services/sessionService'; // Import cleanup
 import cacheMiddleware from './middleware/cache';
 import authRoutes from './routes/authRoutes';
-import segmentationRoutes from './routes/segmentationRoutes';
-import runnerRoutes from './routes/runnerRoutes';
-import archiveRoutes from './routes/archiveRoutes';
+// Remove direct route imports for proxied services
+// import segmentationRoutes from './routes/segmentationRoutes';
+// import runnerRoutes from './routes/runnerRoutes';
+// import archiveRoutes from './routes/archiveRoutes';
 import serviceRoutes from "./routes/serviceRoutes";
 import commandRoutes from "./routes/commandRoutes"; // Import command routes
 import fileRoutes from "./routes/fileRoutes"; // Import file routes
 import userRoutes from "./routes/userRoutes"; // Import user routes
 import passwordRoutes from "./routes/passwordRoutes"; // Import password routes
 import sessionRoutes from "./routes/sessionRoutes"; // Import session routes
-// import healthRoutes from "./routes/healthRoutes"; // Removed, handled by setupHealthCheck
 import { setupMetrics, setupHealthCheck } from './utils/monitoring'; // Import monitoring setup
 import logger from './utils/logger';
 import { disconnectRedis } from './utils/redisClient'; // Import Redis disconnect
+// Import proxy middlewares
+import { 
+  segmentationServiceProxy, 
+  runnerServiceProxy, 
+  archiveServiceProxy 
+} from './middleware/proxyMiddleware';
 
 // Swagger/OpenAPI yapılandırması
 const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
@@ -51,15 +57,12 @@ setupMetrics(app);
 // API dokümantasyonu
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Sağlık kontrolü endpoint'i - Handled by setupHealthCheck
-// app.use("/health", healthRoutes);
-
 // API rotaları
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/password', passwordRoutes); // Add password routes
 
 // Kimlik doğrulama ve yetkilendirme middleware'leri
-// Tüm korumalı rotalar için JWT doğrulama
+// Apply JWT auth to all protected routes, including proxied ones
 app.use("/api/v1/segmentation", authenticateJWT);
 app.use("/api/v1/runner", authenticateJWT);
 app.use("/api/v1/archive", authenticateJWT);
@@ -69,13 +72,15 @@ app.use("/api/v1/files", authenticateJWT); // Add file routes with auth
 app.use("/api/v1/users", authenticateJWT); // Apply JWT auth to user routes
 app.use("/api/v1/sessions", authenticateJWT); // Apply JWT auth to session routes
 
-// Route bazlı yetkilendirme
+// Route bazlı yetkilendirme (Apply after JWT auth, before proxy/routes)
 app.use(routeAuthorization);
 
-// Servis rotaları
-app.use("/api/v1/segmentation", segmentationRoutes);
-app.use("/api/v1/runner", runnerRoutes);
-app.use("/api/v1/archive", cacheMiddleware(60), archiveRoutes); // Cache archive GETs for 60s
+// Servis rotaları - Replace direct routes with proxies
+app.use("/api/v1/segmentation", segmentationServiceProxy);
+app.use("/api/v1/runner", runnerServiceProxy);
+app.use("/api/v1/archive", archiveServiceProxy); // Apply proxy, caching can be handled within the service or re-evaluated
+
+// Other non-proxied routes
 app.use("/api/v1/services", serviceRoutes);
 app.use("/api/v1/commands", commandRoutes); // Use command routes
 app.use("/api/v1/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests

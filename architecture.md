@@ -34,8 +34,8 @@ ALT_LAS, üç temel dosya tipine dayalı bir iş akışı kullanır:
 
 #### API Gateway (Node.js/Express)
 - **Lisans**: MIT
-- **Sorumluluklar**: Kimlik doğrulama, yönlendirme, API dokümantasyonu, rate-limiting
-- **Teknolojiler**: Express.js, Swagger/OpenAPI, JWT
+- **Sorumluluklar**: Kimlik doğrulama, yönlendirme (arka uç servislere ters proxy ve devre kesici ile), API dokümantasyonu, rate-limiting
+- **Teknolojiler**: Express.js, Swagger/OpenAPI, JWT, http-proxy-middleware, opossum
 
 #### Segmentation Service (Python/FastAPI)
 - **Lisans**: MIT

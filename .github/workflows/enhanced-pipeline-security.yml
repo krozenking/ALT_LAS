@@ -72,7 +72,7 @@ jobs:
             --suppression suppress.xml
       
       - name: Upload dependency check report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: dependency-check-report
@@ -97,7 +97,7 @@ jobs:
           output: cyclonedx-sbom.json
       
       - name: Upload SBOMs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-reports
           path: |
@@ -268,7 +268,7 @@ jobs:
           done
       
       - name: Upload security results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-results
           path: |

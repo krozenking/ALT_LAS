@@ -85,7 +85,7 @@ jobs:
       
       # Upload all results
       - name: Upload security scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-analysis-results
           path: |
@@ -125,7 +125,7 @@ jobs:
       
       # Upload results
       - name: Upload dependency analysis results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-analysis-results
           path: |
@@ -162,7 +162,7 @@ jobs:
       
       # Upload results
       - name: Upload IaC security results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: iac-security-results
           path: |
@@ -208,7 +208,7 @@ jobs:
       
       # Upload consolidated report
       - name: Upload security report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-report
           path: security-report/

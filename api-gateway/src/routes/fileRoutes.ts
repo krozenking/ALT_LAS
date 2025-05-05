@@ -1,18 +1,10 @@
-// Augment Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any; // Assuming user is attached by auth middleware
-      services?: any; // Assuming services are attached by withServiceIntegration
-    }
-  }
-}
+// Augment Express Request type (Removed, defined globally in authMiddleware.ts)
 
 import { Router, Request, Response, NextFunction } from 'express'; // Added Request, Response, NextFunction
 import { asyncHandler } from '../middleware/errorMiddleware';
 import { authenticateJWT } from '../middleware/authMiddleware';
 import { requireResourcePermission } from '../services/authorizationService';
-import withServiceIntegration from '../services/serviceIntegration';
+import { attachServicesMiddleware } from '../services/serviceIntegration';
 import logger from '../utils/logger';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 import multer from 'multer';
@@ -71,7 +63,7 @@ const router = Router();
 
 // Kimlik doğrulama ve servis entegrasyonu middleware'leri
 router.use(authenticateJWT);
-router.use(withServiceIntegration);
+router.use(attachServicesMiddleware);
 
 /**
  * @swagger
@@ -466,7 +458,7 @@ router.get('/search',
     } else if (type === 'last') {
       searchResults = await req.services?.runner.get('/api/files/last/search', query);
     } else if (type === 'atlas') {
-      searchResults = await req.services?.archive.searchAtlasFiles(query);
+      searchResults = await req.services?.archive.searchArchive(query);
     }
     
     res.json(searchResults);

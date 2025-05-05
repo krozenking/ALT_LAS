@@ -13,7 +13,7 @@ const getUserId = (req: Request): string => {
   if (!req.user?.id) {
     throw new AppError("User ID not found in authenticated request", 500);
   }
-  return req.user.id;
+  return String(req.user.id); // Ensure the ID is always returned as a string
 };
 
 // --- Command Routes --- 

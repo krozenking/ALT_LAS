@@ -1,3 +1,4 @@
+import { Request, Response, NextFunction } from 'express';
 import axios, { AxiosError } from 'axios'; // Import AxiosError
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
@@ -96,7 +97,8 @@ class ServiceIntegration {
     method: string,
     endpoint: string,
     data?: any,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    params?: any // Add params argument
   ): Promise<T> {
     return this.circuitBreaker.execute(async () => {
       const baseUrl = await this.getServiceUrl();
@@ -115,6 +117,7 @@ class ServiceIntegration {
               'Content-Type': 'application/json',
               ...headers
             },
+            params, // Pass params to axios config
             timeout: this.config.timeout
           });
 
@@ -160,6 +163,26 @@ class ServiceIntegration {
       logger.error(`Health check failed for ${this.constructor.name}: ${getErrorMessage(error)}`);
       return false;
     }
+  }
+
+  // Generic HTTP methods
+  async get<T>(endpoint: string, params?: any, headers?: Record<string, string>): Promise<T> {
+    // Axios expects query parameters in the 'params' field of the config object for GET requests
+    // We need to pass params within the axios config, not as data
+    // Pass headers and params separately to sendRequest
+    return this.sendRequest<T>("GET", endpoint, undefined, headers, params);
+  }
+
+  async post<T>(endpoint: string, data?: any, headers?: Record<string, string>): Promise<T> {
+    return this.sendRequest<T>("POST", endpoint, data, headers);
+  }
+
+  async put<T>(endpoint: string, data?: any, headers?: Record<string, string>): Promise<T> {
+    return this.sendRequest<T>("PUT", endpoint, data, headers);
+  }
+
+  async delete<T>(endpoint: string, headers?: Record<string, string>): Promise<T> {
+    return this.sendRequest<T>("DELETE", endpoint, undefined, headers);
   }
 }
 
@@ -462,3 +485,32 @@ export default {
   serviceDiscovery
 };
 
+
+
+// Middleware to attach service instances to the request object
+export const attachServicesMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  req.services = {
+    segmentation: segmentationService,
+    runner: runnerService,
+    archive: archiveService,
+    discovery: serviceDiscovery
+  };
+  next();
+};
+
+
+
+// Augment Express Request type to include services
+declare global {
+  namespace Express {
+    interface Request {
+      services?: {
+        segmentation: SegmentationService;
+        runner: RunnerService;
+        archive: ArchiveService;
+        discovery: SimpleServiceDiscovery;
+      };
+    }
+  }
+}
+// End of ServiceIntegration class

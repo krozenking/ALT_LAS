@@ -36,7 +36,7 @@ beforeAll(async () => {
     // Log in as admin first to get admin token for admin tests
     try {
         const adminLoginRes = await request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send({ username: adminUser.username, password: adminUser.password });
         if (adminLoginRes.statusCode === 200) {
             adminAuthToken = adminLoginRes.body.data.token;
@@ -56,7 +56,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it('POST /register - should register a new user successfully', async () => {
         const res = await request(app)
-            .post('/api/auth/register')
+            .post('/api/v1/auth/register')
             .send({
                 username: testUser.username,
                 password: testUser.password,
@@ -80,7 +80,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it('POST /register - should fail to register with an existing username', async () => {
         const res = await request(app)
-            .post('/api/auth/register')
+            .post('/api/v1/auth/register')
             .send({
                 username: testUser.username, // Use the same username
                 password: 'anotherpassword',
@@ -93,7 +93,7 @@ describe('Authentication API (/api/auth)', () => {
     
     it('POST /register - should fail to register with an existing email', async () => {
         const res = await request(app)
-            .post('/api/auth/register')
+            .post('/api/v1/auth/register')
             .send({
                 username: `anotheruser_${Date.now()}`,
                 password: 'anotherpassword',
@@ -106,7 +106,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it("POST /register - should fail with invalid email format", async () => {
         const res = await request(app)
-            .post("/api/auth/register")
+            .post("/api/v1/auth/register")
             .send({
                 username: `invalidemail_${Date.now()}`,
                 password: "password123",
@@ -120,7 +120,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it("POST /register - should fail with short password", async () => {
         const res = await request(app)
-            .post("/api/auth/register")
+            .post("/api/v1/auth/register")
             .send({
                 username: `shortpass_${Date.now()}`,
                 password: "short",
@@ -134,7 +134,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it("POST /register - should fail with missing required fields", async () => {
         const res = await request(app)
-            .post("/api/auth/register")
+            .post("/api/v1/auth/register")
             .send({
                 username: `missing_${Date.now()}`,
                 // Missing password and email
@@ -146,7 +146,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it("POST /login - should log in the registered user", async () => {
         const res = await request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send({
                 username: testUser.username,
                 password: testUser.password
@@ -167,7 +167,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it('POST /login - should fail with incorrect password', async () => {
         const res = await request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send({
                 username: testUser.username,
                 password: 'wrongpassword'
@@ -182,7 +182,7 @@ describe('Authentication API (/api/auth)', () => {
         const email = `${username}@example.com`;
         // Register user first
         await request(app)
-            .post("/api/auth/register")
+            .post("/api/v1/auth/register")
             .send({ username, password: "correctpassword", email });
 
         // Simulate multiple failed login attempts (adjust limit based on actual config)
@@ -190,7 +190,7 @@ describe('Authentication API (/api/auth)', () => {
         let lastResponse;
         for (let i = 0; i < failedAttempts; i++) {
             lastResponse = await request(app)
-                .post("/api/auth/login")
+                .post("/api/v1/auth/login")
                 .send({ username, password: "wrongpassword" });
             // The last attempt should be rate limited
             if (i === failedAttempts - 1) {
@@ -206,7 +206,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it("GET /profile - should get current user details with valid token", async () => {
         const res = await request(app)
-            .get('/api/auth/profile')
+            .get('/api/v1/auth/profile')
             .set('Authorization', `Bearer ${authToken}`);
             
         expect(res.statusCode).toEqual(200);
@@ -219,7 +219,7 @@ describe('Authentication API (/api/auth)', () => {
 
     it('GET /profile - should fail without token', async () => {
         const res = await request(app)
-            .get('/api/auth/profile');
+            .get('/api/v1/auth/profile');
         expect(res.statusCode).toEqual(401);
         expect(res.body.success).toBe(false);
         expect(res.body).toHaveProperty('message', 'Yetkilendirme token\'ı bulunamadı');
@@ -228,7 +228,7 @@ describe('Authentication API (/api/auth)', () => {
     it('PUT /profile - should update user profile', async () => {
         const updatedFirstName = 'UpdatedFirstName';
         const res = await request(app)
-            .put('/api/auth/profile')
+            .put('/api/v1/auth/profile')
             .set('Authorization', `Bearer ${authToken}`)
             .send({ firstName: updatedFirstName });
 
@@ -244,7 +244,7 @@ describe('Authentication API (/api/auth)', () => {
         await new Promise(resolve => setTimeout(resolve, 100)); 
         
         const res = await request(app)
-            .post('/api/auth/refresh-token')
+            .post('/api/v1/auth/refresh-token')
             .send({ refreshToken: refreshToken });
             
         expect(res.statusCode).toEqual(200);
@@ -261,7 +261,7 @@ describe('Authentication API (/api/auth)', () => {
     
     it('POST /refresh-token - should fail with invalid refresh token', async () => {
         const res = await request(app)
-            .post('/api/auth/refresh-token')
+            .post('/api/v1/auth/refresh-token')
             .send({ refreshToken: 'invalidtoken' });
         expect(res.statusCode).toEqual(401);
         expect(res.body.success).toBe(false);
@@ -272,7 +272,7 @@ describe('Authentication API (/api/auth)', () => {
         const currentAuthToken = authToken;
 
         const res = await request(app)
-            .post('/api/auth/logout')
+            .post('/api/v1/auth/logout')
             .set('Authorization', `Bearer ${currentAuthToken}`)
             .send({ refreshToken: currentRefreshToken }); // Send the refresh token to invalidate
             
@@ -282,20 +282,20 @@ describe('Authentication API (/api/auth)', () => {
 
         // Verify refresh token is no longer valid
         const refreshRes = await request(app)
-            .post('/api/auth/refresh-token')
+            .post('/api/v1/auth/refresh-token')
             .send({ refreshToken: currentRefreshToken }); // Use the refresh token obtained before logout
         expect(refreshRes.statusCode).toEqual(401); // Should fail as refresh token was invalidated
         
         // Verify access token is blacklisted (if blacklist is effective immediately)
         // Note: Blacklist check might depend on cache expiry in a real system
         const profileRes = await request(app)
-            .get('/api/auth/profile')
+            .get('/api/v1/auth/profile')
             .set('Authorization', `Bearer ${currentAuthToken}`); // Use the access token obtained before logout
         expect(profileRes.statusCode).toEqual(401); // Should fail as token should be blacklisted
 
         // Log back in for subsequent tests
         const loginRes = await request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send({ username: testUser.username, password: testUser.password });
         expect(loginRes.statusCode).toEqual(200);
         authToken = loginRes.body.data.token;
@@ -312,7 +312,7 @@ describe('Password Management API (/api/password)', () => {
         // Ensure user is logged in
         if (!authToken) {
             const loginRes = await request(app)
-                .post('/api/auth/login')
+                .post('/api/v1/auth/login')
                 .send({ username: testUser.username, password: testUser.password });
             if (loginRes.statusCode === 200) {
                 authToken = loginRes.body.data.token;
@@ -328,7 +328,7 @@ describe('Password Management API (/api/password)', () => {
         const currentPassword = testUser.password;
         const newPassword = 'newPassword456';
         const res = await request(app)
-            .post('/api/password/change-password') // Updated endpoint
+            .post('/api/v1/password/change-password') // Updated endpoint
             .set('Authorization', `Bearer ${authToken}`)
             .send({
                 currentPassword: currentPassword,
@@ -340,7 +340,7 @@ describe('Password Management API (/api/password)', () => {
 
         // Verify login with new password
         const loginRes = await request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send({
                 username: testUser.username,
                 password: newPassword
@@ -356,7 +356,7 @@ describe('Password Management API (/api/password)', () => {
 
     it('POST /change-password - should fail with incorrect current password', async () => {
         const res = await request(app)
-            .post('/api/password/change-password') // Updated endpoint
+            .post('/api/v1/password/change-password') // Updated endpoint
             .set('Authorization', `Bearer ${authToken}`)
             .send({
                 currentPassword: 'wrongcurrentpassword',
@@ -371,7 +371,7 @@ describe('Password Management API (/api/password)', () => {
     
     it('POST /forgot-password - should return success message even if email doesnt exist', async () => {
         const res = await request(app)
-            .post('/api/password/forgot-password') // Updated endpoint
+            .post('/api/v1/password/forgot-password') // Updated endpoint
             .send({ email: 'nonexistent@example.com' });
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -380,7 +380,7 @@ describe('Password Management API (/api/password)', () => {
 
     it('POST /forgot-password - should initiate reset for existing user and return token (for testing)', async () => {
         const res = await request(app)
-            .post('/api/password/forgot-password') // Updated endpoint
+            .post('/api/v1/password/forgot-password') // Updated endpoint
             .send({ email: testUser.email });
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -395,7 +395,7 @@ describe('Password Management API (/api/password)', () => {
         expect(resetToken).not.toBe(''); // Ensure reset token was obtained
 
         const res = await request(app)
-            .post('/api/password/reset-password') // Updated endpoint
+            .post('/api/v1/password/reset-password') // Updated endpoint
             .send({ 
                 resetToken: resetToken,
                 newPassword: newPassword
@@ -406,7 +406,7 @@ describe('Password Management API (/api/password)', () => {
 
         // Verify login with the newly reset password
         const loginRes = await request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send({
                 username: testUser.username,
                 password: newPassword
@@ -422,7 +422,7 @@ describe('Password Management API (/api/password)', () => {
 
     it('POST /reset-password - should fail with invalid token', async () => {
         const res = await request(app)
-            .post('/api/password/reset-password') // Updated endpoint
+            .post('/api/v1/password/reset-password') // Updated endpoint
             .send({ 
                 resetToken: 'invalidResetToken',
                 newPassword: 'anotherPassword'
@@ -440,7 +440,7 @@ describe('User Roles & Permissions API (/api/user-roles)', () => {
         // Ensure user is logged in
         if (!authToken) {
             const loginRes = await request(app)
-                .post('/api/auth/login')
+                .post('/api/v1/auth/login')
                 .send({ username: testUser.username, password: testUser.password });
             if (loginRes.statusCode === 200) {
                 authToken = loginRes.body.data.token;
@@ -451,7 +451,7 @@ describe('User Roles & Permissions API (/api/user-roles)', () => {
         // Ensure admin is logged in
         if (!adminAuthToken) {
              const adminLoginRes = await request(app)
-                .post('/api/auth/login')
+                .post('/api/v1/auth/login')
                 .send({ username: adminUser.username, password: adminUser.password });
             if (adminLoginRes.statusCode === 200) {
                 adminAuthToken = adminLoginRes.body.data.token;
@@ -531,7 +531,7 @@ describe('User Roles & Permissions API (/api/user-roles)', () => {
         // Add a new role first (requires admin permission)
         const newRoleName = `testrole_${Date.now()}`;
         await request(app)
-            .post('/api/auth/roles')
+            .post('/api/v1/auth/roles')
             .set('Authorization', `Bearer ${adminAuthToken}`)
             .send({ name: newRoleName, permissions: [] });
 
@@ -567,14 +567,14 @@ describe('User Roles & Permissions API (/api/user-roles)', () => {
 
 });
 
-describe('Admin User Management API (/api/auth/users)', () => {
+describe('Admin User Management API (/api/v1/auth/users)', () => {
     let tempUserId = '';
 
     beforeAll(async () => {
         // Ensure admin is logged in
         if (!adminAuthToken) {
              const adminLoginRes = await request(app)
-                .post('/api/auth/login')
+                .post('/api/v1/auth/login')
                 .send({ username: adminUser.username, password: adminUser.password });
             if (adminLoginRes.statusCode === 200) {
                 adminAuthToken = adminLoginRes.body.data.token;
@@ -586,7 +586,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
         const tempUsername = `temp_admin_test_${Date.now()}`;
         const tempEmail = `temp_admin_${Date.now()}@example.com`;
         const regRes = await request(app)
-            .post('/api/auth/register')
+            .post('/api/v1/auth/register')
             .send({ username: tempUsername, password: 'password123', email: tempEmail });
         if (regRes.statusCode === 201) {
             tempUserId = regRes.body.data.id;
@@ -597,7 +597,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
     it('GET /users - should allow admin to list users', async () => {
         const res = await request(app)
-            .get('/api/auth/users')
+            .get('/api/v1/auth/users')
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -607,7 +607,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
     it("GET /users - should deny non-admin access", async () => {
         const res = await request(app)
-            .get("/api/auth/users")
+            .get("/api/v1/auth/users")
             .set("Authorization", `Bearer ${authToken}`); // Use regular user token
         expect(res.statusCode).toEqual(403); // Forbidden
         expect(res.body.success).toBe(false);
@@ -615,7 +615,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
     it("GET /users/{userId} - should deny non-admin access", async () => {
         const res = await request(app)
-            .get(`/api/auth/users/${userId}`)
+            .get(`/api/v1/auth/users/${userId}`)
             .set("Authorization", `Bearer ${authToken}`); // Use regular user token
         expect(res.statusCode).toEqual(403); // Forbidden
         expect(res.body.success).toBe(false);
@@ -623,7 +623,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
     it("PUT /users/{userId} - should deny non-admin access", async () => {
         const res = await request(app)
-            .put(`/api/auth/users/${userId}`)
+            .put(`/api/v1/auth/users/${userId}`)
             .set("Authorization", `Bearer ${authToken}`)
             .send({ firstName: "AttemptUpdate" });
         expect(res.statusCode).toEqual(403); // Forbidden
@@ -635,25 +635,25 @@ describe('Admin User Management API (/api/auth/users)', () => {
         const tempUsername = `temp_nonadmin_delete_${Date.now()}`;
         const tempEmail = `${tempUsername}@example.com`;
         const regRes = await request(app)
-            .post("/api/auth/register")
+            .post("/api/v1/auth/register")
             .send({ username: tempUsername, password: "password123", email: tempEmail });
         const tempUserIdToDelete = regRes.body.data.id;
 
         const res = await request(app)
-            .delete(`/api/auth/users/${tempUserIdToDelete}`)
+            .delete(`/api/v1/auth/users/${tempUserIdToDelete}`)
             .set("Authorization", `Bearer ${authToken}`); // Use regular user token
         expect(res.statusCode).toEqual(403); // Forbidden
         expect(res.body.success).toBe(false);
 
         // Clean up: Admin deletes the user
         await request(app)
-            .delete(`/api/auth/users/${tempUserIdToDelete}`)
+            .delete(`/api/v1/auth/users/${tempUserIdToDelete}`)
             .set("Authorization", `Bearer ${adminAuthToken}`);
     });
 
     it("GET /users/{userId} - should allow admin to get specific user details", async () => {
         const res = await request(app)
-            .get(`/api/auth/users/${tempUserId}`)
+            .get(`/api/v1/auth/users/${tempUserId}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -663,7 +663,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
     it('PUT /users/{userId} - should allow admin to update user details', async () => {
         const updatedFirstName = 'AdminUpdated';
         const res = await request(app)
-            .put(`/api/auth/users/${tempUserId}`)
+            .put(`/api/v1/auth/users/${tempUserId}`)
             .set('Authorization', `Bearer ${adminAuthToken}`)
             .send({ firstName: updatedFirstName, isActive: false });
         expect(res.statusCode).toEqual(200);
@@ -674,7 +674,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
     it('DELETE /users/{userId} - should allow admin to delete a user', async () => {
         const res = await request(app)
-            .delete(`/api/auth/users/${tempUserId}`)
+            .delete(`/api/v1/auth/users/${tempUserId}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -682,19 +682,19 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
         // Verify user is deleted
         const getRes = await request(app)
-            .get(`/api/auth/users/${tempUserId}`)
+            .get(`/api/v1/auth/users/${tempUserId}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(getRes.statusCode).toEqual(404); // Not Found
     });
 
     it('DELETE /users/{userId} - should prevent deleting the admin user', async () => {
         // Find admin user ID
-        const usersRes = await request(app).get('/api/auth/users').set('Authorization', `Bearer ${adminAuthToken}`);
+        const usersRes = await request(app).get('/api/v1/auth/users').set('Authorization', `Bearer ${adminAuthToken}`);
         const admin = usersRes.body.data.find((u: any) => u.username === 'admin');
         expect(admin).toBeDefined();
 
         const res = await request(app)
-            .delete(`/api/auth/users/${admin.id}`)
+            .delete(`/api/v1/auth/users/${admin.id}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(403); // Forbidden
         expect(res.body.message).toEqual('Admin kullanıcısı silinemez.');
@@ -702,7 +702,7 @@ describe('Admin User Management API (/api/auth/users)', () => {
 
 });
 
-describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/permissions)', () => {
+describe('Admin Roles & Permissions Management API (/api/v1/auth/roles, /api/v1/auth/permissions)', () => {
     const newRoleName = `testrole_${Date.now()}`;
     const newPermissionName = `test:permission_${Date.now()}`;
 
@@ -710,7 +710,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
         // Ensure admin is logged in
         if (!adminAuthToken) {
              const adminLoginRes = await request(app)
-                .post('/api/auth/login')
+                .post('/api/v1/auth/login')
                 .send({ username: adminUser.username, password: adminUser.password });
             if (adminLoginRes.statusCode === 200) {
                 adminAuthToken = adminLoginRes.body.data.token;
@@ -723,7 +723,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
     // Permissions
     it("POST /permissions - should deny non-admin access", async () => {
         const res = await request(app)
-            .post("/api/auth/permissions")
+            .post("/api/v1/auth/permissions")
             .set("Authorization", `Bearer ${authToken}`)
             .send({ name: "nonadmin_perm", description: "Attempt" });
         expect(res.statusCode).toEqual(403);
@@ -731,7 +731,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it("GET /permissions - should deny non-admin access", async () => {
         const res = await request(app)
-            .get("/api/auth/permissions")
+            .get("/api/v1/auth/permissions")
             .set("Authorization", `Bearer ${authToken}`);
         expect(res.statusCode).toEqual(403);
     });
@@ -740,25 +740,25 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
         // Admin creates a permission first
         const tempPermName = `temp_perm_delete_attempt_${Date.now()}`;
         await request(app)
-            .post("/api/auth/permissions")
+            .post("/api/v1/auth/permissions")
             .set("Authorization", `Bearer ${adminAuthToken}`)
             .send({ name: tempPermName });
 
         const res = await request(app)
-            .delete(`/api/auth/permissions/${encodeURIComponent(tempPermName)}`)
+            .delete(`/api/v1/auth/permissions/${encodeURIComponent(tempPermName)}`)
             .set("Authorization", `Bearer ${authToken}`); // Use regular user token
         expect(res.statusCode).toEqual(403);
 
         // Clean up: Admin deletes the permission
         await request(app)
-            .delete(`/api/auth/permissions/${encodeURIComponent(tempPermName)}`)
+            .delete(`/api/v1/auth/permissions/${encodeURIComponent(tempPermName)}`)
             .set("Authorization", `Bearer ${adminAuthToken}`);
     });
 
     // Roles
     it("POST /roles - should deny non-admin access", async () => {
         const res = await request(app)
-            .post("/api/auth/roles")
+            .post("/api/v1/auth/roles")
             .set("Authorization", `Bearer ${authToken}`)
             .send({ name: "nonadmin_role", permissions: [] });
         expect(res.statusCode).toEqual(403);
@@ -766,7 +766,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it("GET /roles - should deny non-admin access", async () => {
         const res = await request(app)
-            .get("/api/auth/roles")
+            .get("/api/v1/auth/roles")
             .set("Authorization", `Bearer ${authToken}`);
         expect(res.statusCode).toEqual(403);
     });
@@ -775,19 +775,19 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
         // Admin creates a role first
         const tempRoleName = `temp_role_update_attempt_${Date.now()}`;
         await request(app)
-            .post("/api/auth/roles")
+            .post("/api/v1/auth/roles")
             .set("Authorization", `Bearer ${adminAuthToken}`)
             .send({ name: tempRoleName });
 
         const res = await request(app)
-            .put(`/api/auth/roles/${tempRoleName}`)
+            .put(`/api/v1/auth/roles/${tempRoleName}`)
             .set("Authorization", `Bearer ${authToken}`)
             .send({ description: "Attempt Update" });
         expect(res.statusCode).toEqual(403);
 
         // Clean up: Admin deletes the role
         await request(app)
-            .delete(`/api/auth/roles/${tempRoleName}`)
+            .delete(`/api/v1/auth/roles/${tempRoleName}`)
             .set("Authorization", `Bearer ${adminAuthToken}`);
     });
 
@@ -795,24 +795,24 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
         // Admin creates a role first
         const tempRoleName = `temp_role_delete_attempt_${Date.now()}`;
         await request(app)
-            .post("/api/auth/roles")
+            .post("/api/v1/auth/roles")
             .set("Authorization", `Bearer ${adminAuthToken}`)
             .send({ name: tempRoleName });
 
         const res = await request(app)
-            .delete(`/api/auth/roles/${tempRoleName}`)
+            .delete(`/api/v1/auth/roles/${tempRoleName}`)
             .set("Authorization", `Bearer ${authToken}`);
         expect(res.statusCode).toEqual(403);
 
         // Clean up: Admin deletes the role
         await request(app)
-            .delete(`/api/auth/roles/${tempRoleName}`)
+            .delete(`/api/v1/auth/roles/${tempRoleName}`)
             .set("Authorization", `Bearer ${adminAuthToken}`);
     });
 
     it("POST /permissions - should allow admin to create a permission", async () => {
         const res = await request(app)
-            .post('/api/auth/permissions')
+            .post('/api/v1/auth/permissions')
             .set('Authorization', `Bearer ${adminAuthToken}`)
             .send({ name: newPermissionName, description: 'Test permission' });
         expect(res.statusCode).toEqual(201);
@@ -822,7 +822,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it('GET /permissions - should allow admin to list permissions', async () => {
         const res = await request(app)
-            .get('/api/auth/permissions')
+            .get('/api/v1/auth/permissions')
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -831,7 +831,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it('GET /permissions/{permissionName} - should allow admin to get specific permission', async () => {
         const res = await request(app)
-            .get(`/api/auth/permissions/${encodeURIComponent(newPermissionName)}`)
+            .get(`/api/v1/auth/permissions/${encodeURIComponent(newPermissionName)}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -841,7 +841,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
     // Roles
     it('POST /roles - should allow admin to create a role with the new permission', async () => {
         const res = await request(app)
-            .post('/api/auth/roles')
+            .post('/api/v1/auth/roles')
             .set('Authorization', `Bearer ${adminAuthToken}`)
             .send({ name: newRoleName, description: 'Test role', permissions: [newPermissionName] });
         expect(res.statusCode).toEqual(201);
@@ -852,7 +852,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it('GET /roles - should allow admin to list roles', async () => {
         const res = await request(app)
-            .get('/api/auth/roles')
+            .get('/api/v1/auth/roles')
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -861,7 +861,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it('GET /roles/{roleName} - should allow admin to get specific role', async () => {
         const res = await request(app)
-            .get(`/api/auth/roles/${newRoleName}`)
+            .get(`/api/v1/auth/roles/${newRoleName}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
@@ -871,7 +871,7 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
     it('PUT /roles/{roleName} - should allow admin to update a role', async () => {
         const updatedDescription = 'Updated Test Role Description';
         const res = await request(app)
-            .put(`/api/auth/roles/${newRoleName}`)
+            .put(`/api/v1/auth/roles/${newRoleName}`)
             .set('Authorization', `Bearer ${adminAuthToken}`)
             .send({ description: updatedDescription, permissions: [] }); // Update description and remove permission
         expect(res.statusCode).toEqual(200);
@@ -882,28 +882,28 @@ describe('Admin Roles & Permissions Management API (/api/auth/roles, /api/auth/p
 
     it('DELETE /roles/{roleName} - should allow admin to delete a role', async () => {
         const res = await request(app)
-            .delete(`/api/auth/roles/${newRoleName}`)
+            .delete(`/api/v1/auth/roles/${newRoleName}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
 
         // Verify role is deleted
         const getRes = await request(app)
-            .get(`/api/auth/roles/${newRoleName}`)
+            .get(`/api/v1/auth/roles/${newRoleName}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(getRes.statusCode).toEqual(404);
     });
 
     it('DELETE /permissions/{permissionName} - should allow admin to delete a permission', async () => {
         const res = await request(app)
-            .delete(`/api/auth/permissions/${encodeURIComponent(newPermissionName)}`)
+            .delete(`/api/v1/auth/permissions/${encodeURIComponent(newPermissionName)}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body.success).toBe(true);
 
         // Verify permission is deleted
         const getRes = await request(app)
-            .get(`/api/auth/permissions/${encodeURIComponent(newPermissionName)}`)
+            .get(`/api/v1/auth/permissions/${encodeURIComponent(newPermissionName)}`)
             .set('Authorization', `Bearer ${adminAuthToken}`);
         expect(getRes.statusCode).toEqual(404);
     });

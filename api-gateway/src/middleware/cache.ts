@@ -14,6 +14,11 @@ const cacheMiddleware = (duration: number) => {
     let cachedBody: string | null = null; // Explicitly type as string | null
 
     try {
+      // Check Redis status before attempting to get from cache
+      if (redisClient.status !== "ready") {
+        logger.warn("Redis not ready, skipping cache GET.");
+        return next();
+      }
       cachedBody = await redisClient.get(key);
     } catch (err: any) { // Add type for err
       logger.error(`Redis GET error for key ${key}:`, err);
@@ -60,7 +65,7 @@ const cacheMiddleware = (duration: number) => {
             // Store the body in Redis with expiration (EX = seconds)
             // Stringify JSON bodies before storing
             const bodyToCache = (typeof body === "string") ? body : JSON.stringify(body);
-            redisClient.set(key, bodyToCache, { EX: duration }) // Use options object for EX
+            redisClient.set(key, bodyToCache, 'EX', duration) // Use 'EX' duration syntax
               .then(() => { /* logger.info(`Redis Cached response for ${key} for ${duration} seconds`); */ })
               .catch((err: any) => logger.error(`Redis SET error for key ${key}:`, err)); // Add type for err
           } catch (err: any) { // Add type for err

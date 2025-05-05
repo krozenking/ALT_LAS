@@ -9,7 +9,8 @@ import { authenticateJWT } from './middleware/authMiddleware';
 import { routeAuthorization } from './middleware/routeAuthMiddleware';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware'; // Use named import
 import { requestLogger } from './middleware/loggingMiddleware'; // Use named import
-import { rateLimiter } from './middleware/rateLimiter'; // Use named impoimport cacheMiddleware from './middleware/cache';
+import { rateLimiter } from './middleware/rateLimiter'; // Use named import
+import cacheMiddleware from './middleware/cache';
 import authRoutes from './routes/authRoutes';
 import segmentationRoutes from './routes/segmentationRoutes';
 import runnerRoutes from './routes/runnerRoutes';

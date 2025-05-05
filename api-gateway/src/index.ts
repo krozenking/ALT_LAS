@@ -5,11 +5,13 @@ import compression from 'compression'; // Import compression middleware
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
+import http from 'http'; // Import http module
 import { authenticateJWT } from './middleware/authMiddleware';
 import { routeAuthorization } from './middleware/routeAuthMiddleware';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware'; // Use named import
 import { requestLogger } from './middleware/loggingMiddleware'; // Use named import
-import { rateLimiter } from './middleware/rateLimiter'; // Use named import
+import { rateLimiter, cleanup as cleanupRateLimiter } from './middleware/rateLimiter'; // Use named import and import cleanup
+import { cleanup as cleanupSessionService } from './services/sessionService'; // Import cleanup
 import cacheMiddleware from './middleware/cache';
 import authRoutes from './routes/authRoutes';
 import segmentationRoutes from './routes/segmentationRoutes';
@@ -19,9 +21,12 @@ import serviceRoutes from "./routes/serviceRoutes";
 import commandRoutes from "./routes/commandRoutes"; // Import command routes
 import fileRoutes from "./routes/fileRoutes"; // Import file routes
 import userRoutes from "./routes/userRoutes"; // Import user routes
+import passwordRoutes from "./routes/passwordRoutes"; // Import password routes
+import sessionRoutes from "./routes/sessionRoutes"; // Import session routes
 // import healthRoutes from "./routes/healthRoutes"; // Removed, handled by setupHealthCheck
 import { setupMetrics, setupHealthCheck } from './utils/monitoring'; // Import monitoring setup
 import logger from './utils/logger';
+import { disconnectRedis } from './utils/redisClient'; // Import Redis disconnect
 
 // Swagger/OpenAPI yapılandırması
 const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
@@ -51,6 +56,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // API rotaları
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/password', passwordRoutes); // Add password routes
 
 // Kimlik doğrulama ve yetkilendirme middleware'leri
 // Tüm korumalı rotalar için JWT doğrulama
@@ -61,6 +67,7 @@ app.use("/api/v1/services", authenticateJWT);
 app.use("/api/v1/commands", authenticateJWT); // Add command routes with auth
 app.use("/api/v1/files", authenticateJWT); // Add file routes with auth
 app.use("/api/v1/users", authenticateJWT); // Apply JWT auth to user routes
+app.use("/api/v1/sessions", authenticateJWT); // Apply JWT auth to session routes
 
 // Route bazlı yetkilendirme
 app.use(routeAuthorization);
@@ -73,6 +80,7 @@ app.use("/api/v1/services", serviceRoutes);
 app.use("/api/v1/commands", commandRoutes); // Use command routes
 app.use("/api/v1/files", cacheMiddleware(30), fileRoutes); // Use file routes with 30-second cache for GET requests
 app.use("/api/v1/users", userRoutes); // Use user routes
+app.use("/api/v1/sessions", sessionRoutes); // Use session routes
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -82,10 +90,59 @@ app.use((req: Request, res: Response) => {
 // Hata işleme middleware'i
 app.use(errorHandler); // Use named import
 
-// Sunucuyu başlat
-app.listen(PORT, () => {
-  logger.info(`API Gateway ${PORT} portunda çalışıyor`);
-  logger.info(`API Dokümantasyonu: http://localhost:${PORT}/api-docs`);
-});
+let server: http.Server | null = null;
 
-export default app;
+// Sunucuyu sadece test ortamı dışında başlat
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, () => {
+    logger.info(`API Gateway ${PORT} portunda çalışıyor`);
+    logger.info(`API Dokümantasyonu: http://localhost:${PORT}/api-docs`);
+  });
+}
+
+// Graceful shutdown function
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`Received ${signal}. Shutting down gracefully...`);
+  
+  // Stop accepting new connections
+  if (server) {
+    server.close(async (err) => {
+      if (err) {
+        logger.error('Error closing server:', err);
+        process.exit(1);
+      }
+      logger.info('HTTP server closed.');
+      
+      // Cleanup intervals and connections
+      cleanupRateLimiter();
+      cleanupSessionService();
+      await disconnectRedis();
+      
+      logger.info('Cleanup finished. Exiting.');
+      process.exit(0);
+    });
+
+    // Force close server after a timeout
+    setTimeout(() => {
+      logger.error('Could not close connections in time, forcefully shutting down');
+      process.exit(1);
+    }, 10000); // 10 seconds timeout
+
+  } else {
+      // If server wasn't started (e.g., in test env), just cleanup
+      cleanupRateLimiter();
+      cleanupSessionService();
+      await disconnectRedis();
+      logger.info('Cleanup finished (no server running). Exiting.');
+      process.exit(0);
+  }
+};
+
+// Listen for termination signals (except in test environment)
+if (process.env.NODE_ENV !== 'test') {
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
+
+export default app; // Export app for testing purposes
+

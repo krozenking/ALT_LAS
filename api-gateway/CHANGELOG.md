@@ -1,12 +1,26 @@
-# Changelog
-
 ## [Unreleased] - 2025-05-05
 
+### Added
+- **Session Management API:** Implemented endpoints for managing user sessions in `sessionRoutes.ts`:
+  - `GET /api/v1/sessions`: List active sessions for the authenticated user.
+  - `DELETE /api/v1/sessions/:sessionId`: Terminate a specific session.
+  - `DELETE /api/v1/sessions/all`: Terminate all sessions for the authenticated user.
+- **Session Route Permissions:** Added route permissions for the new session management endpoints in `sessionRoutes.ts` using `routeAuthManager`.
+
 ### Fixed
+- **Open Handles in Tests:** Resolved open handles detected by `jest --detectOpenHandles`:
+  - Modified `sessionService.ts` and `rateLimiter.ts` to conditionally create `setInterval` timers only when `NODE_ENV` is not `test`, and added cleanup functions.
+  - Modified `index.ts` to conditionally start the HTTP server only when `NODE_ENV` is not `test`, and implemented graceful shutdown logic to close the server and clean up resources.
+- **Session API Test Failures:** Addressed multiple issues causing session management tests to fail:
+  - Fixed 404 errors by implementing the missing session routes (`sessionRoutes.ts`) and integrating them into the application (`index.ts`).
+  - Fixed 403 errors by correcting the path matching logic in `routeAuthMiddleware.ts` and ensuring correct full paths were used when adding route permissions in `sessionRoutes.ts`.
+  - Fixed routing issue where `DELETE /api/v1/sessions/all` was incorrectly matched by `DELETE /api/v1/sessions/:sessionId` by reordering the route definitions in `sessionRoutes.ts`.
+  - Fixed TypeScript errors in `sessionRoutes.ts` related to incorrect error handling syntax and duplicate default exports.
 - **TypeScript Errors:** Resolved multiple TypeScript compilation errors in `healthRoutes.ts`, `passwordRoutes.ts`, and `passwordResetService.ts` related to return types, unknown error types, type mismatches, null/undefined checks, and incorrect method usage.
 - **Redis Test Environment:** Implemented a mock Redis client in `redisClient.ts` for the `NODE_ENV=test` environment. This prevents tests from attempting to connect to a real Redis instance, resolving timeout issues and open handle warnings related to Redis during testing.
 
 ### Changed
+- **Route Authorization Middleware:** Updated `routeAuthMiddleware.ts` to construct the full path pattern (`basePath + routePattern`) for more accurate permission checking against registered routes.
 - **Pushed Current Progress:** Committed and pushed the current state of the API Gateway codebase to GitHub before addressing outstanding issues.
 - **Prepared for Fixes:** Set up the environment to address TypeScript compilation errors in the authorization service and implement the Redis connection fix for the test environment.
 
@@ -47,5 +61,6 @@
 ### Removed
 - **Old Service Discovery:** Commented out the import and usage of the basic `serviceDiscovery.js` in favor of the enhanced version.
 - **Heartbeat Endpoint:** Removed the dedicated `/api/services/:serviceId/heartbeat` endpoint as health checks in the enhanced service discovery serve a similar purpose.
+
 
 

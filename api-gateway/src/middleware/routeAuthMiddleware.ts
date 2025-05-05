@@ -293,21 +293,38 @@ export const routeAuthorization = (req: Request, res: Response, next: NextFuncti
     return next();
   }
 
-  const path = req.route?.path || req.path;
+  // Construct the full path for matching against route permissions
+  // req.route.path provides the pattern (e.g., /:sessionId), req.baseUrl provides the mount point (e.g., /api/v1/sessions)
+  const routePattern = req.route?.path; // e.g., "/" or "/:sessionId"
+  const basePath = req.baseUrl; // e.g., "/api/v1/sessions"
+  
+  // Combine base path and route pattern if route exists, otherwise use originalUrl as fallback
+  // Ensure trailing slashes are handled consistently (e.g., remove trailing slash from basePath if routePattern is '/')
+  let fullPathPattern = req.originalUrl.split('?')[0]; // Fallback
+  if (req.route) {
+      if (routePattern === '/' && basePath.length > 0) {
+          fullPathPattern = basePath;
+      } else if (routePattern) {
+          fullPathPattern = basePath + routePattern;
+      }
+  }
+
   const method = req.method.toLowerCase();
   const userRoles = req.user.roles || [];
   const userPermissions = req.user.permissions || [];
 
   // Route izin kontrolü
   const isAuthorized = routeAuthManager.checkRouteAuthorization(
-    path,
+    fullPathPattern, // Use the constructed full path pattern
     method,
     userRoles,
     userPermissions
   );
 
   if (!isAuthorized) {
-    return next(new ForbiddenError(`Bu route için yetkiniz yok: ${method.toUpperCase()} ${path}`));
+    // Log details for debugging
+    logger.warn(`Authorization failed for user ${req.user.username} (${userRoles.join(',')}) accessing ${method.toUpperCase()} ${fullPathPattern}`);
+    return next(new ForbiddenError(`Bu route için yetkiniz yok: ${method.toUpperCase()} ${fullPathPattern}`));
   }
 
   next();

@@ -521,16 +521,26 @@ export const getSessionConfig = (): typeof sessionConfig => {
 let cleanupInterval: NodeJS.Timeout | null = null;
 if (process.env.NODE_ENV !== 'test') {
   cleanupInterval = setInterval(cleanupExpiredSessions, sessionConfig.cleanupInterval);
+  logger.info(`Session cleanup interval started (every ${sessionConfig.cleanupInterval}ms).`);
 }
 
-// Fonksiyonu dışa aktararak testlerde interval'i temizleyebilme
-export const stopSessionCleanup = (): void => {
+// Modül kaldırıldığında veya işlem sonlandığında interval'i temizle
+export const cleanup = () => {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
-    logger.info("Session cleanup interval stopped.");
+    logger.info('Session cleanup interval stopped.');
   }
 };
+
+// Graceful shutdown
+if (process.env.NODE_ENV !== 'test') {
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+}
+
+// Fonksiyonu dışa aktararak testlerde interval'i temizleyebilme (cleanup ile aynı işlevi görüyor)
+export const stopSessionCleanup = cleanup;
 
 export default {
   createSession,
@@ -549,3 +559,4 @@ export default {
   updateSessionConfig,
   getSessionConfig
 };
+

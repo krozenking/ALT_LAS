@@ -225,11 +225,7 @@ router.post('/change', authenticateJWT, async (req: Request, res: Response, next
     }
 
     // Şifreyi değiştir
-    // Ensure userId is a string before passing to the service
-    if (typeof userId !== 'string') {
-      throw new UnauthorizedError('Geçersiz kullanıcı kimliği türü');
-    }
-    await authService.changePassword(userId, currentPassword, newPassword);
+    await authService.changePassword(String(userId), currentPassword, newPassword);
 
     // Tüm oturumları sonlandır (isteğe bağlı)
     // await sessionService.terminateAllSessions(userId);
@@ -251,3 +247,4 @@ routeAuthManager.addRoutePermission({
 });
 
 export default router;
+

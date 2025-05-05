@@ -155,20 +155,20 @@ export const handlePasswordResetRequest = async (req: Request, res: Response, ne
     // Kullanıcıyı e-posta adresine göre bul
     const user = await authService.getUserByEmail(email);
     
-    // Kullanıcı bulunamazsa bile güvenlik için başarılı yanıt döndür
-    if (!user || !user.id || !user.username) { // Ensure user and required fields exist
-      logger.warn(`Şifre sıfırlama talebi: Kullanıcı veya gerekli alanlar bulunamadı - ${email}`);
+    // Kullanıcı bulunamazsa veya ID yoksa hata yönetimi (veya loglama)
+    if (!user || !user.id || !user.username) {
+      logger.warn(`Şifre sıfırlama talebi: Kullanıcı bilgileri eksik - ${email}`);
       res.json({ 
         message: 'E-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama talimatları gönderilecektir.' 
       });
       return;
     }
     
-    // Token oluştur (user.id is now guaranteed to be string)
-    const token = passwordResetService.generateToken(user.id);
+    // Token oluştur (user.id string olmalı, authService'deki tiplere göre)
+    const token = passwordResetService.generateToken(String(user.id));
     
-    // E-posta gönder (user.username is now guaranteed to be string)
-    await passwordResetService.sendPasswordResetEmail(email, token, user.username);
+    // E-posta gönder (user.username string olmalı)
+    await passwordResetService.sendPasswordResetEmail(email, token, String(user.username));
     
     res.json({ 
       message: 'E-posta adresiniz sistemimizde kayıtlıysa, şifre sıfırlama talimatları gönderilecektir.' 
@@ -194,15 +194,12 @@ export const handlePasswordReset = async (req: Request, res: Response, next: Nex
       throw new BadRequestError('Şifre en az 8 karakter uzunluğunda olmalıdır');
     }
     
-    // Token'ı doğrula ve şifreyi güncelle (authService halleder)
+    // Token'ı doğrula ve şifreyi güncelle (authService.resetPassword içinde yapılır)
     await authService.resetPassword(token, newPassword);
     
-    // Token'ı geçersiz kıl (authService.resetPassword zaten yapıyor, ama burada da kalabilir)
-    passwordResetService.invalidateToken(token);
+    // Token geçersiz kılma authService.resetPassword içinde yapılır
     
-    // Loglama için userId'yi alabiliriz (opsiyonel, resetPassword içinde loglanıyor olabilir)
-    // const userId = passwordResetService.validateToken(token); // Token zaten geçersiz kılındı
-    logger.info(`Şifre sıfırlama işlemi token ile tamamlandı: ${token}`);
+    logger.info(`Şifre token ile başarıyla sıfırlandı: ${token}`);
     res.json({ message: 'Şifreniz başarıyla sıfırlandı' });
   } catch (error) {
     next(error);
@@ -210,3 +207,4 @@ export const handlePasswordReset = async (req: Request, res: Response, next: Nex
 };
 
 export default passwordResetService;
+

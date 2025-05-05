@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { BadRequestError } from '../utils/errors';
+import logger from '../utils/logger'; // Import logger
 
 // Rate limiter interface
 interface RateLimiterOptions {
@@ -67,25 +68,40 @@ export const rateLimiter = (options: RateLimiterOptions) => {
 // Temizleme fonksiyonu (belirli aralıklarla çağrılmalı)
 export const cleanupRateLimiter = (): void => {
   const now = Date.now();
+  let deletedCount = 0;
   
   Object.keys(ipRequestCounts).forEach(key => {
     if (ipRequestCounts[key].resetTime < now) {
       delete ipRequestCounts[key];
+      deletedCount++;
     }
   });
+  if (deletedCount > 0) {
+    // logger.debug(`Rate limiter cleanup: Removed ${deletedCount} expired entries.`);
+  }
 };
 
-// Otomatik temizleme (5 dakikada bir) - Test ortamında çalıştırma
+// Otomatik temizleme interval'i
 let cleanupInterval: NodeJS.Timeout | null = null;
+
+// Sadece test ortamı dışında interval'i başlat
 if (process.env.NODE_ENV !== 'test') {
-  cleanupInterval = setInterval(cleanupRateLimiter, 5 * 60 * 1000);
+  cleanupInterval = setInterval(cleanupRateLimiter, 5 * 60 * 1000); // 5 dakikada bir
+  logger.info(`Rate limiter cleanup interval started (every ${5 * 60 * 1000}ms).`);
 }
 
-// Fonksiyonu dışa aktararak testlerde interval'i temizleyebilme
-export const stopRateLimiterCleanup = (): void => {
+// Interval'i temizlemek için fonksiyon
+export const cleanup = () => {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
-    // logger.info("Rate limiter cleanup interval stopped."); // Logger eklemek isteyebilirsiniz
+    logger.info('Rate limiter cleanup interval stopped.');
   }
 };
+
+// Graceful shutdown (sadece test ortamı dışında)
+if (process.env.NODE_ENV !== 'test') {
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+}
+

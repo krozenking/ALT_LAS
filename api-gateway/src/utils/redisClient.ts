@@ -1,22 +1,55 @@
-import Redis from "ioredis";
+import Redis, { RedisOptions } from "ioredis";
 import logger from "./logger";
 
-let redisClient: Redis | null = null;
+let redisClient: Redis;
 
-// Only connect to Redis if not in test environment
-if (process.env.NODE_ENV !== 'test') {
-  // Configure Redis connection using environment variables or defaults
+// Check if running in test environment
+if (process.env.NODE_ENV === "test") {
+  // Use a mock Redis client for testing to avoid actual connection
+  // This mock needs to provide basic methods used in the app (get, set, on, quit, status)
+  // to prevent runtime errors.
+  logger.info("Running in test environment. Using mock Redis client.");
+  redisClient = {
+    get: async (key: string) => {
+      // logger.debug(`Mock Redis GET: ${key}`);
+      return null; // Simulate cache miss
+    },
+    set: async (key: string, value: string, mode?: string, duration?: number) => {
+      // logger.debug(`Mock Redis SET: ${key}, Value: ${value}, Mode: ${mode}, Duration: ${duration}`);
+      return "OK";
+    },
+    on: (event: string, listener: (...args: any[]) => void) => {
+      // logger.debug(`Mock Redis ON: ${event}`);
+      // No-op for mock
+      return redisClient; // Return itself for chaining
+    },
+    quit: async () => {
+      // logger.debug("Mock Redis QUIT");
+      return "OK";
+    },
+    status: "end", // Simulate a non-ready status initially or always for tests
+    // Add other methods used by your application if necessary
+    // Example: del, exists, etc.
+    connect: async () => { logger.debug("Mock Redis CONNECT called"); }, // Mock connect
+    disconnect: () => { logger.debug("Mock Redis DISCONNECT called"); }, // Mock disconnect
+    // Add any other properties or methods your code might access
+  } as unknown as Redis; // Cast to Redis type, acknowledge it's a partial mock
+
+} else {
+  // Configure Redis connection using environment variables or defaults for non-test environments
   const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
-
-  redisClient = new Redis(redisUrl, {
-    // Optional: Add more configuration options here
-    // e.g., password, db, retryStrategy
-    maxRetriesPerRequest: 3, // Example: Retry commands up to 3 times
+  const options: RedisOptions = {
+    maxRetriesPerRequest: 3,
     enableReadyCheck: true,
-    // Prevent connection attempts if Redis is not available during startup
-    // This might help in environments where Redis is optional or starts later
-    enableOfflineQueue: false, 
-  });
+    // Add retry strategy for better resilience
+    retryStrategy(times: number): number | void {
+      const delay = Math.min(times * 50, 2000); // Exponential backoff up to 2 seconds
+      logger.warn(`Redis connection failed. Retrying in ${delay}ms (attempt ${times})...`);
+      return delay;
+    },
+  };
+
+  redisClient = new Redis(redisUrl, options);
 
   redisClient.on("connect", () => {
     logger.info("Connected to Redis server.");
@@ -26,77 +59,49 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info("Redis client is ready.");
   });
 
-  redisClient.on("error", (err) => {
+  redisClient.on("error", (err: Error) => {
     logger.error("Redis connection error:", err);
-    // Consider adding logic to handle critical connection errors
-    // In non-test env, maybe exit if connection is crucial?
+    // Consider more robust error handling or application shutdown strategy
   });
 
   redisClient.on("close", () => {
     logger.warn("Redis connection closed.");
   });
 
-  redisClient.on("reconnecting", () => {
-    logger.info("Reconnecting to Redis...");
+  redisClient.on("reconnecting", (delay: number) => {
+    logger.info(`Reconnecting to Redis in ${delay}ms...`);
   });
-
-} else {
-  logger.info("Running in test environment. Skipping Redis connection.");
-  // Provide a mock client for test environment to avoid errors
-  // This mock needs to satisfy the parts of the Redis client interface used by the app
-  redisClient = {
-    status: 'end', // Simulate a non-ready status
-    get: async (key: string) => { 
-      logger.debug(`[Mock Redis] GET ${key}`);
-      return null; // Always return null for cache misses in tests
-    },
-    set: async (key: string, value: string, ...args: any[]) => {
-      logger.debug(`[Mock Redis] SET ${key} with args: ${args.join(', ')}`);
-      return 'OK'; // Simulate successful set
-    },
-    quit: async () => {
-      logger.debug("[Mock Redis] QUIT");
-      redisClient!.status = 'end';
-      return 'OK';
-    },
-    // Add other methods used by your application if necessary
-    on: (event: string, listener: (...args: any[]) => void) => {
-      logger.debug(`[Mock Redis] Registered listener for event: ${event}`);
-      // No-op for mock
-      return redisClient as any; // Return mock client for chaining
-    },
-    // Add any other properties or methods accessed by your code
-    options: {},
-    disconnect: () => { 
-        logger.debug("[Mock Redis] DISCONNECT");
-        redisClient!.status = 'end';
-    }
-  } as any; // Use 'as any' for simplicity, or create a more robust mock interface
 }
 
 // Function to disconnect the client gracefully
 export const disconnectRedis = async () => {
-  // Check if redisClient is not null and has a quit method
-  if (redisClient && typeof redisClient.quit === 'function') {
-    // Check status before quitting for real client
-    if (process.env.NODE_ENV !== 'test' && (redisClient.status === "ready" || redisClient.status === "connecting")) {
-      logger.info("Disconnecting Redis client...");
+  // Check if it's the real client and connected/connecting before quitting
+  if (redisClient && typeof redisClient.quit === 'function' && process.env.NODE_ENV !== 'test' && (redisClient.status === "ready" || redisClient.status === "connecting")) {
+    logger.info("Disconnecting Redis client...");
+    try {
       await redisClient.quit();
       logger.info("Redis client disconnected.");
-    } else if (process.env.NODE_ENV === 'test') {
-      // Call mock quit
-      await redisClient.quit();
+    } catch (err) {
+      logger.error("Error disconnecting Redis client:", err);
     }
-  } else {
-    logger.info("Redis client was not initialized or does not support quit.");
+  } else if (redisClient && typeof redisClient.quit === 'function' && process.env.NODE_ENV === 'test') {
+    // Call mock quit in test environment
+    await redisClient.quit();
   }
 };
 
 // Optional: Graceful shutdown for the main process
-process.on("SIGINT", async () => {
-  await disconnectRedis();
-  process.exit(0);
-});
+// Ensure this doesn't run or is handled differently in tests if needed
+if (process.env.NODE_ENV !== "test") {
+  process.on("SIGINT", async () => {
+    await disconnectRedis();
+    process.exit(0);
+  });
+  process.on("SIGTERM", async () => {
+    await disconnectRedis();
+    process.exit(0);
+  });
+}
 
 // Export the potentially null or mock client
 // Code using this client must handle the possibility of it being null or the mock

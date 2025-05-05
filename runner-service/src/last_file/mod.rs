@@ -2,7 +2,7 @@ pub mod models;
 pub mod processor;
 
 pub use models::{Artifact, LastFile, TaskResult};
-pub use processor::{LastFileGenerator, LastFileProcessor, LastFileProcessorConfig};
+pub use processor::{LastFileGenerator};
 
 // Removed struct definitions and functions previously here
 // Tests might need to be moved or adjusted

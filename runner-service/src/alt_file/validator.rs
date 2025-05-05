@@ -1,6 +1,6 @@
 use log::{info, warn, debug, error};
 use super::models::{AltFile, Task, TaskStatus, Priority};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 
 /// Validates an ALT file structure and logic
 pub fn validate_alt_file(alt_file: &AltFile) -> Result<(), String> {

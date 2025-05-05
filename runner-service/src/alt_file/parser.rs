@@ -5,8 +5,7 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use log::{info, error, debug, warn};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use super::models::{AltFile, Task, TaskStatus, AltMode, Priority};
+use chrono::{DateTime, Utuse super::models::{AltFile, Task};e, Priority};
 use super::validator::validate_alt_file;
 
 /// Error type for ALT file parsing operations

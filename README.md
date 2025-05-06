@@ -48,6 +48,15 @@ ALT_LAS, aşağıdaki ana bileşenlerden oluşmaktadır:
 git clone https://github.com/krozenking/ALT_LAS.git
 cd ALT_LAS
 
+# Ortam değişkenlerini ayarlayın
+# api-gateway dizinindeki .env.example dosyasını .env olarak kopyalayın
+# ve gerekli değerleri (özellikle JWT_SECRET) kendi değerlerinizle güncelleyin.
+# Örneğin:
+# cd api-gateway
+# cp .env.example .env
+# nano .env # .env dosyasını düzenleyin
+# cd ..
+
 # Geliştirme ortamını kurun
 ./scripts/setup.sh
 

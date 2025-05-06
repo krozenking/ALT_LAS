@@ -1,0 +1,25 @@
+- [x] **Step 1: Enumerate All Project Licenses**
+    - [x] Read `README.md` for declared main licenses. (Found: MIT, Apache 2.0, BSD-3-Clause, PostgreSQL)
+    - [x] Scan all subdirectories for `LICENSE`, `COPYING`, or similar files (e.g., `ui-desktop/LICENSE_COMPLIANCE.md` processed, contains MIT, Apache-2.0, ISC, BSD-3-Clause, 0BSD).
+    - [x] Examine dependency manifest files in each service/module to identify dependency licenses:
+        - [x] `api-gateway` (Node.js): Used `license-checker`, generated `licenses.json`.
+        - [x] `runner-service` (Rust): Used `cargo license`, generated `licenses.json`.
+        - [x] `archive-service` (Go): Attempted `go-licenses`, failed due to module/config issues (reported to user).
+        - [x] `segmentation-service` (Python): Used `pip-licenses`, generated `licenses.json`.
+        - [x] `workflow-engine` (Python): Used `pip-licenses`, generated `licenses.json`.
+        - [x] Root `package.json` (Node.js): No production dependencies, `license-checker` reported no packages.
+        - [x] `os-integration-service` (Rust): Skipped due to Rust edition incompatibility (reported to user).
+        - [x] `ui-desktop` (Node.js): Has `LICENSE_COMPLIANCE.md` (MIT, Apache-2.0, ISC, BSD-3-Clause, 0BSD and others).
+    - [x] Compile a comprehensive list of all unique licenses found into `identified_licenses.md`.
+- [x] **Step 2: Analyze License Compliance for Commercial Use**
+    - [x] For each unique license identified, research its terms and conditions regarding commercial use, modification, distribution, and any obligations (e.g., attribution, source code disclosure). (Initial analysis done in `identified_licenses.md`)
+    - [x] Determine if each license is generally considered commercially friendly. (Initial analysis done in `identified_licenses.md`)
+- [ ] **Step 3: Identify Any Non-Compliant Licenses**
+    - [ ] Based on the analysis, pinpoint any licenses that may pose restrictions or challenges for commercial use of the ALT_LAS project.    - [ ] Note any specific clauses or conditions that are problematic.
+- [ ] **Step 4: Document Findings and Recommendations**
+    - [ ] Create a detailed report summarizing all identified licenses.
+    - [ ] Clearly list any licenses deemed non-compliant or problematic for commercial use, explaining the reasons.
+    - [ ] Provide recommendations for addressing any license compliance issues (e.g., replacing a dependency, seeking legal advice).
+- [ ] **Step 5: Report License Compliance to User**
+    - [ ] Send the comprehensive license analysis report to the user.
+    - [ ] Highlight key findings and recommendations.

@@ -33,8 +33,9 @@ export const errorHandler = (
   
   // Yanıt gönder
   res.status(appError.statusCode).json({
+    success: false,
     message: appError.message,
-    error: process.env.NODE_ENV === 'development' ? appError.stack : undefined
+    error: process.env.NODE_ENV === "development" ? appError.stack : undefined
   });
 };
 

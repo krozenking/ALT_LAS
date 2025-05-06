@@ -65,6 +65,12 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     if (!username || !email || !password) {
       throw new BadRequestError('Kullanıcı adı, email ve şifre gereklidir');
     }
+
+    // Email formatını kontrol et
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new BadRequestError('Geçerli bir email adresi giriniz');
+    }
     // Add password complexity check here if needed
 
     // Create user (authService should handle hashing)

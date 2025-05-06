@@ -1,16 +1,19 @@
 openapi: 3.0.0
 info:
   title: ALT_LAS API Gateway
-  description: API Gateway for ALT_LAS project - Platform designed to manage computer systems with artificial intelligence. Handles authentication, routing, rate limiting, and service discovery.
-  version: 1.1.0 # Version updated
+  description: API Gateway for ALT_LAS project - Platform designed to manage computer systems with artificial intelligence. Handles authentication, routing, rate limiting, service discovery, caching, and comprehensive logging.
+  version: 1.2.0 # Version updated to reflect new features and documentation accuracy
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
+  contact:
+    name: ALT_LAS Team
+    url: https://github.com/krozenking/ALT_LAS
 
 servers:
   - url: http://localhost:3000
     description: Development server
-  - url: https://api.alt-las.com
+  - url: https://api.alt-las.com # Placeholder for production
     description: Production server
 
 components:
@@ -25,12 +28,22 @@ components:
     Error:
       type: object
       properties:
+        statusCode:
+          type: integer
+          example: 400
         message:
           type: string
           description: Error message
+          example: "Invalid input provided"
         error:
           type: string
-          description: Detailed error information (optional, development only)
+          description: Detailed error type (e.g., "Bad Request")
+          example: "Bad Request"
+        details: # Added for more specific error information
+          type: object
+          additionalProperties: true
+          description: Additional error details or validation errors
+          example: { "field": "username", "issue": "already exists" }
 
     # Auth Schemas
     RegisterRequest:
@@ -41,11 +54,18 @@ components:
       properties:
         username:
           type: string
+          minLength: 3
+          maxLength: 30
           example: newuser
         password:
           type: string
           format: password
-          example: password123
+          minLength: 8
+          example: P@sswOrd123!
+        email: # Added email field
+          type: string
+          format: email
+          example: newuser@example.com
         roles:
           type: array
           items:
@@ -60,15 +80,27 @@ components:
         id:
           type: string
           format: uuid
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
         username:
           type: string
+          example: newuser
+        email: # Added email field
+          type: string
+          format: email
+          example: newuser@example.com
         roles:
           type: array
           items:
             type: string
+            example: "user"
         createdAt:
           type: string
           format: date-time
+          example: "2024-05-06T12:00:00Z"
+        updatedAt: # Added updatedAt field
+          type: string
+          format: date-time
+          example: "2024-05-06T12:00:00Z"
 
     LoginRequest:
       type: object
@@ -82,7 +114,7 @@ components:
         password:
           type: string
           format: password
-          example: admin123
+          example: adminP@sswOrd
 
     LoginResponse:
       type: object
@@ -90,15 +122,20 @@ components:
         accessToken:
           type: string
           description: JWT Access Token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         refreshToken:
           type: string
           description: JWT Refresh Token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         expiresIn:
-          type: string
-          description: Access token validity duration (e.g., "15m")
+          type: string # Kept as string as per original, but integer (seconds) is also common
+          description: Access token validity duration (e.g., "1h" or 3600 for seconds)
+          example: "1h"
         tokenType:
           type: string
           example: Bearer
+        user: # Added user details on login
+          $ref: "#/components/schemas/UserResponse"
 
     RefreshRequest:
       type: object
@@ -108,6 +145,7 @@ components:
         refreshToken:
           type: string
           description: JWT Refresh Token obtained during login
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
     RefreshResponse:
       type: object
@@ -115,9 +153,11 @@ components:
         accessToken:
           type: string
           description: New JWT Access Token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         expiresIn:
           type: string
-          description: Access token validity duration (e.g., "15m")
+          description: Access token validity duration (e.g., "1h")
+          example: "1h"
         tokenType:
           type: string
           example: Bearer
@@ -130,6 +170,7 @@ components:
         refreshToken:
           type: string
           description: JWT Refresh Token to invalidate
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
     LogoutResponse:
       type: object
@@ -144,29 +185,38 @@ components:
       properties:
         id:
           type: string
+          example: "segmentation-service-v1"
         name:
           type: string
+          example: "segmentation-service"
         host:
           type: string
+          example: "localhost"
         port:
           type: integer
+          example: 3001
         url:
           type: string
           format: url
+          example: "http://localhost:3001"
         metadata:
           type: object
           additionalProperties: true
+          example: { version: "1.0.0", environment: "development" }
         status:
           type: string
-          enum: [UP, DOWN]
+          enum: [UP, DOWN, UNKNOWN]
+          example: UP
         registeredAt:
-          type: integer
-          format: int64
+          type: string # Changed to string date-time for consistency
+          format: date-time
           description: Timestamp of registration
+          example: "2024-05-06T10:00:00Z"
         lastHeartbeat:
-          type: integer
-          format: int64
+          type: string # Changed to string date-time for consistency
+          format: date-time
           description: Timestamp of last heartbeat
+          example: "2024-05-06T12:05:00Z"
 
     ServiceRegisterRequest:
       type: object
@@ -187,9 +237,9 @@ components:
         metadata:
           type: object
           additionalProperties: true
-          example: { version: "1.0.0" }
+          example: { version: "1.0.0", description: "Handles command segmentation" }
 
-    # Microservice Schemas (Existing)
+    # Microservice Schemas (Proxy Endpoints)
     SegmentationRequest:
       type: object
       required:
@@ -198,7 +248,230 @@ components:
         command:
           type: string
           description: Command text to be segmented
-          example: "Analyze the sentiment of the latest customer reviews."
+          example: "Analyze the sentiment of the latest customer reviews and summarize them."
+        mode:
+          type: string
+          enum: [Normal, Dream, Explore, Chaos]
+          default: Normal
+          example: Normal
+        persona:
+          type: string
+          enum: [empathetic_assistant, technical_expert, creative_designer, security_focused, efficiency_optimizer, learning_tutor]
+          default: technical_expert
+          example: technical_expert
+        chaosLevel: # Added chaosLevel
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: Chaos level for Chaos mode (1-4)
+          example: 2
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata for the task
+          example: { project_id: "project-xyz", priority: "high" }
+    
+    SegmentationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID for the segmentation task
+          example: "seg-task-12345"
+        status:
+          type: string
+          enum: [success, error, pending]
+          description: Status of the segmentation task
+          example: success
+        altFile:
+          type: string # Could be content or a reference/URL
+          description: Content or identifier for the generated *.alt file
+          example: "/path/to/generated.alt or base64_encoded_content"
+        message:
+          type: string
+          description: Optional message from the service
+          example: "Segmentation completed successfully."
+        metadata:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-05-06T12:10:00Z"
+            mode:
+              type: string
+              example: Normal
+            persona:
+              type: string
+              example: technical_expert
+            userId:
+              type: string
+              format: uuid
+              description: ID of the user who initiated the task
+              example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+    
+    RunnerRequest:
+      type: object
+      required:
+        - altFile # Could be content or a reference/URL
+      properties:
+        altFile:
+          type: string
+          description: Content or identifier of the *.alt file to execute
+          example: "/path/to/generated.alt or base64_encoded_content"
+        options:
+          type: object
+          additionalProperties: true
+          description: Execution options for the runner service
+          example: { timeout: 300, retries: 2 }
+    
+    RunnerResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID for the execution task
+          example: "run-task-67890"
+        status:
+          type: string
+          enum: [success, error, pending, running, cancelled]
+          description: Status of the execution task
+          example: running
+        lastFile:
+          type: string # Could be content or a reference/URL
+          description: Content or identifier for the generated *.last file (if successful)
+          example: "/path/to/results.last or base64_encoded_content"
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Execution progress percentage
+          example: 50
+        message:
+          type: string
+          description: Optional message from the service
+          example: "Execution in progress..."
+        metadata:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+              description: ID of the user who initiated the task
+              example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+            startTime:
+              type: string
+              format: date-time
+              example: "2024-05-06T12:15:00Z"
+            estimatedEndTime:
+              type: string
+              format: date-time
+              example: "2024-05-06T12:20:00Z"
+    
+    ArchiveRequest:
+      type: object
+      required:
+        - lastFile # Could be content or a reference/URL
+      properties:
+        lastFile:
+          type: string
+          description: Content or identifier of the *.last file to archive
+          example: "/path/to/results.last or base64_encoded_content"
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata for archiving
+          example: { source_system: "system-alpha", tags: ["finance", "q1_report"] }
+    
+    ArchiveResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique ID for the archive entry
+          example: "arch-entry-abcde"
+        status:
+          type: string
+          enum: [success, error]
+          description: Status of the archiving process
+          example: success
+        atlasId:
+          type: string
+          description: Identifier within the *.atlas archive system
+          example: "atlas-ref-fghij"
+        successRate:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Calculated success rate based on archived data
+          example: 95.5
+        message:
+          type: string
+          description: Optional message from the service
+          example: "File archived successfully."
+        metadata:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+              description: ID of the user related to the archived task
+              example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+            archivedAt:
+              type: string
+              format: date-time
+              example: "2024-05-06T12:25:00Z"
+
+    # File Management Schemas (New)
+    FileUploadResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+          description: Unique identifier for the uploaded file
+          example: "file-uuid-12345"
+        fileName:
+          type: string
+          description: Name of the uploaded file
+          example: "input_data.alt"
+        fileSize:
+          type: integer
+          description: Size of the file in bytes
+          example: 10240
+        message:
+          type: string
+          example: "File uploaded successfully."
+
+    FileDetailsResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+        fileName:
+          type: string
+        fileSize:
+          type: integer
+        fileType:
+          type: string
+          description: MIME type of the file
+          example: "application/octet-stream"
+        createdAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+
+    # Command Processing Schemas (New)
+    CommandRequest:
+      type: object
+      required:
+        - command
+      properties:
+        command:
+          type: string
+          description: The natural language command to execute.
+          example: "Generate a sales report for Q1 and email it to sales@example.com"
         mode:
           type: string
           enum: [Normal, Dream, Explore, Chaos]
@@ -207,125 +480,86 @@ components:
           type: string
           enum: [empathetic_assistant, technical_expert, creative_designer, security_focused, efficiency_optimizer, learning_tutor]
           default: technical_expert
-        metadata:
+        chaosLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: Chaos level for Chaos mode (1-4)
+        context:
           type: object
           additionalProperties: true
-          description: Additional metadata for the task
-    
-    SegmentationResponse:
+          description: Additional context for the command (e.g., previous conversation, file IDs)
+          example: { previous_task_id: "task-123", related_files: ["file-abc", "file-def"] }
+
+    CommandResponse:
+      type: object
+      properties:
+        commandId:
+          type: string
+          description: Unique ID for the submitted command
+          example: "cmd-uuid-67890"
+        status:
+          type: string
+          enum: [received, processing, completed, failed, cancelled]
+          description: Current status of the command
+          example: "processing"
+        message:
+          type: string
+          description: A message regarding the command status
+          example: "Command received and is being processed."
+        segmentationId:
+          type: string
+          description: ID of the segmentation task, if applicable
+          example: "seg-task-12345"
+        runnerId:
+          type: string
+          description: ID of the runner task, if applicable
+          example: "run-task-67890"
+        result:
+          type: object # Could be more specific based on command type
+          additionalProperties: true
+          description: Result of the command execution, if completed
+          example: { report_url: "https://example.com/report.pdf", email_sent: true }
+
+  # Notification Schemas (New)
+    Notification:
       type: object
       properties:
         id:
           type: string
-          description: Unique ID for the segmentation task
-        status:
+          format: uuid
+        userId:
           type: string
-          enum: [success, error, pending]
-          description: Status of the segmentation task
-        altFile:
+          format: uuid
+        type:
           type: string
-          description: Path or identifier for the generated *.alt file
-        metadata:
-          type: object
-          properties:
-            timestamp:
-              type: string
-              format: date-time
-            mode:
-              type: string
-            persona:
-              type: string
-            userId:
-              type: string
-              format: uuid
-              description: ID of the user who initiated the task
-    
-    RunnerRequest:
-      type: object
-      required:
-        - altFile
-      properties:
-        altFile:
+          enum: [task_update, system_alert, message]
+          example: "task_update"
+        title:
           type: string
-          description: Path or identifier of the *.alt file to execute
-        options:
+          example: "Task Completed"
+        message:
+          type: string
+          example: "Your command 'Generate sales report' has completed successfully."
+        data:
           type: object
           additionalProperties: true
-          description: Execution options for the runner service
-    
-    RunnerResponse:
-      type: object
-      properties:
-        id:
+          example: { taskId: "run-task-67890", resultUrl: "/files/run-task-67890/report.pdf" }
+        isRead:
+          type: boolean
+          default: false
+        createdAt:
           type: string
-          description: Unique ID for the execution task
-        status:
-          type: string
-          enum: [success, error, pending, running]
-          description: Status of the execution task
-        lastFile:
-          type: string
-          description: Path or identifier for the generated *.last file (if successful)
-        progress:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: Execution progress percentage
-        metadata:
-          type: object
-          properties:
-            userId:
-              type: string
-              format: uuid
-              description: ID of the user who initiated the task
-    
-    ArchiveRequest:
-      type: object
-      required:
-        - lastFile
-      properties:
-        lastFile:
-          type: string
-          description: Path or identifier of the *.last file to archive
-        metadata:
-          type: object
-          additionalProperties: true
-          description: Additional metadata for archiving
-    
-    ArchiveResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Unique ID for the archive entry
-        status:
-          type: string
-          enum: [success, error]
-          description: Status of the archiving process
-        atlasId:
-          type: string
-          description: Identifier within the *.atlas archive system
-        successRate:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: Calculated success rate based on archived data
-        metadata:
-          type: object
-          properties:
-            userId:
-              type: string
-              format: uuid
-              description: ID of the user related to the archived task
+          format: date-time
 
 paths:
   /:
     get:
       summary: API Gateway homepage
-      description: Provides a welcome message and confirms the gateway is running.
+      description: Provides a welcome message and confirms the gateway is running. Also lists key endpoints.
       tags: [General]
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -335,20 +569,26 @@ paths:
                   message:
                     type: string
                     example: Welcome to ALT_LAS API Gateway
+                  version:
+                    type: string
+                    example: "1.2.0"
                   documentation:
                     type: string
                     example: /api-docs
-                  version:
+                  healthCheck:
                     type: string
-                    example: v1
+                    example: /health
+                  metrics:
+                    type: string
+                    example: /metrics
   
   /health:
     get:
       summary: Health check
-      description: Checks the operational status of the API Gateway.
+      description: Checks the operational status of the API Gateway and its critical dependencies (e.g., Redis).
       tags: [General]
       responses:
-        '200':
+        "200":
           description: Service is running and healthy
           content:
             application/json:
@@ -359,68 +599,118 @@ paths:
                     type: string
                     enum: [UP]
                     example: UP
-        '503':
+                  timestamp:
+                    type: string
+                    format: date-time
+                  dependencies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "Redis"
+                        status:
+                          type: string
+                          enum: [UP, DOWN]
+                          example: UP
+        "503":
           description: Service is unavailable or unhealthy
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [DOWN]
-                    example: DOWN
+                $ref: "#/components/schemas/Error"
+
+  /metrics: # Added metrics endpoint
+    get:
+      summary: Prometheus Metrics
+      description: Exposes application metrics in Prometheus format for monitoring.
+      tags: [General]
+      security:
+        - bearerAuth: [] # Typically secured, admin role might be required
+      responses:
+        "200":
+          description: Prometheus metrics output
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |-
+                  # HELP http_requests_total Total number of HTTP requests made.
+                  # TYPE http_requests_total counter
+                  http_requests_total{method="post",handler="/api/v1/auth/login"} 1027
+                  # HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+                  # TYPE process_cpu_seconds_total counter
+                  process_cpu_seconds_total 0.12
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   # Authentication Paths
   /api/v1/auth/register:
     post:
       summary: Register a new user
-      description: Creates a new user account.
+      description: Creates a new user account with username, email, and password.
       tags: [Authentication]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterRequest'
+              $ref: "#/components/schemas/RegisterRequest"
       responses:
-        '201':
+        "201":
           description: User successfully registered
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: Invalid input or user already exists
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Invalid input (e.g., validation error, missing fields)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
+        "409": # Conflict for existing user/email
+          description: User with this username or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/v1/auth/login:
     post:
       summary: User login
-      description: Authenticates a user and returns access and refresh tokens.
+      description: Authenticates a user and returns access token, refresh token, and user details.
       tags: [Authentication]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200':
+        "200":
           description: Successful login
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '401':
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
           description: Invalid username or password
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/v1/auth/refresh:
     post:
@@ -432,118 +722,147 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshRequest'
+              $ref: "#/components/schemas/RefreshRequest"
       responses:
-        '200':
+        "200":
           description: Access token successfully refreshed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RefreshResponse'
-        '400':
-          description: Refresh token missing
+                $ref: "#/components/schemas/RefreshResponse"
+        "400":
+          description: Refresh token missing in request body
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Invalid or expired refresh token
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Invalid, expired, or revoked refresh token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/v1/auth/logout:
     post:
       summary: User logout
-      description: Invalidates the provided refresh token.
+      description: Invalidates the provided refresh token, effectively logging the user out from that session.
       tags: [Authentication]
+      security:
+        - bearerAuth: [] # Requires current access token to authorize logout
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LogoutRequest'
+              $ref: "#/components/schemas/LogoutRequest"
       responses:
-        '200':
+        "200":
           description: Logout processed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LogoutResponse'
-        '400':
-          description: Refresh token missing
+                $ref: "#/components/schemas/LogoutResponse"
+        "400":
+          description: Refresh token missing in request body
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Server error during logout
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized (e.g. invalid access token or refresh token does not belong to user)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error during logout (e.g., failed to blacklist token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/auth/me: # Added endpoint to get current user details
+    get:
+      summary: Get current user details
+      description: Retrieves the profile information of the currently authenticated user.
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: Unauthorized (Missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   # Service Discovery Paths (Admin Only)
   /api/v1/services:
     get:
       summary: List registered services
-      description: Retrieves a list of all currently registered and active microservices. Requires 'admin' role.
+      description: Retrieves a list of all currently registered microservices. Requires 'admin' role.
       tags: [Service Discovery]
       security:
-        - bearerAuth: [] # Requires JWT token
+        - bearerAuth: []
       responses:
-        '200':
-          description: List of services
+        "200":
+          description: A list of registered services
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Service'
-        '401':
+                  $ref: "#/components/schemas/Service"
+        "401":
           description: Unauthorized (Missing or invalid token)
-        '403':
+        "403":
           description: Forbidden (User does not have 'admin' role)
 
   /api/v1/services/register:
     post:
       summary: Register a new service
-      description: Allows a microservice to register itself with the gateway. Requires 'admin' role.
+      description: Allows a microservice to register itself with the gateway. Requires 'admin' role or a pre-shared secret/service token.
       tags: [Service Discovery]
       security:
-        - bearerAuth: [] # Requires JWT token
+        - bearerAuth: [] # Or a specific service token mechanism
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ServiceRegisterRequest'
+              $ref: "#/components/schemas/ServiceRegisterRequest"
       responses:
-        '201':
+        "201":
           description: Service registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Service'
-        '400':
-          description: Invalid request data
+                $ref: "#/components/schemas/Service"
+        "400":
+          description: Invalid request data or service already registered with this ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '403':
-          description: Forbidden (User does not have 'admin' role)
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
 
   /api/v1/services/{serviceId}/heartbeat:
     post:
       summary: Send service heartbeat
-      description: Allows a registered microservice to signal it is still alive. Requires 'admin' role.
+      description: Allows a registered microservice to signal it is still alive. Requires 'admin' role or a pre-shared secret/service token.
       tags: [Service Discovery]
       security:
-        - bearerAuth: [] # Requires JWT token
+        - bearerAuth: [] # Or a specific service token mechanism
       parameters:
         - name: serviceId
           in: path
@@ -551,172 +870,278 @@ paths:
           schema:
             type: string
           description: The unique ID of the service sending the heartbeat.
+          example: "segmentation-service-v1"
       responses:
-        '200':
-          description: Heartbeat received successfully
+        "200":
+          description: Heartbeat received successfully and service status updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Service'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '403':
-          description: Forbidden (User does not have 'admin' role)
-        '404':
+                $ref: "#/components/schemas/Service"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
           description: Service not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
-  # Microservice Paths (Version 1)
+  # Microservice Proxy Paths (Version 1)
+  # These paths proxy requests to the respective backend services.
+  # The actual request/response bodies are defined by the backend services.
+  # For clarity, example schemas from backend services are included here.
+
   /api/v1/segmentation:
     post:
-      summary: Command segmentation
-      description: Splits a command into subtasks and creates an *.alt file. Proxies request to the Segmentation Service.
-      tags: [Microservices V1]
+      summary: Process command for segmentation
+      description: Sends a command to the Segmentation Service for processing into an *.alt file. Requires authentication.
+      tags: [Microservices V1 - Segmentation]
       security:
         - bearerAuth: []
       requestBody:
         required: true
+        description: Command details for segmentation.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SegmentationRequest'
+              $ref: "#/components/schemas/SegmentationRequest"
       responses:
-        '200':
-          description: Successful segmentation (mock response)
+        "200":
+          description: Segmentation task accepted or completed. Response from Segmentation Service.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SegmentationResponse'
-        '400':
-          description: Invalid request
+                $ref: "#/components/schemas/SegmentationResponse"
+        "400":
+          description: Invalid request to Segmentation Service
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '500':
-          description: Internal server error or Segmentation Service error
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+        "502": # Bad Gateway if service is down/unreachable
+          description: Error connecting to Segmentation Service
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '503':
-          description: Segmentation Service unavailable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  
-  /api/v1/segmentation/{id}:
-    get:
-      summary: Segmentation status
-      description: Queries the status of a specific segmentation process.
-      tags: [Microservices V1]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: The unique ID of the segmentation task.
-      responses:
-        '200':
-          description: Segmentation status (mock response)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SegmentationResponse'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '404':
-          description: Segmentation task not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  
+                $ref: "#/components/schemas/Error"
+    # Potentially GET /api/v1/segmentation/{taskId} to check status
+
   /api/v1/runner:
     post:
-      summary: Subtask execution
-      description: Processes the *.alt file and creates an *.last file. Proxies request to the Runner Service.
-      tags: [Microservices V1]
+      summary: Execute an *.alt file
+      description: Sends an *.alt file (or its identifier) to the Runner Service for execution. Requires authentication.
+      tags: [Microservices V1 - Runner]
       security:
         - bearerAuth: []
       requestBody:
         required: true
+        description: Details of the *.alt file for execution.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RunnerRequest'
+              $ref: "#/components/schemas/RunnerRequest"
       responses:
-        '200':
-          description: Successful execution start (mock response)
+        "200":
+          description: Runner task accepted or in progress. Response from Runner Service.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RunnerResponse'
-        '400':
-          description: Invalid request
+                $ref: "#/components/schemas/RunnerResponse"
+        "400":
+          description: Invalid request to Runner Service
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '500':
-          description: Internal server error or Runner Service error
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+        "502":
+          description: Error connecting to Runner Service
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '503':
-          description: Runner Service unavailable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  
-  /api/v1/runner/{id}:
-    get:
-      summary: Execution status
-      description: Queries the status of a specific execution process.
-      tags: [Microservices V1]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: The unique ID of the execution task.
-      responses:
-        '200':
-          description: Execution status (mock response)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RunnerResponse'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '404':
-          description: Execution task not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  
+                $ref: "#/components/schemas/Error"
+    # Potentially GET /api/v1/runner/{taskId} to check status or GET /api/v1/runner/{taskId}/result
+
   /api/v1/archive:
     post:
-      summary: Result archiving
-      description: Archives the *.last file and saves it to the *.atlas database. Proxies request to the Archive Service.
-      tags: [Microservices V1]
+      summary: Archive a *.last file
+      description: Sends a *.last file (or its identifier) to the Archive Service for storage and analysis. Requires authentication.
+      tags: [Microservices V1 - Archive]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        description: Details of the *.last file for archiving.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArchiveRequest"
+      responses:
+        "200":
+          description: Archiving task accepted or completed. Response from Archive Service.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArchiveResponse"
+        "400":
+          description: Invalid request to Archive Service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+        "502":
+          description: Error connecting to Archive Service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    # Potentially GET /api/v1/archive/{archiveId} or search endpoints
+
+  # File Management Endpoints (New)
+  /api/v1/files/upload:
+    post:
+      summary: Upload a file
+      description: Uploads a file (e.g., *.alt, *.last, or other support files) to be used by services. Requires authentication.
+      tags: [File Management]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload.
+                metadata: # Optional metadata as a JSON string
+                  type: string
+                  description: JSON string of additional metadata (e.g., {"purpose": "segmentation_input", "projectId": "xyz"})
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadResponse"
+        "400":
+          description: Invalid file or metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+        "413": # Payload Too Large
+          description: File is too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/files/{fileId}:
+    get:
+      summary: Get file details
+      description: Retrieves metadata and details for a specific file. Requires authentication and ownership/permission.
+      tags: [File Management]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique ID of the file.
+          example: "file-uuid-12345"
+      responses:
+        "200":
+          description: File details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDetailsResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (no permission to access this file)
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete a file
+      description: Deletes a specific file. Requires authentication and ownership/permission.
+      tags: [File Management]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique ID of the file to delete.
+      responses:
+        "204":
+          description: File deleted successfully (No Content)
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+  /api/v1/files/{fileId}/download:
+    get:
+      summary: Download a file
+      description: Downloads the content of a specific file. Requires authentication and ownership/permission.
+      tags: [File Management]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique ID of the file to download.
+      responses:
+        "200":
+          description: File content
+          content:
+            application/octet-stream: # Or specific content type if known
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+  # Command Processing Endpoints (New)
+  /api/v1/commands:
+    post:
+      summary: Submit a new command
+      description: Submits a natural language command for processing by the ALT_LAS system. This may trigger segmentation, execution, and archiving. Requires authentication.
+      tags: [Command Processing]
       security:
         - bearerAuth: []
       requestBody:
@@ -724,72 +1149,171 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ArchiveRequest'
+              $ref: "#/components/schemas/CommandRequest"
       responses:
-        '200':
-          description: Successful archiving (mock response)
+        "202": # Accepted for processing
+          description: Command accepted for processing
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ArchiveResponse'
-        '400':
-          description: Invalid request
+                $ref: "#/components/schemas/CommandResponse"
+        "400":
+          description: Invalid command request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '500':
-          description: Internal server error or Archive Service error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '503':
-          description: Archive Service unavailable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  
-  /api/v1/archive/{id}:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+
+  /api/v1/commands/{commandId}:
     get:
-      summary: Query archive record
-      description: Queries a specific archive record.
-      tags: [Microservices V1]
+      summary: Get command status and results
+      description: Retrieves the current status and results (if available) for a specific command. Requires authentication and ownership.
+      tags: [Command Processing]
       security:
         - bearerAuth: []
       parameters:
-        - name: id
+        - name: commandId
           in: path
           required: true
           schema:
             type: string
-          description: The unique ID of the archive record.
+            format: uuid
+          description: Unique ID of the command.
+          example: "cmd-uuid-67890"
       responses:
-        '200':
-          description: Archive record (mock response)
+        "200":
+          description: Command status and results
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ArchiveResponse'
-        '401':
-          description: Unauthorized (Missing or invalid token)
-        '404':
-          description: Archive record not found
+                $ref: "#/components/schemas/CommandResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Command not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
+    delete: # Cancel command
+      summary: Cancel a command
+      description: Attempts to cancel an in-progress command. Requires authentication and ownership.
+      tags: [Command Processing]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: commandId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique ID of the command to cancel.
+      responses:
+        "200":
+          description: Command cancellation request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse" # Returns updated status
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Command not found
+        "409": # Conflict if command cannot be cancelled (e.g., already completed/failed)
+          description: Command cannot be cancelled at its current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Notification Endpoints (New - for WebSocket or Polling)
+  /api/v1/notifications:
+    get:
+      summary: Get user notifications
+      description: Retrieves a list of notifications for the authenticated user. Supports pagination and filtering.
+      tags: [Notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of notifications to return.
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of notifications to skip for pagination.
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Filter for unread notifications only.
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+        "401":
+          description: Unauthorized
+
+  /api/v1/notifications/{notificationId}/read:
+    put:
+      summary: Mark notification as read
+      description: Marks a specific notification as read for the authenticated user.
+      tags: [Notifications]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique ID of the notification.
+      responses:
+        "204":
+          description: Notification marked as read successfully (No Content)
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden (notification does not belong to user)
+        "404":
+          description: Notification not found
 
 tags:
   - name: General
-    description: General API Gateway endpoints
+    description: General API Gateway information and health checks.
   - name: Authentication
-    description: User authentication and authorization
+    description: User registration, login, token management, and logout.
   - name: Service Discovery
-    description: Microservice registration and discovery (Admin only)
-  - name: Microservices V1
-    description: Endpoints proxying requests to V1 microservices
+    description: Endpoints for microservice registration and discovery (typically admin-only).
+  - name: Microservices V1 - Segmentation
+    description: Proxy endpoints for the Segmentation Service.
+  - name: Microservices V1 - Runner
+    description: Proxy endpoints for the Runner Service.
+  - name: Microservices V1 - Archive
+    description: Proxy endpoints for the Archive Service.
+  - name: File Management
+    description: Endpoints for uploading, downloading, and managing files.
+  - name: Command Processing
+    description: Endpoints for submitting and tracking complex commands.
+  - name: Notifications
+    description: Endpoints for managing user notifications.
 

@@ -34,8 +34,8 @@ ALT_LAS, üç temel dosya tipine dayalı bir iş akışı kullanır:
 
 #### API Gateway (Node.js/Express)
 - **Lisans**: MIT
-- **Sorumluluklar**: Kimlik doğrulama, yönlendirme (arka uç servislere ters proxy ve devre kesici ile), API dokümantasyonu, rate-limiting
-- **Teknolojiler**: Express.js, Swagger/OpenAPI, JWT, http-proxy-middleware, opossum
+- **Sorumluluklar**: Kimlik doğrulama (JWT, token yenileme, çıkış), yetkilendirme (RBAC, izin tabanlı), yönlendirme (arka uç servislere ters proxy), API dokümantasyonu (Swagger/OpenAPI), rate-limiting, caching (Redis), gelişmiş oturum yönetimi, performans izleme (OpenTelemetry), loglama (Winston), istek/yanıt sıkıştırma, temel güvenlik (Helmet, CORS), servis keşfi ve sağlık kontrolü.
+- **Teknolojiler**: Express.js, TypeScript, Swagger/OpenAPI, JWT (jsonwebtoken), bcrypt, http-proxy-middleware, Redis (ioredis), Winston, OpenTelemetry SDK, Helmet, CORS, compression, Jest.
 
 #### Segmentation Service (Python/FastAPI)
 - **Lisans**: MIT
@@ -109,7 +109,9 @@ ALT_LAS, üç temel dosya tipine dayalı bir iş akışı kullanır:
 - **Lisans**: MIT
 - **Sorumluluklar**: Ses tanıma, ses sentezi
 - **Teknolojiler**: Whisper (MIT), Coqui TTS (MPL 2.0 → MIT alternatifi bulunacak)
-- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır. Coqui TTS lisansı (MPL 2.0) ticari kullanım için uygun olmadığından, MIT lisanslı bir alternatif (örneğin Piper TTS) araştırılacaktır.### 4.5. Güvenlik Katmanı (Security Layer)
+- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır. Coqui TTS lisansı (MPL 2.0) ticari kullanım için uygun olmadığından, MIT lisanslı bir alternatif (örneğin Piper TTS) araştırılacaktır.
+
+### 4.5. Güvenlik Katmanı (Security Layer)
 
 #### Policy Enforcement (Rust)
 - **Lisans**: MIT/Apache 2.0
@@ -155,7 +157,7 @@ Sistem farklı kişilik özellikleriyle çalışabilir:
 
 | Bileşen | Teknoloji | Lisans |
 |---------|-----------|--------|
-| Backend API | Node.js/Express | MIT |
+| Backend API | Node.js/Express, TypeScript, JWT, Redis, Winston, OpenTelemetry, Helmet | MIT |
 | Segmentation | Python/FastAPI | MIT |
 | Runner | Rust/Tokio | MIT/Apache 2.0 |
 | Archive | Go/NATS | BSD-3-Clause/Apache 2.0 |
@@ -237,3 +239,4 @@ ALT_LAS, ticari kullanıma uygun ücretsiz lisanslar kullanarak geliştirilecekt
 - PostgreSQL Lisansı (veritabanı)
 
 Bu lisanslar, projenin kapalı kaynak olarak ticari amaçla satılmasına olanak tanır.
+

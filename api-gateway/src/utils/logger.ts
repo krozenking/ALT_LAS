@@ -1,4 +1,5 @@
 import winston from 'winston';
+import 'winston-daily-rotate-file'; // Import the daily rotate file transport
 
 // Winston logger yapılandırması
 const logger = winston.createLogger({
@@ -22,10 +23,23 @@ const logger = winston.createLogger({
         })
       )
     }),
-    // Dosyaya log yazdırma (production ortamında)
+    // Dosyaya log yazdırma (production ortamında) - Günlük rotasyon ile
     ...(process.env.NODE_ENV === 'production' ? [
-      new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-      new winston.transports.File({ filename: 'logs/combined.log' })
+      new winston.transports.DailyRotateFile({
+        filename: 'logs/error-%DATE%.log',
+        level: 'error',
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        maxSize: '20m',
+        maxFiles: '14d'
+      }),
+      new winston.transports.DailyRotateFile({
+        filename: 'logs/combined-%DATE%.log',
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        maxSize: '20m',
+        maxFiles: '14d'
+      })
     ] : [])
   ]
 });
@@ -54,3 +68,4 @@ export const httpLogger = {
 };
 
 export default logger;
+

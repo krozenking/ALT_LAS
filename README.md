@@ -16,12 +16,13 @@ ALT_LAS, UI-TARS-desktop'ın kullanıcı arayüzü yetenekleri ile alt_last'ın 
 - İşletim sistemi entegrasyonu
 - Yerel AI modelleri ile düşük gecikme süresi
 - Güvenli sandbox izolasyonu
+- Kapsamlı API Gateway (Kimlik doğrulama, yetkilendirme, yönlendirme, caching, rate limiting, loglama, vb.)
 
 ## Mimari Yapı
 
 ALT_LAS, aşağıdaki ana bileşenlerden oluşmaktadır:
 
-- **API Gateway**: Tüm istekleri karşılar, kimlik doğrulama/yetkilendirme yapar, servis keşfi ve yönlendirme sağlar, performansı izler.
+- **API Gateway**: Tüm istekleri karşılar, kimlik doğrulama/yetkilendirme (JWT, RBAC) yapar, servis keşfi ve yönlendirme sağlar, performansı izler (OpenTelemetry), loglama (Winston, log rotasyonu), caching (Redis) ve daha fazlasını yönetir.
 - **Segmentation Service**: Komutları alt görevlere böler
 - **Runner Service**: Alt görevleri işler ve sonuçları üretir
 - **Archive Service**: Başarılı sonuçları arşivler
@@ -50,15 +51,15 @@ cd ALT_LAS
 
 # Ortam değişkenlerini ayarlayın
 # api-gateway dizinindeki .env.example dosyasını .env olarak kopyalayın
-# ve gerekli değerleri (özellikle JWT_SECRET) kendi değerlerinizle güncelleyin.
+# ve gerekli değerleri (özellikle JWT_SECRET, REDIS_URL vb.) kendi değerlerinizle güncelleyin.
 # Örneğin:
 # cd api-gateway
 # cp .env.example .env
 # nano .env # .env dosyasını düzenleyin
 # cd ..
 
-# Geliştirme ortamını kurun
-./scripts/setup.sh
+# Geliştirme ortamını kurun (Eğer varsa ve güncelse bu adımı atlayabilirsiniz)
+# ./scripts/setup.sh 
 
 # Servisleri başlatın
 docker-compose up -d
@@ -68,7 +69,7 @@ docker-compose up -d
 
 Her bileşen kendi dizininde bulunur ve bağımsız olarak geliştirilebilir:
 
-- `api-gateway/`: API Gateway servisi (Node.js/Express). **Worker 1 tarafından geliştirildi:** JWT token yenileme, çıkış, rol tabanlı erişim kontrolü (RBAC), gelişmiş servis keşfi (sağlık kontrolleri ile), performans izleme ve güncellenmiş Swagger dokümantasyonu eklendi. Detaylar için `api-gateway/CHANGELOG.md` dosyasına bakın.
+- `api-gateway/`: API Gateway servisi (Node.js/Express/TypeScript). **Worker 1 tarafından geliştirildi ve güncellendi:** Kapsamlı kimlik doğrulama (JWT token yenileme, çıkış), rol tabanlı erişim kontrolü (RBAC), gelişmiş servis keşfi (sağlık kontrolleri ile), performans izleme (OpenTelemetry), detaylı loglama (Winston ile log rotasyonu), caching (Redis), Swagger dokümantasyonu ve daha birçok özellik eklendi/güncellendi. Detaylar için `api-gateway/CHANGELOG.md` ve `api-gateway/README.md` dosyalarına bakın.
 - `segmentation-service/`: Segmentation servisi (Python/FastAPI)
 - `runner-service/`: Runner servisi (Rust)
 - `archive-service/`: Archive servisi (Go)
@@ -78,16 +79,18 @@ Her bileşen kendi dizininde bulunur ve bağımsız olarak geliştirilebilir:
 - `os-integration/`: İşletim sistemi entegrasyonu (Rust/C++)
 - `ai-orchestrator/`: AI orkestrasyon servisi (Python)
 - `security/`: Güvenlik katmanı (Rust/Go)
-- `docs/`: Dokümantasyon
+- `docs/`: Genel proje dokümantasyonu
 
 ## Dokümantasyon
 
 Detaylı dokümantasyon için aşağıdaki belgelere bakın:
 
-- [Mimari Tasarım](architecture.md)
+- [Mimari Tasarım](architecture.md) (Güncellendi)
 - [Geliştirme Yol Haritası](roadmap.md)
-- [İşçi Görev Dağılımı (Özet)](worker_tasks.md) (Detaylı plan için [İşçi Detaylı Görevler](worker_tasks_detailed.md))
-- [API Referansı](api-gateway/swagger.yaml) (Swagger UI üzerinden veya YAML dosyası olarak incelenebilir. Eski `docs/api-reference.md` güncel olmayabilir.)- [Geliştirici Kılavuzu](docs/developer-guide.md)
+- [İşçi Görev Dağılımı (Özet)](worker_tasks.md) (Detaylı plan için [İşçi Detaylı Görevler](worker_tasks_detailed.md) - Güncellendi)
+- [API Referansı](api-gateway/swagger.yaml) (Güncellendi - Swagger UI üzerinden veya YAML dosyası olarak incelenebilir. API Gateway çalışırken `/api-docs` adresinden erişilebilir.)
+- [API Gateway README](api-gateway/README.md) (Güncellendi)
+- [Geliştirici Kılavuzu](docs/developer-guide.md)
 - [Kullanıcı Kılavuzu](docs/user-guide.md)
 
 ## Lisans
@@ -101,13 +104,15 @@ Bu proje ticari kullanıma uygun ücretsiz lisanslar kullanılarak geliştirilmi
 
 ## Katkıda Bulunma
 
-Katkıda bulunmak için lütfen [İşçi Görev Dağılımı](worker_tasks.md) belgesini inceleyin ve size atanan görevlere odaklanın. Geliştirme sürecinde aşağıdaki adımları izleyin:
+Katkıda bulunmak için lütfen [İşçi Detaylı Görevler](worker_tasks_detailed.md) belgesini inceleyin ve size atanan görevlere odaklanın. Geliştirme sürecinde aşağıdaki adımları izleyin:
 
 1. Görevinizi GitHub Issues'dan alın
-2. Yeni bir branch oluşturun
+2. Yeni bir branch oluşturun (`git checkout -b feature/your-feature-name`)
 3. Değişikliklerinizi yapın ve test edin
-4. Pull request oluşturun
-5. Kod incelemesi sonrası birleştirme yapılacaktır
+4. Değişikliklerinizi commit'leyin (`git commit -m "Açıklayıcı commit mesajı"`)
+5. Branch'inizi push'layın (`git push origin feature/your-feature-name`)
+6. Pull request oluşturun
+7. Kod incelemesi sonrası birleştirme yapılacaktır
 
 ## İletişim
 

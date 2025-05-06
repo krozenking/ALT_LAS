@@ -12,6 +12,11 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.58.1",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.200.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.200.0",
+    "@opentelemetry/sdk-node": "^0.200.0",
     "@types/bcrypt": "^5.0.2",
     "@types/response-time": "^2.3.8",
     "@types/uuid": "^10.0.0",
@@ -36,6 +41,7 @@
     "swagger-ui-express": "^5.0.0",
     "uuid": "^11.1.0",
     "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {

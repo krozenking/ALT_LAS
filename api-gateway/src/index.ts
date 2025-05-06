@@ -24,6 +24,7 @@ import fileRoutes from "./routes/fileRoutes"; // Import file routes
 import userRoutes from "./routes/userRoutes"; // Import user routes
 import passwordRoutes from "./routes/passwordRoutes"; // Import password routes
 import sessionRoutes from "./routes/sessionRoutes"; // Import session routes
+import loadRoutes from "./utils/routeLoader"; // Import dynamic route loader
 import { setupMetrics, setupHealthCheck } from './utils/monitoring'; // Import monitoring setup
 import logger from './utils/logger';
 import { disconnectRedis } from './utils/redisClient'; // Import Redis disconnect
@@ -58,8 +59,11 @@ setupMetrics(app);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // API rotaları
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/password', passwordRoutes); // Add password routes
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/password", passwordRoutes); // Add password routes
+
+// Load dynamic routes from modules
+loadRoutes(app);
 
 // Kimlik doğrulama ve yetkilendirme middleware'leri
 // Apply JWT auth to all protected routes, including proxied ones

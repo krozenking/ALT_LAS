@@ -1,6 +1,6 @@
 # AI Adapter Service
 
-This service is responsible for providing a unified interface to various AI models, including OpenAI, Anthropic, Mistral AI, and local models (e.g., via llama.cpp).
+This service is responsible for providing a unified interface to various AI models, including OpenAI, Anthropic, Mistral AI, and local models (e.g., via Llama).
 
 ## Features
 
@@ -21,7 +21,9 @@ ai_adapter_service/
 │   ├── adapters/
 │   │   ├── __init__.py
 │   │   ├── openai_adapter.py
-│   │   └── anthropic_adapter.py
+│   │   ├── anthropic_adapter.py
+│   │   ├── mistral_adapter.py
+│   │   └── llama_adapter.py
 │   ├── core/
 │   │   ├── __init__.py
 │   │   └── base_adapter.py
@@ -30,7 +32,9 @@ ai_adapter_service/
 ├── tests/
 │   ├── adapters/
 │   │   ├── test_openai_adapter.py
-│   │   └── test_anthropic_adapter.py
+│   │   ├── test_anthropic_adapter.py
+│   │   ├── test_mistral_adapter.py
+│   │   └── test_llama_adapter.py
 │   ├── core/
 │   │   └── test_base_adapter.py
 │   └── conftest.py
@@ -58,7 +62,9 @@ ai_adapter_service/
     ```env
     OPENAI_API_KEY="your_openai_api_key_here"
     ANTHROPIC_API_KEY="your_anthropic_api_key_here"
-    # MISTRAL_API_KEY="your_mistral_api_key_here" # For future adapters
+    MISTRAL_API_KEY="your_mistral_api_key_here"
+    # For Llama adapter, specify model path or any other relevant config
+    # LLAMA_MODEL_PATH="/path/to/your/llama/model"
     ```
     The adapters will attempt to load these keys. Tests requiring API keys will be skipped if the corresponding key is not found.
 

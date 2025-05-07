@@ -71,3 +71,9 @@ Bu belge, `worker_tasks_detailed.md` dosyasından çıkarılan İşçi 6'nın (A
 *   **Dokümantasyon kapsamı:** ≥ %80
 
 Bu özet, İşçi 6'nın proje içindeki rolünü ve beklentilerini netleştirmek amacıyla hazırlanmıştır. Proje görevlerine başlarken bu özet ve `worker_tasks_detailed.md` dosyasındaki orijinal talimatlar dikkate alınacaktır.
+
+
+
+### Ek Çalışma Kuralları (Kullanıcı Talebi Üzerine Eklenmiştir):
+
+*   Her makro görev bitiminde, yapılan değişiklikler GitHub deposuna push edilecek ve ilgili dokümantasyon (README, API belgeleri, görev özetleri vb.) güncel tutulacaktır.

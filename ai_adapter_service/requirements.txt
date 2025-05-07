@@ -12,4 +12,7 @@ transformers
 python-dotenv
 loguru
 requests
+# Testing
+pytest
+pytest-asyncio
 

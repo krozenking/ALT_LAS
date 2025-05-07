@@ -175,15 +175,37 @@ func (h *AtlasHandler) DeleteAtlasHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
+// convertAtlasToAtlasFileForMock converts models.Atlas to models.AtlasFile for the mock handler
+func convertAtlasToAtlasFileForMock(atlas *models.Atlas) *models.AtlasFile {
+    if atlas == nil {
+        return nil
+    }
+    return &models.AtlasFile{
+        ID:          atlas.ID,
+        Version:     "1.0", // Mock version
+        LastFileID:  atlas.LastFileID,
+        LastFileRef: atlas.LastFileRef,
+        Timestamp:   atlas.Timestamp,
+        SuccessRate: atlas.SuccessRate,
+        Content:     atlas.FilePath, // Using FilePath as Content for mock
+        Metadata:    atlas.Metadata,
+        Tags:        atlas.Tags,
+        Status:      atlas.Status,
+        CreatedAt:   atlas.Timestamp, // Mock CreatedAt
+        // Other AtlasFile fields (SegmentResults, ProcessingTimeMs, etc.) can be defaulted or omitted for mock purposes
+    }
+}
+
 // CreateMockAtlasHandler handles requests to create a mock Atlas entry (for testing)
 func (h *AtlasHandler) CreateMockAtlasHandler(w http.ResponseWriter, r *http.Request) {
 	// Create a mock Atlas entry
 	atlasID := "atlas_" + uuid.New().String()
 	lastFileID := "last_" + uuid.New().String()
-	
+
 	atlas := &models.Atlas{
 		ID:          atlasID,
 		LastFileID:  lastFileID,
+		LastFileRef: "lastfile_ref_mock_" + lastFileID, // Added mock LastFileRef
 		FilePath:    "mock_" + atlasID + ".atlas",
 		SuccessRate: 0.95,
 		Timestamp:   time.Now(),
@@ -195,14 +217,20 @@ func (h *AtlasHandler) CreateMockAtlasHandler(w http.ResponseWriter, r *http.Req
 		Status: models.AtlasStatusActive,
 	}
 
-	// Save Atlas entry
-	err := h.atlasService.atlasRepo.Create(atlas)
+	// Convert models.Atlas to models.AtlasFile before calling repository
+	atlasFile := convertAtlasToAtlasFileForMock(atlas)
+
+	// Save Atlas entry using the repository through the service (if service has such a direct method)
+	// or directly to the repo if this handler is specifically for bypassing service logic for mock creation.
+	// The original code called h.atlasService.AtlasRepo.Create directly.
+	err := h.atlasService.AtlasRepo.Create(atlasFile) 
 	if err != nil {
 		http.Error(w, "Failed to create mock Atlas entry: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Send response
+	// Send response (original Atlas model, or the AtlasFile model, depending on desired API response for mock)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(atlas)
+	json.NewEncoder(w).Encode(atlas) // Responding with the original *models.Atlas for consistency with how it was before
 }
+

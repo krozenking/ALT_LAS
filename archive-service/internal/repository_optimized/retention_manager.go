@@ -1,8 +1,8 @@
 package repository_optimized
 
 import (
-	"context"
 	"fmt"
+	"os" // Added os import
 	"time"
 
 	"github.com/krozenking/ALT_LAS/archive-service/internal/logging"
@@ -35,7 +35,7 @@ func NewRetentionManager(dbManager *DBManager, logger *logging.Logger) *Retentio
 // AddPolicy adds a retention policy
 func (m *RetentionManager) AddPolicy(policy RetentionPolicy) {
 	m.policies[policy.DataType] = policy
-	m.logger.Info("Added retention policy for %s: %d days, archive first: %t", 
+	m.logger.Info("Added retention policy for %s: %d days, archive first: %t",
 		policy.DataType, policy.RetentionDays, policy.ArchiveFirst)
 }
 
@@ -43,7 +43,7 @@ func (m *RetentionManager) AddPolicy(policy RetentionPolicy) {
 func (m *RetentionManager) ApplyPolicies() error {
 	for dataType, policy := range m.policies {
 		m.logger.Info("Applying retention policy for %s", dataType)
-		
+
 		switch dataType {
 		case "last_files":
 			if err := m.applyLastFilePolicy(policy); err != nil {
@@ -59,17 +59,14 @@ func (m *RetentionManager) ApplyPolicies() error {
 			m.logger.Warn("Unknown data type for retention policy: %s", dataType)
 		}
 	}
-	
+
 	return nil
 }
 
 // applyLastFilePolicy applies retention policy to LastFile records
 func (m *RetentionManager) applyLastFilePolicy(policy RetentionPolicy) error {
 	cutoffDate := time.Now().AddDate(0, 0, -policy.RetentionDays)
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	
+
 	// Find records older than cutoff date
 	query := `
 		SELECT id, file_path, status
@@ -77,19 +74,19 @@ func (m *RetentionManager) applyLastFilePolicy(policy RetentionPolicy) error {
 		WHERE created_at < $1
 		LIMIT 1000
 	`
-	
-	rows, err := m.dbManager.QueryxContext(ctx, query, cutoffDate)
+
+	rows, err := m.dbManager.QueryxContext(query, cutoffDate) // Corrected: removed explicit ctx
 	if err != nil {
 		return fmt.Errorf("failed to query old last files: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var records []struct {
 		ID       string `db:"id"`
 		FilePath string `db:"file_path"`
 		Status   string `db:"status"`
 	}
-	
+
 	for rows.Next() {
 		var record struct {
 			ID       string `db:"id"`
@@ -101,13 +98,13 @@ func (m *RetentionManager) applyLastFilePolicy(policy RetentionPolicy) error {
 		}
 		records = append(records, record)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("error iterating records: %w", err)
 	}
-	
+
 	m.logger.Info("Found %d LastFile records to process for retention policy", len(records))
-	
+
 	// Process records
 	for _, record := range records {
 		if policy.ArchiveFirst && record.Status != models.LastFileStatusArchived {
@@ -117,24 +114,21 @@ func (m *RetentionManager) applyLastFilePolicy(policy RetentionPolicy) error {
 				continue
 			}
 		}
-		
+
 		// Delete file
 		if err := m.deleteLastFile(record.ID, record.FilePath); err != nil {
 			m.logger.Warn("Failed to delete LastFile %s: %v", record.ID, err)
 			continue
 		}
 	}
-	
+
 	return nil
 }
 
 // applyAtlasFilePolicy applies retention policy to AtlasFile records
 func (m *RetentionManager) applyAtlasFilePolicy(policy RetentionPolicy) error {
 	cutoffDate := time.Now().AddDate(0, 0, -policy.RetentionDays)
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	
+
 	// Find records older than cutoff date
 	query := `
 		SELECT id, status
@@ -142,18 +136,18 @@ func (m *RetentionManager) applyAtlasFilePolicy(policy RetentionPolicy) error {
 		WHERE created_at < $1
 		LIMIT 1000
 	`
-	
-	rows, err := m.dbManager.QueryxContext(ctx, query, cutoffDate)
+
+	rows, err := m.dbManager.QueryxContext(query, cutoffDate) // Corrected: removed explicit ctx
 	if err != nil {
 		return fmt.Errorf("failed to query old atlas files: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var records []struct {
 		ID     string `db:"id"`
 		Status string `db:"status"`
 	}
-	
+
 	for rows.Next() {
 		var record struct {
 			ID     string `db:"id"`
@@ -164,13 +158,13 @@ func (m *RetentionManager) applyAtlasFilePolicy(policy RetentionPolicy) error {
 		}
 		records = append(records, record)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("error iterating records: %w", err)
 	}
-	
+
 	m.logger.Info("Found %d AtlasFile records to process for retention policy", len(records))
-	
+
 	// Process records
 	for _, record := range records {
 		if policy.ArchiveFirst && record.Status != "archived" {
@@ -180,100 +174,88 @@ func (m *RetentionManager) applyAtlasFilePolicy(policy RetentionPolicy) error {
 				continue
 			}
 		}
-		
+
 		// Delete record
 		if err := m.deleteAtlasFile(record.ID); err != nil {
 			m.logger.Warn("Failed to delete AtlasFile %s: %v", record.ID, err)
 			continue
 		}
 	}
-	
+
 	return nil
 }
 
 // archiveLastFile archives a LastFile record
 func (m *RetentionManager) archiveLastFile(id string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	
 	query := `
 		UPDATE last_files
 		SET status = $1, updated_at = NOW()
 		WHERE id = $2
 	`
-	
-	_, err := m.dbManager.ExecContext(ctx, query, models.LastFileStatusArchived, id)
+
+	_, err := m.dbManager.ExecContext(query, models.LastFileStatusArchived, id) // Corrected: removed explicit ctx
 	if err != nil {
 		return fmt.Errorf("failed to archive LastFile: %w", err)
 	}
-	
+
 	m.logger.Info("Archived LastFile: %s", id)
 	return nil
 }
 
 // deleteLastFile deletes a LastFile record and its file
 func (m *RetentionManager) deleteLastFile(id, filePath string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	
 	// Delete from database
 	query := `
 		DELETE FROM last_files
 		WHERE id = $1
 	`
-	
-	_, err := m.dbManager.ExecContext(ctx, query, id)
+
+	_, err := m.dbManager.ExecContext(query, id) // Corrected: removed explicit ctx
 	if err != nil {
 		return fmt.Errorf("failed to delete LastFile from database: %w", err)
 	}
-	
+
 	m.logger.Info("Deleted LastFile from database: %s", id)
-	
+
 	// Delete file if it exists
 	if filePath != "" {
 		if err := m.deleteFile(filePath); err != nil {
 			m.logger.Warn("Failed to delete LastFile file %s: %v", filePath, err)
 		}
 	}
-	
+
 	return nil
 }
 
 // archiveAtlasFile archives an AtlasFile record
 func (m *RetentionManager) archiveAtlasFile(id string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	
 	query := `
 		UPDATE atlas_files
 		SET status = 'archived', updated_at = NOW()
 		WHERE id = $1
 	`
-	
-	_, err := m.dbManager.ExecContext(ctx, query, id)
+
+	_, err := m.dbManager.ExecContext(query, id) // Corrected: removed explicit ctx
 	if err != nil {
 		return fmt.Errorf("failed to archive AtlasFile: %w", err)
 	}
-	
+
 	m.logger.Info("Archived AtlasFile: %s", id)
 	return nil
 }
 
 // deleteAtlasFile deletes an AtlasFile record
 func (m *RetentionManager) deleteAtlasFile(id string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	
 	query := `
 		DELETE FROM atlas_files
 		WHERE id = $1
 	`
-	
-	_, err := m.dbManager.ExecContext(ctx, query, id)
+
+	_, err := m.dbManager.ExecContext(query, id) // Corrected: removed explicit ctx
 	if err != nil {
 		return fmt.Errorf("failed to delete AtlasFile: %w", err)
 	}
-	
+
 	m.logger.Info("Deleted AtlasFile: %s", id)
 	return nil
 }
@@ -284,11 +266,11 @@ func (m *RetentionManager) deleteFile(filePath string) error {
 		// File doesn't exist, nothing to do
 		return nil
 	}
-	
+
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
-	
+
 	m.logger.Info("Deleted file: %s", filePath)
 	return nil
 }
@@ -298,7 +280,7 @@ func (m *RetentionManager) ScheduleRetentionPolicyApplication(interval time.Dura
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -308,6 +290,7 @@ func (m *RetentionManager) ScheduleRetentionPolicyApplication(interval time.Dura
 			}
 		}
 	}()
-	
+
 	m.logger.Info("Scheduled retention policy application every %v", interval)
 }
+

@@ -52,6 +52,11 @@ func (r *LastFileRepository) prepareStatements() {
 			SET status = $2, updated_at = NOW()
 			WHERE id = $1
 		`,
+		"updateAtlasID": `
+			UPDATE last_files
+			SET atlas_id = $2, updated_at = NOW()
+			WHERE id = $1
+		`,
 		"getByStatus": `
 			SELECT id, file_path, success_rate, timestamp, metadata, status, created_at, updated_at
 			FROM last_files
@@ -153,6 +158,31 @@ func (r *LastFileRepository) UpdateStatus(id string, status string) error {
 	return nil
 }
 
+// UpdateAtlasID updates the atlas_id of a LastFile
+func (r *LastFileRepository) UpdateAtlasID(id string, atlasID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt, ok := r.statements["updateAtlasID"]
+	if !ok {
+		// Fallback to preparing the statement if not found (e.g., if prepareStatements failed for it)
+		var err error
+		stmt, err = r.db.PreparexContext(ctx, `UPDATE last_files SET atlas_id = $2, updated_at = NOW() WHERE id = $1`)
+		if err != nil {
+			return fmt.Errorf("failed to prepare updateAtlasID statement: %w", err)
+		}
+		// Optionally, cache it here if that logic is desired, though prepareStatements should handle it.
+	}
+
+	_, err := stmt.ExecContext(ctx, id, atlasID)
+	if err != nil {
+		return fmt.Errorf("failed to update last file atlas_id: %w", err)
+	}
+
+	return nil
+}
+
+
 // GetByStatus gets LastFiles by status with pagination
 func (r *LastFileRepository) GetByStatus(status string, limit, offset int) ([]*models.LastFile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -246,3 +276,4 @@ func (r *LastFileRepository) GetLowSuccessRateEntries(threshold float64, limit i
 
 	return lastFiles, nil
 }
+

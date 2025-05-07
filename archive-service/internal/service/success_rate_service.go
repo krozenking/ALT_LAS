@@ -1,22 +1,21 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/krozenking/ALT_LAS/archive-service/internal/models"
-	"github.com/krozenking/ALT_LAS/archive-service/internal/repository"
+	"github.com/krozenking/ALT_LAS/archive-service/internal/repository_optimized"
 )
 
 // SuccessRateService handles success rate analysis and reporting
 type SuccessRateService struct {
-	lastFileRepo *repository.LastFileRepository
-	atlasRepo    *repository.AtlasRepository
+	lastFileRepo *repository_optimized.LastFileRepository // Changed to repository_optimized
+	atlasRepo    *repository_optimized.AtlasRepository    // Changed to repository_optimized
 }
 
 // NewSuccessRateService creates a new SuccessRateService
-func NewSuccessRateService(lastFileRepo *repository.LastFileRepository, atlasRepo *repository.AtlasRepository) *SuccessRateService {
+func NewSuccessRateService(lastFileRepo *repository_optimized.LastFileRepository, atlasRepo *repository_optimized.AtlasRepository) *SuccessRateService {
 	return &SuccessRateService{
 		lastFileRepo: lastFileRepo,
 		atlasRepo:    atlasRepo,
@@ -54,10 +53,12 @@ func (s *SuccessRateService) GetSuccessRateCategory(rate float64) string {
 }
 
 // GetSuccessRateStats calculates success rate statistics
+// This method would need to be updated to use the repository_optimized methods
+// if it were to fetch live data. For now, it returns mock data.
 func (s *SuccessRateService) GetSuccessRateStats() (*SuccessRateStats, error) {
-	// In a real implementation, this would query the database
+	// In a real implementation, this would query the database using s.lastFileRepo or s.atlasRepo
 	// For now, we'll return mock statistics
-	
+
 	stats := &SuccessRateStats{
 		AverageRate:     0.85,
 		MinRate:         0.45,
@@ -68,15 +69,17 @@ func (s *SuccessRateService) GetSuccessRateStats() (*SuccessRateStats, error) {
 		ThresholdValue:  SuccessRateThreshold,
 		LastUpdated:     time.Now(),
 	}
-	
+
 	return stats, nil
 }
 
 // AnalyzeSuccessRateDistribution analyzes the distribution of success rates
+// This method would need to be updated to use the repository_optimized methods
+// if it were to fetch live data. For now, it returns mock data.
 func (s *SuccessRateService) AnalyzeSuccessRateDistribution() (map[string]int, error) {
 	// In a real implementation, this would query the database
 	// For now, we'll return mock distribution
-	
+
 	distribution := map[string]int{
 		"0.0-0.1": 0,
 		"0.1-0.2": 1,
@@ -89,13 +92,15 @@ func (s *SuccessRateService) AnalyzeSuccessRateDistribution() (map[string]int, e
 		"0.8-0.9": 30,
 		"0.9-1.0": 15,
 	}
-	
+
 	return distribution, nil
 }
 
 // GetLowSuccessRateEntries retrieves entries with low success rates
+// This method would need to be updated to use the repository_optimized methods
+// if it were to fetch live data. For now, it returns mock data.
 func (s *SuccessRateService) GetLowSuccessRateEntries(limit int) ([]*models.Atlas, error) {
-	// In a real implementation, this would query the database
+	// In a real implementation, this would query the database using s.atlasRepo
 	// For now, we'll return an empty slice
 	return []*models.Atlas{}, nil
 }
@@ -105,3 +110,4 @@ func (s *SuccessRateService) LogSuccessRateAlert(id string, rate float64) {
 	log.Printf("SUCCESS RATE ALERT: Entry %s has a low success rate of %.2f (threshold: %.2f)",
 		id, rate, SuccessRateThreshold)
 }
+

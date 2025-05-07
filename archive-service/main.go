@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt" // Added fmt import
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/google/uuid"
+	// "github.com/google/uuid" // Unused import, commented out
 	"github.com/gorilla/mux"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/config"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/errors"
@@ -16,7 +17,7 @@ import (
 	"github.com/krozenking/ALT_LAS/archive-service/internal/logging"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/middleware"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/models"
-	"github.com/krozenking/ALT_LAS/archive-service/internal/repository_optimized" // Use optimized version
+	"github.com/krozenking/ALT_LAS/archive-service/internal/repository_optimized"
 	"github.com/krozenking/ALT_LAS/archive-service/internal/service"
 )
 
@@ -32,8 +33,8 @@ func main() {
 
 	logger.Info("Starting Archive Service...")
 
-	// Initialize database
-	dbManager, err := repository.NewDBManager(&cfg.DB)
+	// Initialize database using repository_optimized
+	dbManager, err := repository_optimized.NewDBManager(&cfg.DB)
 	if err != nil {
 		logger.Fatal("Failed to initialize database: %v", err)
 	}
@@ -45,11 +46,12 @@ func main() {
 		logger.Fatal("Failed to run migrations: %v", err)
 	}
 
-	// Initialize repositories
-	lastFileRepo := repository.NewLastFileRepository(dbManager.GetDB())
-	atlasRepo := repository.NewAtlasRepository(dbManager.GetDB())
+	// Initialize repositories using repository_optimized
+	lastFileRepo := repository_optimized.NewLastFileRepository(dbManager, logger) // Corrected arguments
+	atlasRepo := repository_optimized.NewAtlasRepository(dbManager, logger)       // Corrected arguments
 
 	// Initialize services
+	// Note: Service layer might need adjustment if it expects non-optimized repository types
 	atlasService := service.NewAtlasService(lastFileRepo, atlasRepo)
 	successRateService := service.NewSuccessRateService(lastFileRepo, atlasRepo)
 
@@ -89,11 +91,11 @@ func main() {
 	// Routes
 	r.HandleFunc("/", indexHandler).Methods("GET")
 	r.HandleFunc("/health", healthCheckHandler).Methods("GET")
-	
+
 	// LastFile routes
 	r.HandleFunc("/archive", createArchiveHandler(lastFileRepo, logger)).Methods("POST")
 	r.HandleFunc("/archive/{id}", getArchiveStatusHandler(lastFileRepo, logger)).Methods("GET")
-	
+
 	// Atlas routes
 	r.HandleFunc("/atlas/search", atlasHandler.SearchAtlasHandler).Methods("GET")
 	r.HandleFunc("/atlas/{id}", atlasHandler.GetAtlasHandler).Methods("GET")
@@ -101,7 +103,7 @@ func main() {
 	r.HandleFunc("/atlas/{id}/delete", atlasHandler.DeleteAtlasHandler).Methods("POST")
 	r.HandleFunc("/atlas/tags", atlasHandler.GetTagsHandler).Methods("GET")
 	r.HandleFunc("/atlas/mock", atlasHandler.CreateMockAtlasHandler).Methods("POST") // For testing
-	
+
 	// Success Rate routes
 	r.HandleFunc("/success-rate/stats", successRateHandler.GetSuccessRateStatsHandler).Methods("GET")
 	r.HandleFunc("/success-rate/distribution", successRateHandler.GetSuccessRateDistributionHandler).Methods("GET")
@@ -111,7 +113,7 @@ func main() {
 	// Start HTTP server
 	go func() {
 		logger.Info("Starting HTTP server on port %d...", cfg.Server.Port)
-		if err := http.ListenAndServe(":9000", r); err != nil {
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), r); err != nil {
 			logger.Fatal("Failed to start HTTP server: %v", err)
 		}
 	}()
@@ -124,10 +126,9 @@ func main() {
 	logger.Info("Shutting down Archive Service...")
 }
 
-// createLastFileHandler creates a handler function for processing LastFileMessages
 func createLastFileHandler(
-	repo *repository.LastFileRepository, 
-	processor *listener.LastFileProcessor, 
+	repo *repository_optimized.LastFileRepository,
+	processor *listener.LastFileProcessor,
 	atlasService *service.AtlasService,
 	successRateService *service.SuccessRateService,
 	logger *logging.Logger,
@@ -191,22 +192,19 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status":"UP"}`))
 }
 
-func createArchiveHandler(repo *repository.LastFileRepository, logger *logging.Logger) http.HandlerFunc {
+func createArchiveHandler(repo *repository_optimized.LastFileRepository, logger *logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Implementation remains the same as in the original main.go
-		// but would use the repository for database operations
 		logger.Debug("Received archive request")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"received","id":"mock-id"}`))
 	}
 }
 
-func getArchiveStatusHandler(repo *repository.LastFileRepository, logger *logging.Logger) http.HandlerFunc {
+func getArchiveStatusHandler(repo *repository_optimized.LastFileRepository, logger *logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Implementation remains the same as in the original main.go
-		// but would use the repository for database operations
 		logger.Debug("Received archive status request")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"processing","id":"mock-id"}`))
 	}
 }
+

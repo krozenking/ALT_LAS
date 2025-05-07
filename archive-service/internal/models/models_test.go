@@ -157,12 +157,12 @@ func TestAnalyticsModels(t *testing.T) {
 	assert.Equal(t, int64(8), analytics.FailureCount)
 	assert.Len(t, analytics.TopTags, 2)
 	assert.Equal(t, "tag1", analytics.TopTags[0].Tag)
-	assert.Equal(t, int64(50), analytics.TopTags[0].Count)
+	assert.Equal(t, 50, analytics.TopTags[0].Count) // Corrected: Expected int, not int64
 	
 	// Test TagCount model
 	tagCount := analytics.TopTags[1]
 	assert.Equal(t, "tag2", tagCount.Tag)
-	assert.Equal(t, int64(30), tagCount.Count)
+	assert.Equal(t, 30, tagCount.Count) // Corrected: Expected int, not int64
 }
 
 func TestSearchQuery(t *testing.T) {
@@ -191,3 +191,4 @@ func TestSearchQuery(t *testing.T) {
 	assert.Equal(t, "success_rate", query.SortBy)
 	assert.Equal(t, "desc", query.SortOrder)
 }
+

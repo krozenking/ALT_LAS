@@ -1,7 +1,6 @@
 package listener
 
 import (
-	"fmt"
 	"log"
 	"time"
 )
@@ -50,3 +49,4 @@ func (p *LastFileProcessor) CreateLastFileHandler() LastFileHandler {
 		return p.ProcessLastFile(msg)
 	}
 }
+

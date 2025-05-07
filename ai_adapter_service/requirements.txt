@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+# AI Model SDKs
+openai
+anthropic
+mistralai
+llama-cpp-python
+huggingface_hub
+transformers
+# Utilities
+python-dotenv
+loguru
+requests
+

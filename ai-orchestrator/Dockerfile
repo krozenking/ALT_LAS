@@ -1,16 +1,9 @@
-"""
-Dockerfile for AI Orchestrator.
+# ---- Builder Stage ----
+FROM python:3.10-slim AS builder
 
-This Dockerfile builds a container image for the AI Orchestrator service.
-"""
-
-# Use Python 3.10 as base image
-FROM python:3.10-slim
-
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies required for building some Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -21,26 +14,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
+# Copy requirements file and install dependencies
 COPY requirements.txt .
+# Using --prefix=/install to install packages into a specific directory
+# This makes it easier to copy only the installed packages to the final stage
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# ---- Runner Stage ----
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Create a non-root user for security
+RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
+
+# Copy installed Python packages from the builder stage
+COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY . .
 
-# Create directories for models and cache
-RUN mkdir -p /app/models /app/cache /app/logs
+# Create directories for models, cache, and logs, and set permissions
+RUN mkdir -p /app/models /app/cache /app/logs && \
+    chown -R appuser:appuser /app/models /app/cache /app/logs /app
 
 # Set environment variables
 ENV MODEL_DIR=/app/models
 ENV CACHE_DIR=/app/cache
 ENV LOG_LEVEL=INFO
 ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
 
-# Expose port
+# Switch to non-root user
+USER appuser
+
 EXPOSE 8000
 
 # Run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

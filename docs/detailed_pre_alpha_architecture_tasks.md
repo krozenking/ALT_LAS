@@ -409,3 +409,34 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   **Segmentation Service (Python):** Mevcut Dockerfile, `python:3.10-slim` temel imajını kullanıyor ve bağımlılıkları yüklüyor. Pre-Alpha için temel bir yapı sunmaktadır. İlerleyen aşamalarda çok aşamalı build ile optimizasyon düşünülebilir.
     *   **Archive Service (Go):** Mevcut Dockerfile, `golang:1.18-alpine` temel imajını kullanarak derleme yapıyor. Go'nun kendi build optimizasyonları sayesinde imajlar genellikle küçüktür, ancak bu da ileride çok aşamalı build ile daha da optimize edilebilir.
     *   Genel olarak, her servis için temel Docker imajları tanımlanmış ve en azından Node.js ve Rust servisleri için çok aşamalı build stratejileri uygulanmış veya mevcut olduğu doğrulanmıştır. Python ve Go için temel yapılar korunmuş olup, Pre-Alpha için yeterli görülmüştür.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 06:22 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: Docker Stratejisi - `.dockerignore` Dosyaları İçin Standart Oluşturma ve Uygulama**
+    *   Proje genelinde kullanılmak üzere `/home/ubuntu/ALT_LAS_with_token/.dockerignore_standard` adlı standart bir `.dockerignore` dosyası daha önceki bir aşamada oluşturulmuştu.
+    *   Bu standart dosyanın içeriği (node_modules, log dosyaları, build çıktıları, IDE konfigürasyonları vb. yaygın olarak göz ardı edilen dosyaları içerir) incelendi ve uygunluğu teyit edildi.
+    *   Daha önceki bir adımda (`May 08 2025 01:40:40 +0000` tarihli `apply_dockerignore` shell komutu ile) bu standart `.dockerignore` dosyasının tüm ilgili servis klasörlerine (`api-gateway`, `segmentation-service`, `runner-service`, `archive-service`, `ai-orchestrator`, `ui-desktop`, `os-integration-service`) kopyalandığı doğrulandı.
+    *   Bu sayede, tüm servislerin Docker imajları oluşturulurken gereksiz dosyaların imaja dahil edilmemesi ve imaj boyutlarının optimize edilmesi için tutarlı bir yaklaşım sağlanmıştır.
+    *   Bu teknik alt görev için ek bir dosya değişikliği yapılmamıştır, mevcut durumun standartlara uygun olduğu teyit edilmiştir.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 06:23 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: Docker Stratejisi - Yerel Geliştirme ve Test için `docker-compose.yml` Geliştirme**
+    *   Mevcut `/home/ubuntu/ALT_LAS_with_token/docker-compose.yml` dosyası, tüm ana servisleri (API Gateway, Segmentation Service, Runner Service, Archive Service, AI Orchestrator) ve gerekli yardımcı servisleri (Redis, PostgreSQL, NATS) içerecek şekilde kapsamlı bir biçimde güncellendi.
+    *   Her servis için `build` bağlamı, `container_name`, `ports` ve yerel geliştirmeyi kolaylaştırmak için `volumes` (kaynak kodun konteynere yansıtılması) tanımlandı.
+    *   Servisler arası iletişim ve yapılandırma için temel `environment` değişkenleri eklendi (örn: `DATABASE_URL`, `REDIS_URL`, `NATS_URL`, servislerin birbirine erişim URL'leri için yer tutucular).
+    *   `depends_on` ifadeleri, servislerin doğru başlangıç sırasını sağlamak için (örneğin, Archive Service'in PostgreSQL ve NATS'a bağımlılığı) eklendi.
+    *   Veri kalıcılığı için PostgreSQL ve Redis için `volumes` (`postgres_data`, `redis_data`) tanımlandı.
+    *   AI Orchestrator servisi için bir Dockerfile gerektiği not edildi ve `docker-compose.yml` dosyasına eklendi.
+    *   UI Desktop (Electron uygulaması) için, genellikle geliştirme ortamında `docker-compose` ile çalıştırılmadığı belirtilerek yer tutucu olarak bırakıldı.
+    *   Bu güncellenmiş `docker-compose.yml` dosyası, tüm servislerin yerel bir ortamda kolayca ayağa kaldırılmasını, test edilmesini ve geliştirilmesini sağlayarak servisler arası etkileşimi kolaylaştırır.

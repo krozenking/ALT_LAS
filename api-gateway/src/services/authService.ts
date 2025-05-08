@@ -2,33 +2,26 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../middleware/errorMiddleware";
 import logger from "../utils/logger";
 import jwtService from "../services/jwtService";
-import sessionService, { DeviceInfo, SessionInfo } from "../services/sessionService"; // Import SessionInfo
-import authorizationService from "../services/authorizationService"; // Import authorizationService
+import sessionService, { DeviceInfo, SessionInfo } from "../services/sessionService";
+import authorizationService from "../services/authorizationService";
 import {
   BadRequestError,
   UnauthorizedError,
   NotFoundError,
 } from "../utils/errors";
 import * as bcrypt from "bcrypt";
-import crypto from "crypto"; // For generating reset tokens
+import crypto from "crypto";
+import userService, { UserType as ExternalUserType, IUserService } from "./userService"; // Import userService and its types
 
-// --- Mock Data Store ---
+// --- Mock Data Store (authService might still manage its own user representation or extend userService's) ---
 
-interface User {
-  id: string;
-  username: string;
-  passwordHash: string; // Store hashed passwords
-  email?: string;
-  roles: string[];
-  permissions: string[];
-  isActive: boolean;
-  firstName?: string; // Added for profile
-  lastName?: string; // Added for profile
-  createdAt?: Date; // Added for profile
-  updatedAt?: Date; // Added for profile
-  isEmailVerified?: boolean;
-  emailVerificationToken?: string;
-  emailVerificationTokenExpires?: Date;
+interface User extends ExternalUserType { // Extend or use ExternalUserType
+  // authService specific fields if any, otherwise ExternalUserType covers it
+  // Ensure all fields used by authRoutes are here or in ExternalUserType
+  // isEmailVerified, emailVerificationToken, emailVerificationTokenExpires should come from ExternalUserType
+  // passwordHash is essential for authService
+  passwordHash: string; 
+  isAccountLocked?: boolean; // For admin updates
 }
 
 interface PasswordResetToken {
@@ -38,17 +31,18 @@ interface PasswordResetToken {
 }
 
 // Mock user database (replace with actual DB interaction)
-const users = new Map<string, User>();
-const passwordResetTokens = new Map<string, PasswordResetToken>(); // token -> ResetTokenInfo
+// This user map in authService should be consistent with or leverage userService's user store.
+// For simplicity in this mock, we might have some redundancy or a strategy to keep them in sync.
+// Ideally, userService is the single source of truth for user data, and authService uses it.
+const users = new Map<string, User>(); // This might need to be refactored to use userService as primary store
+const passwordResetTokens = new Map<string, PasswordResetToken>();
 
-const saltRounds = 10; // Standard salt rounds for bcrypt
+const saltRounds = 10;
 
-// Helper to hash password using bcrypt
 const hashPassword = (password: string): string => {
   return bcrypt.hashSync(password, saltRounds);
 };
 
-// Helper to compare password using bcrypt
 const comparePassword = (plainPassword: string, hash: string): boolean => {
   try {
     return bcrypt.compareSync(plainPassword, hash);
@@ -58,95 +52,96 @@ const comparePassword = (plainPassword: string, hash: string): boolean => {
   }
 };
 
-// Seed initial users
+// Seed initial users - This should ideally use userService.createUser and then authService can retrieve
+// For now, let's assume this seeding is for authService's local understanding or test data.
 users.set("1", {
   id: "1",
   username: "admin",
-  passwordHash: hashPassword("password"), // Use bcrypt
+  passwordHash: hashPassword("password"),
   email: "admin@example.com",
   roles: ["admin"],
-  permissions: Object.keys(authorizationService.getPermissions()), // Admin has all permissions
+  permissions: Object.keys(authorizationService.getPermissions()),
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
   isEmailVerified: true,
+  isAccountLocked: false,
 });
 
 users.set("2", {
   id: "2",
   username: "user",
-  passwordHash: hashPassword("password"), // Use bcrypt
+  passwordHash: hashPassword("password"),
   email: "user@example.com",
   roles: ["user"],
-  permissions: [], // User might get permissions dynamically or via roles
+  permissions: [],
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
   isEmailVerified: true,
+  isAccountLocked: false,
 });
 
 // --- Service Functions --- 
 
-/**
- * Create a new user.
- */
 const createUser = async (
   userData: Pick<
     User,
     "username" | "email" | "passwordHash" | "firstName" | "lastName" | "roles"
   >
 ): Promise<Partial<User>> => {
-  if (Array.from(users.values()).some((u) => u.username === userData.username)) {
-    throw new BadRequestError("Bu kullanıcı adı zaten kullanılıyor");
+  // Delegate user creation to userService, then potentially add auth-specific info or just return userService result
+  const createdUserPartial = await userService.createUser({
+      username: userData.username,
+      email: userData.email!,
+      passwordHash: userData.passwordHash, // userService expects passwordHash now
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      roles: userData.roles,
+  });
+  // Simulate fetching the full user if userService returns partial, or assume it's sufficient
+  // For this example, we'll assume createdUserPartial is what we need to return from authService's perspective
+  // If authService needs to store its own User record, it would do so here based on createdUserPartial.id
+  const localUser = users.get(createdUserPartial.id!); // Attempt to get if it was seeded or sync
+  if (localUser) {
+      Object.assign(localUser, createdUserPartial, { passwordHash: hashPassword(userData.passwordHash) });
+      users.set(localUser.id, localUser);
+  } else {
+      // If not found, create a local representation. This indicates a need for better sync strategy.
+      const fullNewUser: User = {
+          id: createdUserPartial.id!,
+          username: createdUserPartial.username!,
+          email: createdUserPartial.email!,
+          passwordHash: hashPassword(userData.passwordHash),
+          roles: createdUserPartial.roles || ["user"],
+          permissions: [],
+          isActive: true,
+          firstName: createdUserPartial.firstName,
+          lastName: createdUserPartial.lastName,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isEmailVerified: false, // Should align with userService
+      };
+      users.set(fullNewUser.id, fullNewUser);
   }
-  if (
-    userData.email &&
-    Array.from(users.values()).some((u) => u.email === userData.email)
-  ) {
-    throw new BadRequestError("Bu e-posta adresi zaten kullanılıyor");
-  }
-  if (!userData.passwordHash || userData.passwordHash.length < 6) {
-    // Note: This check should be on the plain password before hashing in a real app
-    throw new BadRequestError("Şifre en az 6 karakter olmalıdır");
-  }
-
-  const id = crypto.randomUUID();
-  const newUser: User = {
-    id,
-    username: userData.username,
-    passwordHash: hashPassword(userData.passwordHash), // Hash the password
-    email: userData.email,
-    roles: userData.roles || ["user"],
-    permissions: [], // Start with no direct permissions
-    isActive: true, // Activate user by default, email verification needed
-    firstName: userData.firstName,
-    lastName: userData.lastName,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    isEmailVerified: false, // Email not verified on creation
-  };
-
-  users.set(id, newUser);
-  logger.info(`Yeni kullanıcı oluşturuldu: ${newUser.username} (ID: ${id})`);
-
-  const { passwordHash: _, ...userWithoutPassword } = newUser;
-  return userWithoutPassword;
+  // Return the partial user as per userService's return type for consistency
+  return createdUserPartial;
 };
 
-/**
- * Validate user credentials.
- */
 const validateUser = async (
   username: string,
   password: string
 ): Promise<User> => {
+  // This should ideally fetch user from userService, then compare password.
+  // For now, using local `users` map for simplicity of auth logic.
   const user = Array.from(users.values()).find((u) => u.username === username);
 
   if (!user || !user.isActive) {
      logger.warn(`Giriş denemesi - Kullanıcı bulunamadı veya aktif değil: ${username}`);
      throw new UnauthorizedError("Geçersiz kullanıcı adı veya şifre ya da kullanıcı aktif değil");
   }
-  if (!user.isEmailVerified) {
+  // Email verification check using the User object from this service (which should be in sync)
+  if (!user.isEmailVerified) { 
     logger.warn(`Giriş denemesi - E-posta doğrulanmamış: ${username}`);
     throw new UnauthorizedError("Lütfen giriş yapmadan önce e-posta adresinizi doğrulayın.");
   }
@@ -157,22 +152,73 @@ const validateUser = async (
   return user;
 };
 
-/**
- * Save refresh token (associating with user - simple example).
- * In a real app, this would be stored securely, likely in the session store.
- */
+const logout = async (accessToken: string, refreshToken: string): Promise<void> => {
+    try {
+        const decoded = jwtService.verifyToken(accessToken);
+        if (decoded && decoded.userId) {
+            // Invalidate the session associated with the refresh token
+            sessionService.invalidateSessionByRefreshToken(refreshToken);
+            logger.info(`User ${decoded.userId} logged out. Session for refresh token invalidated.`);
+        } else {
+            logger.warn(`Logout attempt with invalid access token.`);
+            // Even if access token is invalid, try to invalidate refresh token if provided
+            sessionService.invalidateSessionByRefreshToken(refreshToken);
+        }
+    } catch (error) {
+        logger.error("Error during logout:", error);
+        // Still attempt to invalidate refresh token as a best effort
+        try {
+            sessionService.invalidateSessionByRefreshToken(refreshToken);
+        } catch (refreshError) {
+            logger.error("Error invalidating refresh token during logout failure:", refreshError);
+        }
+        throw new UnauthorizedError("Logout failed. Invalid token.");
+    }
+};
+
+const updateUser = async (userId: string, updateData: Partial<User>): Promise<Partial<User>> => {
+    // Delegate to userService for actual update
+    const updatedUserFromService = await userService.updateUser(userId, updateData);
+    if (!updatedUserFromService) {
+        throw new NotFoundError("Kullanıcı bulunamadı (userService)");
+    }
+
+    // Update local mock store if necessary (for authService's own logic if any)
+    const localUser = users.get(userId);
+    if (localUser) {
+        // If password is being updated, hash it
+        if (updateData.passwordHash && typeof updateData.passwordHash === 'string') {
+            updateData.passwordHash = hashPassword(updateData.passwordHash);
+        }
+        Object.assign(localUser, updateData);
+        localUser.updatedAt = new Date();
+        users.set(userId, localUser);
+        logger.info(`User ${userId} updated in authService local store.`);
+    }
+    // Return what userService returned
+    const { passwordHash, ...userToReturn } = updatedUserFromService as User; // Cast to ensure passwordHash is omitted
+    return userToReturn;
+};
+
+const deleteUser = async (userId: string): Promise<void> => {
+    const success = await userService.deleteUser(userId);
+    if (!success) {
+        throw new NotFoundError("Kullanıcı silinemedi veya bulunamadı (userService)");
+    }
+    // Remove from local mock store if it exists
+    if (users.has(userId)) {
+        users.delete(userId);
+        logger.info(`User ${userId} deleted from authService local store.`);
+    }
+};
+
 const saveRefreshToken = async (
   userId: string,
   refreshToken: string
 ): Promise<void> => {
-  // This is a placeholder. Refresh tokens are managed by sessionService.
   logger.debug(`Placeholder saveRefreshToken called for user ${userId}`);
 };
 
-/**
- * Validate refresh token.
- * In a real app, check against the session store.
- */
 const validateRefreshToken = async (
   userId: string,
   refreshToken: string
@@ -185,10 +231,6 @@ const validateRefreshToken = async (
   }
 };
 
-/**
- * Invalidate refresh token.
- * In a real app, remove/invalidate from the session store.
- */
 const invalidateRefreshToken = async (
   userId: string,
   refreshToken: string
@@ -196,7 +238,6 @@ const invalidateRefreshToken = async (
   try {
     sessionService.invalidateSessionByRefreshToken(refreshToken);
   } catch (error: unknown) {
-    // Catch unknown error type
     const message = error instanceof Error ? error.message : String(error);
     logger.warn(
       `Error invalidating refresh token via sessionService: ${message}`
@@ -204,59 +245,42 @@ const invalidateRefreshToken = async (
   }
 };
 
-/**
- * Create a user session.
- */
 const createSession = async (
   userId: string,
-  sessionId: string,
+  sessionId: string, // sessionId is not used as sessionService generates it
   ipAddress: string,
   userAgent: string
 ): Promise<void> => {
-  // This is a placeholder. Sessions are managed by sessionService.
-  // The session ID is generated within sessionService.createSession, so don't pass it here.
-  const refreshToken = jwtService.generateRefreshToken(userId); // Generate a token
+  const refreshToken = jwtService.generateRefreshToken(userId);
   sessionService.createSession(userId, refreshToken, { ip: ipAddress, userAgent });
-  logger.info(`Session created for user ${userId}`); // Log without session ID as it's created internally
+  logger.info(`Session created for user ${userId}`);
 };
 
-/**
- * End a specific user session.
- */
 const endSession = async (userId: string, sessionId: string): Promise<void> => {
   try {
-    sessionService.invalidateSession(sessionId); // Use invalidateSession instead of invalidateSessionById
+    sessionService.invalidateSession(sessionId);
   } catch (error: unknown) {
-    // Catch unknown error type
     const message = error instanceof Error ? error.message : String(error);
     logger.warn(`Error ending session ${sessionId} for user ${userId}: ${message}`);
     throw new NotFoundError("Oturum bulunamadı veya zaten sonlandırılmış");
   }
 };
 
-/**
- * End all sessions for a user.
- */
 const endAllSessions = async (userId: string): Promise<void> => {
   sessionService.invalidateAllUserSessions(userId);
   logger.info(`All sessions ended for user ${userId}`);
 };
 
-/**
- * End all sessions for a user except the specified one.
- */
 const endAllSessionsExcept = async (
   userId: string,
   currentSessionId: string
 ): Promise<void> => {
-  const sessions = sessionService.getUserActiveSessions(userId); // Use getUserActiveSessions
+  const sessions = sessionService.getUserActiveSessions(userId);
   sessions.forEach((session: SessionInfo) => {
-    // Add type SessionInfo
     if (session.id !== currentSessionId) {
       try {
-        sessionService.invalidateSession(session.id); // Use invalidateSession
+        sessionService.invalidateSession(session.id);
       } catch (error: unknown) {
-        // Catch unknown error type
         const message = error instanceof Error ? error.message : String(error);
         logger.warn(
           `Error ending session ${session.id} for user ${userId}: ${message}`
@@ -269,23 +293,28 @@ const endAllSessionsExcept = async (
   );
 };
 
-/**
- * Get user details by ID (excluding password).
- */
 const getUserById = async (userId: string): Promise<Partial<User> | null> => {
-  const user = users.get(userId);
-  if (!user) {
-    return null;
-  }
-  const { passwordHash: _, ...userWithoutPassword } = user;
-  return userWithoutPassword;
+    // Prefer userService as the source of truth
+    const userFromService = await userService.getUserById(userId);
+    if (!userFromService) return null;
+
+    // If authService needs to augment or use its local (potentially outdated) passwordHash:
+    const localUser = users.get(userId);
+    const passwordHash = localUser ? localUser.passwordHash : undefined;
+
+    // Combine, ensuring passwordHash is not exposed unless specifically needed internally
+    const combinedUser: Partial<User> = {
+        ...userFromService,
+        // passwordHash: passwordHash, // Only include if necessary for some authService logic, but not for external return
+    };
+    // For returning to routes, ensure passwordHash is stripped
+    const { passwordHash: _, ...userToReturn } = combinedUser as User;
+    return userToReturn;
 };
 
-/**
- * Get user details by Email (excluding password).
- */
 const getUserByEmail = async (email: string): Promise<Partial<User> | null> => {
-  const user = Array.from(users.values()).find((u) => u.email === email);
+  // This should ideally use userService
+  const user = Array.from(users.values()).find((u) => u.email === email); // Example: still using local mock
   if (!user) {
     return null;
   }
@@ -293,46 +322,35 @@ const getUserByEmail = async (email: string): Promise<Partial<User> | null> => {
   return userWithoutPassword;
 };
 
-/**
- * Get user details needed for authentication middleware.
- */
 const getUserDetailsForAuth = async (
   userId: string
 ): Promise<Express.User | null> => {
-  const user = users.get(userId);
+  const user = users.get(userId); // Using local mock for simplicity here
   if (!user || !user.isActive) {
-    return null; // Return null if user not found or inactive
+    return null;
   }
-  // Return only necessary fields for the req.user object
   return {
     id: user.id,
     username: user.username,
     roles: user.roles,
-    permissions: user.permissions,
+    permissions: await getUserPermissions(user.id), // Recalculate effective permissions
   };
 };
 
-/**
- * Get all users (excluding password).
- */
 const getAllUsers = async (): Promise<Partial<User>[]> => {
-  return Array.from(users.values()).map((user) => {
-    const { passwordHash: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+  // Delegate to userService
+  const usersFromService = await userService.getAllUsers();
+  // Map to ensure passwordHash is not included from authService's perspective if it were to merge
+  return usersFromService.map(u => {
+      const { passwordHash, ...userToReturn } = u as User;
+      return userToReturn;
   });
 };
 
-/**
- * Get user sessions.
- */
 const getUserSessions = async (userId: string): Promise<SessionInfo[]> => {
-  // Use SessionInfo[]
-  return sessionService.getUserActiveSessions(userId); // Use getUserActiveSessions
+  return sessionService.getUserActiveSessions(userId);
 };
 
-/**
- * Save password reset token.
- */
 const savePasswordResetToken = async (
   userId: string,
   token: string,
@@ -342,9 +360,6 @@ const savePasswordResetToken = async (
   logger.info(`Password reset token saved for user ${userId}`);
 };
 
-/**
- * Validate password reset token.
- */
 const validatePasswordResetToken = async (
   token: string
 ): Promise<Partial<User> | null> => {
@@ -355,161 +370,117 @@ const validatePasswordResetToken = async (
   return getUserById(resetInfo.userId);
 };
 
-/**
- * Invalidate password reset token.
- */
 const invalidatePasswordResetToken = async (token: string): Promise<void> => {
   passwordResetTokens.delete(token);
   logger.info(`Password reset token invalidated: ${token}`);
 };
 
-/**
- * Request a password reset.
- */
 const requestPasswordReset = async (email: string): Promise<string | null> => {
-  const user = Array.from(users.values()).find(
+  const userArray = Array.from(users.values()); // Using local mock
+  const user = userArray.find(
     (u) => u.email === email && u.isActive
   );
   if (!user) {
     logger.warn(
       `Password reset requested for non-existent or inactive email: ${email}`
     );
-    return null; // Don't throw error, just return to prevent email enumeration
+    return null;
   }
-
-  // Generate a secure random token
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 3600000); // 1 hour expiry
-
-  // Store the token (associate with user ID)
+  const expiresAt = new Date(Date.now() + 3600000);
   await savePasswordResetToken(user.id, token, expiresAt);
-
-  // TODO: Send email to user.email with the reset link/token
   logger.info(
     `Password reset token generated for user ${user.id}. Token: ${token}. Email not sent (mock).`
   );
-  return token; // Return token for potential use (e.g., in response during dev)
+  return token;
 };
 
-/**
- * Reset password using a token.
- */
 const resetPassword = async (
   token: string,
   newPassword: string
 ): Promise<void> => {
-  const user = await validatePasswordResetToken(token);
-  if (!user) {
+  const userPartial = await validatePasswordResetToken(token);
+  if (!userPartial || !userPartial.id) {
     throw new UnauthorizedError("Geçersiz veya süresi dolmuş şifre sıfırlama tokenı");
   }
-
-  const userToUpdate = users.get(user.id!);
+  const userToUpdate = users.get(userPartial.id); // Get from local mock
   if (!userToUpdate) {
     throw new NotFoundError("Token ile ilişkili kullanıcı bulunamadı");
   }
-
-  // Update password
-  userToUpdate.passwordHash = hashPassword(newPassword); // Use bcrypt
+  userToUpdate.passwordHash = hashPassword(newPassword);
   userToUpdate.updatedAt = new Date();
-
-  // Invalidate the reset token
+  users.set(userToUpdate.id, userToUpdate);
   await invalidatePasswordResetToken(token);
-  // Invalidate all active sessions for the user
-  await endAllSessions(user.id!);
-
-  logger.info(`User ${user.id} password reset successfully.`);
+  await endAllSessions(userToUpdate.id);
+  logger.info(`User ${userToUpdate.id} password reset successfully.`);
 };
 
-/**
- * Change password for an authenticated user.
- */
 const changePassword = async (
   userId: string,
   currentPassword: string,
   newPassword: string
 ): Promise<void> => {
-  const user = users.get(userId);
+  const user = users.get(userId); // Local mock
   if (!user) {
     throw new NotFoundError("Kullanıcı bulunamadı");
   }
-
   if (!comparePassword(currentPassword, user.passwordHash)) {
     throw new UnauthorizedError("Mevcut şifre yanlış");
   }
-
   if (currentPassword === newPassword) {
     throw new BadRequestError("Yeni şifre mevcut şifre ile aynı olamaz");
   }
-
-  user.passwordHash = hashPassword(newPassword); // Use bcrypt
+  user.passwordHash = hashPassword(newPassword);
   user.updatedAt = new Date();
-  // Invalidate all active sessions on password change
+  users.set(userId, user);
   await endAllSessions(userId);
-
   logger.info(`User ${userId} changed their password successfully.`);
 };
 
-/**
- * Update user roles.
- */
 const updateUserRoles = async (
   userId: string,
   roles: string[]
 ): Promise<Partial<User>> => {
-  const user = users.get(userId);
+  const user = users.get(userId); // Local mock
   if (!user) {
     throw new NotFoundError("Kullanıcı bulunamadı");
   }
-
-  // Validate roles against the available roles in authorizationService
   const availableRoles = Object.keys(authorizationService.getRoles());
   const invalidRoles = roles.filter((role) => !availableRoles.includes(role));
   if (invalidRoles.length > 0) {
     throw new BadRequestError(`Geçersiz roller: ${invalidRoles.join(", ")}`);
   }
-
   user.roles = roles;
   user.updatedAt = new Date();
+  users.set(userId, user);
   logger.info(`User ${userId} roles updated to: ${roles.join(", ")}`);
   const { passwordHash: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
 };
 
-/**
- * Get user permissions (direct and from roles).
- */
 const getUserPermissions = async (userId: string): Promise<string[]> => {
-  const user = users.get(userId);
+  const user = users.get(userId); // Local mock
   if (!user) {
     throw new NotFoundError("Kullanıcı bulunamadı");
   }
-
   let allPermissions = new Set<string>(user.permissions || []);
-
-  // Add permissions from roles
   user.roles.forEach((roleName) => {
     const role = authorizationService.getRole(roleName);
     if (role && role.permissions) {
       role.permissions.forEach((permission) => allPermissions.add(permission));
     }
   });
-
   return Array.from(allPermissions);
 };
 
-/**
- * Update user's direct permissions.
- */
 const updateUserPermissions = async (
   userId: string,
   permissions: string[]
 ): Promise<Partial<User>> => {
-  const user = users.get(userId);
+  const user = users.get(userId); // Local mock
   if (!user) {
     throw new NotFoundError("Kullanıcı bulunamadı");
   }
-
-  // Validate permissions against the available permissions in authorizationService
   const availablePermissions = Object.keys(
     authorizationService.getPermissions()
   );
@@ -521,17 +492,14 @@ const updateUserPermissions = async (
       `Geçersiz izinler: ${invalidPermissions.join(", ")}`
     );
   }
-
   user.permissions = permissions;
   user.updatedAt = new Date();
+  users.set(userId, user);
   logger.info(`User ${userId} direct permissions updated.`);
   const { passwordHash: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
 };
 
-/**
- * Refresh access token using a refresh token.
- */
 const refreshAccessToken = async (
   refreshToken: string
 ): Promise<{ token: string }> => {
@@ -539,13 +507,10 @@ const refreshAccessToken = async (
   if (!session || session.expiresAt < new Date()) {
     throw new UnauthorizedError("Geçersiz veya süresi dolmuş refresh token");
   }
-
-  const user = await getUserById(session.userId);
-  if (!user || !user.isActive) {
+  const user = await getUserById(session.userId); // Uses updated getUserById
+  if (!user || !(user as User).isActive) { // Cast to User to check isActive if it's on the local User type
     throw new UnauthorizedError("Kullanıcı bulunamadı veya aktif değil");
   }
-
-  // Create new access token
   const tokenPayload = {
     userId: user.id,
     username: user.username,
@@ -553,13 +518,15 @@ const refreshAccessToken = async (
     permissions: await getUserPermissions(user.id!),
   };
   const newAccessToken = jwtService.generateToken(tokenPayload);
-
   return { token: newAccessToken };
 };
 
 export default {
   createUser,
   validateUser,
+  logout, // Added
+  updateUser, // Added
+  deleteUser, // Added
   saveRefreshToken,
   validateRefreshToken,
   invalidateRefreshToken,

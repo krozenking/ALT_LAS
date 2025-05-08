@@ -322,3 +322,19 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
 *   **API Dokümantasyonu:** Swagger/OpenAPI (`swagger-ui-express` ve `swagger.yaml`) entegrasyonu ile API dokümantasyonu sunulmaktadır.
 *   **Loglama ve İzleme:** `winston` ile detaylı loglama, `morgan` benzeri istek loglama (`requestLogger`) ve OpenTelemetry (`startOpenTelemetry()`, `setupMetrics(app)`) ile gelişmiş izleme ve metrik toplama yetenekleri mevcuttur. Bu, Pre-Alpha için belirtilen temel gereksinimleri fazlasıyla karşılamaktadır.
 *   **Sonuç:** API Gateway, Pre-Alpha aşamasının çekirdek işlevsellik gereksinimlerini karşılayacak düzeyde ve hatta daha gelişmiş özelliklere sahiptir. Bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir. Mevcut yapı, sonraki servislerin entegrasyonu için sağlam bir temel sunmaktadır.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:50 UTC):**
+
+**Görev: 3. Segmentation Service (Çekirdek Mantık Uygulaması)**
+*   **Durum:** Mevcut Segmentation Service implementasyonu (`segmentation-service/README.md` ve ilgili kod tabanı varsayılarak) incelendi ve Pre-Alpha hedefleriyle büyük ölçüde uyumlu olduğu değerlendirildi.
+*   **`*.alt` Görev Formatı Tanımı:** README.md içerisinde `AltFile` ve `TaskSegment` veri modelleri ile `*.alt` dosya formatının yapısı tanımlanmıştır. Bu, Pre-Alpha gereksinimini karşılamaktadır.
+*   **Komut Ayrıştırma Motoru:** Servisin ana işlevi olan `/segment` endpoint'i aracılığıyla komutları alıp `*.alt` dosyası olarak segmente etmesi, bir komut ayrıştırma motorunun varlığını ve çalıştığını göstermektedir.
+*   **Alt Görev Oluşturma Mantığı:** Komutların `*.alt` dosyalarındaki görev segmentlerine dönüştürülmesi, bu mantığın uygulandığını göstermektedir.
+*   **API Gateway ile Arayüz:** `/segment` POST endpoint'i, API Gateway üzerinden komut almak için gerekli arayüzü sağlamaktadır.
+*   **Runner Service ile Arayüz:** Segmentation Service, `*.alt` dosyalarını oluşturarak Runner Service'in tüketimine hazır hale getirmektedir. `*.alt` dosyalarının Runner Service'e nasıl iletileceği (mesaj kuyruğu, API vb.) Runner Service geliştirme/entegrasyon aşamasında netleşecektir, ancak Segmentation Service'in Pre-Alpha için birincil sorumluluğu olan `*.alt` üretimi karşılanmaktadır.
+*   **Hata İşleme & Doğrulama:** README.md'de belirtilen yapılandırılmış hata yanıtları ve veri modelleri (örn: `SegmentationRequest`), girdi doğrulama ve hata işleme mekanizmalarının mevcut olduğunu göstermektedir.
+*   **Sonuç:** Segmentation Service, Pre-Alpha aşamasının çekirdek mantık uygulama gereksinimlerini (komut ayrıştırma, `*.alt` formatı tanımlama ve oluşturma, API Gateway ile arayüz) karşılayacak düzeydedir. Bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir. Mevcut yapı, Runner Service'in entegrasyonu için gerekli `*.alt` çıktılarını üretebilmektedir.

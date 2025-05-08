@@ -352,3 +352,18 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
 *   **Sonuç Üretimi (`*.last` formatı):** `last_file` modülü, `LastFile` ve `TaskResult` yapıları ile `*.last` sonuç dosyalarının formatını net bir şekilde tanımlamakta ve bu dosyaları üretebilmektedir. Ayrıca, DOT formatında görev grafiği ve HTML raporu gibi ek çıktılar da üretebilmektedir.
 *   **Archive Service ile Arayüz:** Runner Service, `*.last` dosyalarını üreterek Archive Service tarafından işlenmeye hazır hale getirmektedir. Bu, Pre-Alpha için beklenen arayüzü karşılamaktadır.
 *   **Sonuç:** Runner Service, Pre-Alpha aşamasının temel görev yürütme motoru gereksinimlerini (ALT dosyalarını işleme, temel yürütme, `*.last` sonuçlarını üretme) karşılayacak düzeydedir. Mevcut yapı, Archive Service entegrasyonu ve daha karmaşık görev yürütme senaryoları için sağlam bir temel sunmaktadır. Bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:53 UTC):**
+
+**Görev: 5. Archive Service (Çekirdek Veri Kalıcılığı)**
+*   **Durum:** `archive-service/README.md` dosyası bulunmamakla birlikte, `archive-service/main.go` ve ilgili iç paketler incelendi. Servisin Pre-Alpha hedefleriyle büyük ölçüde uyumlu olduğu değerlendirildi.
+*   **Sonuç Alımı:** `listener.NewNatsListener` ve `createLastFileHandler` fonksiyonları, NATS üzerinden `*.last` dosyalarını (veya mesajlarını) alabilme yeteneğini göstermektedir.
+*   **Temel Depolama Mekanizması:** `repository_optimized.NewLastFileRepository` ve `repository_optimized.NewAtlasRepository` ile veritabanı (muhtemelen PostgreSQL, `config.DefaultConfig()` ve `dbManager.RunMigrations` çağrılarına dayanarak) etkileşimi ve `lastFileRepo.Create()` çağrısı, `*.last` dosyalarından gelen verilerin temel bir depolama mekanizmasına (veritabanı) kaydedildiğini göstermektedir. Bu, Pre-Alpha için dosya sistemi veya basit DB gereksinimini karşılamaktadır.
+*   **`*.last` Sonuç Formatı:** `models.LastFile` yapısı, `*.last` dosyalarından gelen verilerin nasıl modellendiğini ve saklandığını tanımlamaktadır.
+*   **Erişim API'si (Test için):** `main.go` içerisinde `/archive/{id}` (getArchiveStatusHandler) ve `/atlas/search`, `/atlas/{id}` gibi HTTP endpoint'leri, arşivlenmiş verilere veya durumlarına erişim için temel API yeteneklerinin olduğunu göstermektedir. Ayrıca `/health` endpoint'i de mevcuttur.
+*   **README Eksikliği:** Servisin detaylı dokümantasyonu için bir `README.md` dosyası bulunmamaktadır. Bu, gelecekteki geliştirme ve bakım için eklenmesi gereken bir unsurdur.
+*   **Sonuç:** Archive Service, Pre-Alpha aşamasının çekirdek veri kalıcılığı gereksinimlerini (sonuç alımı, temel depolama, erişim API'si) karşılayacak düzeydedir. Mevcut yapı, Runner Service'ten gelen `*.last` sonuçlarını alıp saklayabilmektedir. README.md eksikliği dışında bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir.

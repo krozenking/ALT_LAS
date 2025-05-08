@@ -277,3 +277,15 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   Tüm servisler için ortak bir loglama standardı tanımlamak amacıyla `config/logging_standard.json` adlı bir yapılandırma dosyası oluşturuldu.
     *   Bu JSON dosyası, log formatını (json), varsayılan log seviyesini (info), zaman damgası formatını (ISO 8601) ve servis bağlamı (servis adı, versiyon) gibi temel loglama parametrelerini içermektedir.
     *   Bu standart, projedeki tüm servislerin tutarlı bir şekilde loglama yapmasını ve logların merkezi bir sistemde daha kolay işlenmesini sağlayacaktır. Her servis, kendi özel bilgilerini (servis adı, versiyon) bu standart yapılandırmayı temel alarak üzerine yazacaktır.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:47 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: İzleme Yer Tutucuları (Monitoring Placeholders)**
+    *   Servislerin izlenmesi için temel metrikleri ve sağlık kontrolü endpoint'ini tanımlayan bir standart oluşturmak amacıyla `config/monitoring_placeholders.json` adlı bir yapılandırma dosyası oluşturuldu.
+    *   Bu JSON dosyası, standart bir `/health` endpoint'i, temel metrikler (istek sayısı, istek süresi, aktif bağlantılar, hata oranı) ve bu metrikler için varsayılan etiketler (servis adı, servis versiyonu) içermektedir.
+    *   Bu yapılandırma, her servisin hangi temel metrikleri sunması gerektiği konusunda bir rehber olacak ve ileride Prometheus gibi bir izleme sistemine entegrasyonu kolaylaştıracaktır. Her servis, kendi özel metriklerini bu standartları temel alarak genişletebilecektir.

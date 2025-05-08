@@ -1,0 +1,32 @@
+{
+  "monitoring": {
+    "healthCheckEndpoint": "/health",
+    "metrics": [
+      {
+        "name": "request_count_total",
+        "description": "Total number of HTTP requests received.",
+        "type": "counter"
+      },
+      {
+        "name": "request_duration_seconds",
+        "description": "Histogram of HTTP request latencies.",
+        "type": "histogram"
+      },
+      {
+        "name": "active_connections",
+        "description": "Number of active connections.",
+        "type": "gauge"
+      },
+      {
+        "name": "error_rate_percentage",
+        "description": "Percentage of requests resulting in an error.",
+        "type": "gauge"
+      }
+    ],
+    "defaultLabels": {
+      "service_name": "alt-las-service", // To be overridden by each service
+      "service_version": "0.1.0" // To be overridden by each service
+    }
+  }
+}
+

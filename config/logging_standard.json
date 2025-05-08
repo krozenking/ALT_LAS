@@ -1,0 +1,12 @@
+{
+  "logging": {
+    "format": "json",
+    "level": "info", // Default level, can be overridden by ENV
+    "timestampFormat": "YYYY-MM-DDTHH:mm:ss.SSSZ", // ISO 8601
+    "serviceContext": {
+      "service": "alt-las-service", // To be overridden by each service
+      "version": "0.1.0" // To be overridden by each service
+    }
+  }
+}
+

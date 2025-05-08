@@ -265,3 +265,15 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   Bu pipeline, `main` branch'ine yapılan push'larda veya pull request'lerde `api-gateway` klasöründeki değişiklikleri algılayarak Node.js 18.x ortamında `npm ci` komutunu çalıştıracak şekilde yapılandırıldı.
     *   Docker imajı build ve push adımları için yer tutucular eklendi, bu adımlar ilerleyen aşamalarda aktif hale getirilecektir.
     *   Bu, projenin sürekli entegrasyon yeteneklerinin ilk adımını oluşturmaktadır.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:46 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: Standartlaştırılmış Loglama**
+    *   Tüm servisler için ortak bir loglama standardı tanımlamak amacıyla `config/logging_standard.json` adlı bir yapılandırma dosyası oluşturuldu.
+    *   Bu JSON dosyası, log formatını (json), varsayılan log seviyesini (info), zaman damgası formatını (ISO 8601) ve servis bağlamı (servis adı, versiyon) gibi temel loglama parametrelerini içermektedir.
+    *   Bu standart, projedeki tüm servislerin tutarlı bir şekilde loglama yapmasını ve logların merkezi bir sistemde daha kolay işlenmesini sağlayacaktır. Her servis, kendi özel bilgilerini (servis adı, versiyon) bu standart yapılandırmayı temel alarak üzerine yazacaktır.

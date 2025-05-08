@@ -1,0 +1,25 @@
+# ALT_LAS Projesi Görev Takip Listesi (Yönetici)
+
+- [X] Yönetici ve 8 uzman için persona oluşturuldu ve "/home/ubuntu/ALT_LAS/yonetici ofisi/personalar/" klasörüne kaydedildi.
+- [X] Mevcut genel proje dokümanları "/home/ubuntu/ALT_LAS/yonetici ofisi/genel_proje_dokumanlari/" altına merkezi erişim için kopyalandı.
+  - [X] "/home/ubuntu/ALT_LAS/yonetici ofisi/genel_proje_dokumanlari/" klasörü oluşturuldu.
+  - [X] "/home/ubuntu/ALT_LAS/docs/developer-guide.md" dosyası kopyalandı.
+  - [X] "/home/ubuntu/ALT_LAS/docs/pre_alpha_architecture_tasks.md" dosyası kopyalandı.
+  - [X] "/home/ubuntu/ALT_LAS/docs/user-guide.md" dosyası kopyalandı.
+  - [X] "/home/ubuntu/ALT_LAS/architecture.md" dosyası kopyalandı.
+  - [X] "/home/ubuntu/ALT_LAS/roadmap.md" dosyası kopyalandı.
+  - [ ] "/home/ubuntu/ALT_LAS/worker_tasks.md" dosyası kopyalanacak. (DOSYA BULUNAMADI)
+  - [X] "/home/ubuntu/ALT_LAS/worker_tasks_detailed.md" dosyası kopyalandı.
+- [X] "prealpha_sonrasi_toplanti" klasörü "/home/ubuntu/ALT_LAS/yonetici ofisi/" altında oluşturuldu.
+- [ ] Her uzman kendi perspektifinden mimari ve plan örneği sunacak (Bu adım uzmanların ilgili belgeleri belirtilen klasöre yüklemesini gerektirir).
+  - [X] Yazılım Mimarı (Elif Yılmaz) planını sunacak.
+  - [X] Backend Geliştirici (Ahmet Çelik) planını sunacak.
+  - [X] Frontend Geliştirici (Zeynep Arslan) planını sunacak.
+  - [X] DevOps Mühendisi (Can Tekin) planını sunacak.
+  - [X] Veri Bilimcisi (Dr. Elif Demir) planını sunacak.
+  - [X] QA Mühendisi (Ayşe Kaya) planını sunacak.
+  - [X] UI/UX Tasarımcısı (Elif Aydın) planını sunacak.
+- [X] Tüm uzmanların ve yöneticinin sunduğu dokümantasyon toplanacak.
+- [X] Yönetici tüm dokümanları inceleyip yeni mimari ve plan iskeletini oluşturacak.
+- [X] Yeni ana planın her adımı makro ve mikro adımlara bölünecek.
+- [X] Tüm görevler ve adımlar aşırı detaylı bir plana dönüştürülecek.

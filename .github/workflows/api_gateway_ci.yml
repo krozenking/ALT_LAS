@@ -1,0 +1,67 @@
+name: Node.js CI for API Gateway
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'api-gateway/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'api-gateway/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    defaults:
+      run:
+        working-directory: ./api-gateway
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: api-gateway/package-lock.json
+    - run: npm ci
+    # - run: npm run build --if-present # Add build script if you have one
+    # - run: npm test # Add test script if you have one
+
+  # Placeholder for Docker image build and push
+  # build-and-push-docker-image:
+  #   needs: build # Depends on the build job
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main' # Only run on push to main
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
+  #
+  #   - name: Set up QEMU
+  #     uses: docker/setup-qemu-action@v2
+  #
+  #   - name: Set up Docker Buildx
+  #     uses: docker/setup-buildx-action@v2
+  #
+  #   - name: Login to GitHub Container Registry
+  #     uses: docker/login-action@v2
+  #     with:
+  #       registry: ghcr.io
+  #       username: ${{ github.repository_owner }}
+  #       password: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #   - name: Build and push API Gateway
+  #     uses: docker/build-push-action@v4
+  #     with:
+  #       context: ./api-gateway
+  #       file: ./api-gateway/Dockerfile
+  #       push: true
+  #       tags: ghcr.io/${{ github.repository_owner }}/alt_las_api_gateway:latest
+

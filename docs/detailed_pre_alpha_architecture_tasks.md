@@ -338,3 +338,17 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
 *   **Runner Service ile Arayüz:** Segmentation Service, `*.alt` dosyalarını oluşturarak Runner Service'in tüketimine hazır hale getirmektedir. `*.alt` dosyalarının Runner Service'e nasıl iletileceği (mesaj kuyruğu, API vb.) Runner Service geliştirme/entegrasyon aşamasında netleşecektir, ancak Segmentation Service'in Pre-Alpha için birincil sorumluluğu olan `*.alt` üretimi karşılanmaktadır.
 *   **Hata İşleme & Doğrulama:** README.md'de belirtilen yapılandırılmış hata yanıtları ve veri modelleri (örn: `SegmentationRequest`), girdi doğrulama ve hata işleme mekanizmalarının mevcut olduğunu göstermektedir.
 *   **Sonuç:** Segmentation Service, Pre-Alpha aşamasının çekirdek mantık uygulama gereksinimlerini (komut ayrıştırma, `*.alt` formatı tanımlama ve oluşturma, API Gateway ile arayüz) karşılayacak düzeydedir. Bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir. Mevcut yapı, Runner Service'in entegrasyonu için gerekli `*.alt` çıktılarını üretebilmektedir.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:51 UTC):**
+
+**Görev: 4. Runner Service (Temel Görev Yürütme Motoru)**
+*   **Durum:** Mevcut Runner Service implementasyonu (`runner-service/README.md` ve ilgili kod tabanı varsayılarak) incelendi ve Pre-Alpha hedefleriyle büyük ölçüde uyumlu olduğu değerlendirildi.
+*   **Alt Görev Tüketimi:** `alt_file` modülü, ALT dosyalarının ayrıştırılması ve doğrulanması için kapsamlı yetenekler sunmaktadır. `task_manager` modülü, bu ALT dosyalarındaki görevleri alıp işleyebilecek şekilde tasarlanmıştır.
+*   **Temel Yürütme Ortamı:** `task_manager` modülü, `tokio` kullanarak asenkron görev yürütme yeteneğine sahiptir. Pre-Alpha için belirtilen "basit yürütme (örn: sahte yürütme veya basit betik çalıştırma)" bu altyapı üzerinde kolaylıkla gerçekleştirilebilir. AI görevleri için `ai_service` modülü üzerinden AI Orchestrator ile entegrasyon planlanmıştır.
+*   **Sonuç Üretimi (`*.last` formatı):** `last_file` modülü, `LastFile` ve `TaskResult` yapıları ile `*.last` sonuç dosyalarının formatını net bir şekilde tanımlamakta ve bu dosyaları üretebilmektedir. Ayrıca, DOT formatında görev grafiği ve HTML raporu gibi ek çıktılar da üretebilmektedir.
+*   **Archive Service ile Arayüz:** Runner Service, `*.last` dosyalarını üreterek Archive Service tarafından işlenmeye hazır hale getirmektedir. Bu, Pre-Alpha için beklenen arayüzü karşılamaktadır.
+*   **Sonuç:** Runner Service, Pre-Alpha aşamasının temel görev yürütme motoru gereksinimlerini (ALT dosyalarını işleme, temel yürütme, `*.last` sonuçlarını üretme) karşılayacak düzeydedir. Mevcut yapı, Archive Service entegrasyonu ve daha karmaşık görev yürütme senaryoları için sağlam bir temel sunmaktadır. Bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir.

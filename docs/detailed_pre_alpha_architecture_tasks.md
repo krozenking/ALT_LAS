@@ -394,3 +394,18 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
 *   **API Gateway ile Temel Bağlantı (Yer Tutucu):** Renderer sürecindeki JavaScript kodu içerisinde, API Gateway'e istek göndermek için bir fonksiyon taslağı (örneğin, `fetch` veya `axios` kullanarak) yer tutucu olarak eklenebilir. Gerçek bağlantı bu aşamada zorunlu değildir.
 *   **README Eksikliği:** Servisin/uygulamanın kurulumu, yapısı ve geliştirme süreçleri hakkında detaylı bilgi içeren bir `README.md` dosyası bulunmamaktadır. Bu, gelecekteki geliştirme ve bakım için eklenmesi gereken önemli bir unsurdur.
 *   **Sonuç:** UI (Desktop) için `src/renderer` dizininin varlığı, temel bir arayüz iskeletinin oluşturulması için bir başlangıç noktası sunmaktadır. Pre-Alpha gereksinimleri olan temel pencere, komut girişi, sonuç alanı ve API bağlantı yer tutucuları bu yapı üzerine inşa edilebilir. README.md eksikliği dışında, bu aşamada mevcut iskeletin Pre-Alpha için bir başlangıç olarak kabul edilebilir olduğu ve belirtilen temel işlevlerin bu yapı üzerine eklenebileceği değerlendirilmiştir. Detaylı arayüz elemanlarının ve yer tutucu fonksiyonların implementasyonu, bu görevin devam eden adımları olacaktır ancak Pre-Alpha için genel yapısal uygunluk sağlanmıştır.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 06:21 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: Docker Stratejisi - Temel Docker İmajları ve Çok Aşamalı Buildler**
+    *   Tüm ana servisler (API Gateway - Node.js, Segmentation Service - Python, Runner Service - Rust, Archive Service - Go) için Dockerfile dosyaları incelendi.
+    *   **API Gateway (Node.js):** Mevcut Dockerfile, imaj boyutunu optimize etmek ve build sürecini iyileştirmek amacıyla çok aşamalı (multi-stage) bir build kullanacak şekilde güncellendi. Bu güncelleme, geliştirme bağımlılıklarının son imajda yer almamasını ve sadece üretim için gerekli dosyaların kopyalanmasını sağlar.
+    *   **Runner Service (Rust):** Mevcut Dockerfile zaten çok aşamalı bir build (builder ve runner stage) kullanıyordu ve bu yapı korundu.
+    *   **Segmentation Service (Python):** Mevcut Dockerfile, `python:3.10-slim` temel imajını kullanıyor ve bağımlılıkları yüklüyor. Pre-Alpha için temel bir yapı sunmaktadır. İlerleyen aşamalarda çok aşamalı build ile optimizasyon düşünülebilir.
+    *   **Archive Service (Go):** Mevcut Dockerfile, `golang:1.18-alpine` temel imajını kullanarak derleme yapıyor. Go'nun kendi build optimizasyonları sayesinde imajlar genellikle küçüktür, ancak bu da ileride çok aşamalı build ile daha da optimize edilebilir.
+    *   Genel olarak, her servis için temel Docker imajları tanımlanmış ve en azından Node.js ve Rust servisleri için çok aşamalı build stratejileri uygulanmış veya mevcut olduğu doğrulanmıştır. Python ve Go için temel yapılar korunmuş olup, Pre-Alpha için yeterli görülmüştür.

@@ -1,29 +1,57 @@
-# ALT_LAS Project - Worker 2 - Makro Görev 1.3: Service Integration
+# ALT_LAS Pre-Alpha Görevleri Takip Listesi
 
-- [ ] **Step 1: Analyze Current Services** (Completed)
-- [ ] **Step 2: Design Service Integration Strategy** (Completed)
-- [X] **Step 3: Implement Service Discovery**
-    - [X] Update configuration to load service URLs (Segmentation, Runner, Archive) from environment variables with defaults.
-    - [X] Implement logic to use configured URLs (in serviceDiscovery.ts).
-- [X] **Step 4: Implement API Routing**
-    - [X] Install `http-proxy-middleware`.
-    - [X] Configure proxy middleware for Segmentation Service.
-    - [X] Configure proxy middleware for Runner Service.
-    - [X] Configure proxy middleware for Archive Service.
-    - [X] Implement path rewriting if necessary.
-- [X] **Step 5: Implement Load Balancing (Basic)**
-    - [X] Implement round-robin logic if multiple instances are configured (future enhancement, skipped for now).
-- [X] **Step 6: Implement Fault Tolerance**
-    - [X] Implement retry mechanisms for transient errors (Implicitly handled by circuit breaker/proxy error handling).
-    - [X] Install `opossum` circuit breaker library.
-    - [X] Configure circuit breakers for backend service calls.
-    - [X] Configure timeouts (Handled within circuit breaker options).
-- [X] **Step 7: Test Service Integration**
-    - [X] Fix TypeScript build errors.
-    - [-] Write integration tests for routing (Skipped - Requires running backend services).
-    - [-] Write integration tests for health checks (Skipped - Requires running backend services).
-    - [-] Write integration tests for circuit breaker functionality (Skipped - Requires running backend services).
-- [ ] **Step 8: Update Documentation**
-    - [X] Create Worker 2 progress report for Makro Görev 1.3.
-    - [X] Update architecture/API documentation if needed.
-    - [ ] Commit and push changes.
+## Görev 1: Temel Altyapı (Proje Geneli)
+
+- [ ] **Docker Stratejisi:**
+    - [x] Her servis türü (Node.js, Python, Rust, Go) için temel Docker imajlarını tanımlayın (Mevcut imajlar incelendi ve uygun bulundu: Node.js -> node:18-alpine, Python -> python:3.10-slim, Rust -> rust:1.75-slim & debian:bullseye-slim, Go -> golang:1.18-alpine & alpine:latest).
+    - [x] Optimize edilmiş imaj boyutları için çok aşamalı (multi-stage) build'ler uygulayın.
+    - [x] `.dockerignore` dosyaları için bir standart oluşturun ve uygulayın.
+    - [x] Yerel geliştirme ve test için `docker-compose.yml` dosyasını geliştirin/güncelleyin (servislerin etkili iletişimi).
+- [ ] **CI/CD Pipeline (İlk Kurulum):**
+    - [x] Bir CI/CD platformu seçin (örn: GitHub Actions).
+    - [x] En az bir çekirdek servis için temel build ve test pipeline'larını kurun (api-gateway için oluşturuldu).
+    - [ ] Linting ve statik analiz araçlarını pipeline'a entegre edin.
+    - [ ] Otomatik Docker imaj build'lerini ve bir container registry'ye push işlemlerini yapılandırın.
+- [ ] **Standartlaştırılmış Loglama:**
+    - [ ] Tüm servisler için ortak bir loglama kütüphanesi/formatı seçin (örn: JSON formatlı loglar).
+    - [ ] Standart log seviyelerini tanımlayın (DEBUG, INFO, WARN, ERROR).
+    - [ ] Merkezi loglama çözümü için hazırlık yapın (Pre-Alpha: Docker içinde tutarlı log çıktısı).
+- [ ] **İzleme Yer Tutucuları:**
+    - [ ] Her servis için anahtar metrikleri belirleyin.
+    - [ ] Tüm servislerde temel sağlık kontrolü endpoint'lerini (`/health`) uygulayın.
+    - [ ] Bir izleme sistemi için yer tutucular ayarlayın.
+- [ ] **Geliştirme Ortamı Standartları:**
+    - [ ] Her dil için kodlama standartlarını ve stil kılavuzlarını tanımlayın.
+    - [ ] Tutarlı bir geliştirme deneyimi için IDE'ler ve eklentiler önerin.
+    - [ ] Net bir Git dallanma stratejisi (örn: Gitflow) oluşturun ve belgeleyin.
+
+## Görev 2: API Gateway (Çekirdek İşlevsellik)
+- [ ] (Detaylar eklenecek)
+
+## Görev 3: Segmentation Service (Çekirdek Mantık Uygulaması)
+- [ ] (Detaylar eklenecek)
+
+## Görev 4: Runner Service (Temel Görev Yürütme Motoru)
+- [ ] (Detaylar eklenecek)
+
+## Görev 5: Archive Service (Çekirdek Veri Kalıcılığı)
+- [ ] (Detaylar eklenecek)
+
+## Görev 6: AI Orchestrator (İlk Entegrasyon & Çekirdek Model Adaptörleri)
+- [ ] (Detaylar eklenecek)
+
+## Görev 7: UI - Desktop (Minimum Uygulanabilir İş Akışı Arayüzü)
+- [ ] (Detaylar eklenecek)
+
+## Görev 8: Güvenlik Katmanı (Temel Korumalar)
+- [ ] (Detaylar eklenecek)
+
+## Görev 9: OS Entegrasyonu (Kritik Özellik Prototiplemesi)
+- [ ] (Detaylar eklenecek)
+
+## Görev 10: Uçtan Uca İş Akışı Testi ve İyileştirme
+- [ ] (Detaylar eklenecek)
+
+---
+*Bu todo.md dosyası, `docs/pre_alpha_architecture_tasks.md` belgesindeki ana görevleri yansıtmaktadır ve ilerleme kaydedildikçe güncellenecektir.*
+*Genel proje adımları (klonlama, analiz vb.) tamamlanmıştır ve şimdi Pre-Alpha görevlerinin uygulanmasına odaklanılmaktadır.*

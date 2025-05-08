@@ -83,14 +83,18 @@ Her bileşen kendi dizininde bulunur ve bağımsız olarak geliştirilebilir:
 
 ## Dokümantasyon
 
+**Önemli Not (Pre-Alpha Aşaması):** Proje şu anda Pre-Alpha geliştirme aşamasındadır. Tüm geliştirme çalışmaları, [Pre-Alpha Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) belgesinde tanımlanan mimari odaklı görevlere göre yürütülmelidir. Detaylı geliştirme kuralları ve yönetici beklentileri için lütfen [Geliştirici Kılavuzu](docs/developer-guide.md) belgesinin "Pre-Alpha Geliştirme Aşaması" bölümünü inceleyiniz.
+
 Detaylı dokümantasyon için aşağıdaki belgelere bakın:
 
 - [Mimari Tasarım](architecture.md) (Güncellendi)
 - [Geliştirme Yol Haritası](roadmap.md)
-- [İşçi Görev Dağılımı (Özet)](worker_tasks.md) (Detaylı plan için [İşçi Detaylı Görevler](worker_tasks_detailed.md) - Güncellendi)
+- [Pre-Alpha Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) (**Aktif Görev Takibi İçin Birincil Kaynak**)
+- [İşçi Görev Dağılımı (Özet)](worker_tasks.md) (Genel referans, Pre-Alpha için [Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) önceliklidir)
+- [İşçi Detaylı Görevler](worker_tasks_detailed.md) (Genel referans, Pre-Alpha için [Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) önceliklidir)
 - [API Referansı](api-gateway/swagger.yaml) (Güncellendi - Swagger UI üzerinden veya YAML dosyası olarak incelenebilir. API Gateway çalışırken `/api-docs` adresinden erişilebilir.)
 - [API Gateway README](api-gateway/README.md) (Güncellendi)
-- [Geliştirici Kılavuzu](docs/developer-guide.md)
+- [Geliştirici Kılavuzu](docs/developer-guide.md) (**Pre-Alpha Kuralları ve Yönergeleri İçerir**)
 - [Kullanıcı Kılavuzu](docs/user-guide.md)
 
 ## Lisans

@@ -289,3 +289,19 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   Servislerin izlenmesi için temel metrikleri ve sağlık kontrolü endpoint'ini tanımlayan bir standart oluşturmak amacıyla `config/monitoring_placeholders.json` adlı bir yapılandırma dosyası oluşturuldu.
     *   Bu JSON dosyası, standart bir `/health` endpoint'i, temel metrikler (istek sayısı, istek süresi, aktif bağlantılar, hata oranı) ve bu metrikler için varsayılan etiketler (servis adı, servis versiyonu) içermektedir.
     *   Bu yapılandırma, her servisin hangi temel metrikleri sunması gerektiği konusunda bir rehber olacak ve ileride Prometheus gibi bir izleme sistemine entegrasyonu kolaylaştıracaktır. Her servis, kendi özel metriklerini bu standartları temel alarak genişletebilecektir.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:48 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: Geliştirme Ortamı Standartları (Development Environment Standards)**
+    *   Proje genelinde tutarlı bir geliştirme süreci sağlamak amacıyla `docs/development_standards.md` adlı yeni bir doküman oluşturuldu.
+    *   Bu doküman, her programlama dili (JavaScript/TypeScript, Python, Rust, Go) için kodlama standartları, stil kılavuzları, önerilen formatlayıcılar ve linting araçlarını tanımlamaktadır.
+    *   VS Code ve JetBrains IDE'leri için önerilen eklentiler listelenmiştir.
+    *   Proje genelinde tutarlı editör ayarları için bir `.editorconfig` içeriği önerilmiştir.
+    *   Gitflow benzeri bir dallanma stratejisi (main, develop, feature, release, hotfix branch'leri) ve anlamlı commit mesajları için Conventional Commits formatı önerilmiştir.
+    *   Her servis için bağımlılık yönetimi ve kilit dosyalarının önemi vurgulanmıştır.
+    *   Bu standartlar, kod kalitesini artırmayı, geliştirici onboarding sürecini kolaylaştırmayı ve proje genelinde tutarlılığı sağlamayı hedeflemektedir.

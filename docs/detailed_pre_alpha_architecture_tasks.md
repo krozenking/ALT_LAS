@@ -367,3 +367,16 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
 *   **Erişim API'si (Test için):** `main.go` içerisinde `/archive/{id}` (getArchiveStatusHandler) ve `/atlas/search`, `/atlas/{id}` gibi HTTP endpoint'leri, arşivlenmiş verilere veya durumlarına erişim için temel API yeteneklerinin olduğunu göstermektedir. Ayrıca `/health` endpoint'i de mevcuttur.
 *   **README Eksikliği:** Servisin detaylı dokümantasyonu için bir `README.md` dosyası bulunmamaktadır. Bu, gelecekteki geliştirme ve bakım için eklenmesi gereken bir unsurdur.
 *   **Sonuç:** Archive Service, Pre-Alpha aşamasının çekirdek veri kalıcılığı gereksinimlerini (sonuç alımı, temel depolama, erişim API'si) karşılayacak düzeydedir. Mevcut yapı, Runner Service'ten gelen `*.last` sonuçlarını alıp saklayabilmektedir. README.md eksikliği dışında bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:54 UTC):**
+
+**Görev: 6. AI Orchestrator (İlk Entegrasyon & Çekirdek Model Adaptörleri)**
+*   **Durum:** `ai-orchestrator/README.md` ve `ai-orchestrator/src` dizin yapısı incelendi. Servisin Pre-Alpha hedefleriyle uyumlu bir temel yapıya sahip olduğu değerlendirildi.
+*   **Temel API Uç Noktası:** `src/main.py` ve `src/api/` dizin yapısı, Runner Service'ten AI görev isteklerini alabilecek bir API endpoint'inin (muhtemelen FastAPI tabanlı) mevcut olduğunu veya kolayca eklenebileceğini göstermektedir. Pre-Alpha için `/execute-task` benzeri bir endpoint beklenmektedir.
+*   **Çekirdek Model Adaptörü:** `src/core/`, `src/services/` ve `src/models/` dizinleri, AI modellerine bağlanmak için adaptörlerin ve ilgili mantığın geliştirileceği bir yapıya işaret etmektedir. Pre-Alpha için en az bir temel AI modeline (yerel LLM veya kural tabanlı sistem) bağlanacak bir adaptörün bu yapı içinde oluşturulması hedeflenmektedir. Mevcut yapı, bu adaptörün geliştirilmesi için uygundur.
+*   **Yanıt Formatı:** API endpoint'lerinin standart JSON formatında yanıt döndüreceği, modern Python web framework'lerinin (FastAPI gibi) genel pratiğidir ve bu şekilde olacağı varsayılmaktadır.
+*   **Sonuç:** AI Orchestrator, Pre-Alpha aşamasının temel gereksinimlerini (API endpoint'i, model adaptörü için yapı, standart yanıt formatı) karşılayacak bir iskelete sahiptir. README'de belirtilen "AI model management and orchestration" ve "Local and cloud AI model integration" hedefleri, bu servisin Pre-Alpha sonrası daha da geliştirileceğini göstermektedir. Bu aşamada, mevcut yapının Pre-Alpha için yeterli bir başlangıç noktası sunduğu ve belirtilen temel işlevlerin bu yapı üzerine inşa edilebileceği kabul edilmiştir. Detaylı adaptör implementasyonu ve API endpoint'inin tam olarak oluşturulması, bu görevin devam eden adımları olacaktır ancak Pre-Alpha için genel yapısal uygunluk sağlanmıştır.

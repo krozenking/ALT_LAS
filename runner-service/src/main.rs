@@ -225,7 +225,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     
     // Initialize logger
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+    json_env_logger::init();
     
     // Get configuration from environment
     let alt_files_dir = env::var("ALT_FILES_DIR").unwrap_or_else(|_| "./alt_files".to_string());

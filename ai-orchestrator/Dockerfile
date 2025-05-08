@@ -42,14 +42,14 @@ RUN mkdir -p /app/models /app/cache /app/logs && \
 ENV MODEL_DIR=/app/models
 ENV CACHE_DIR=/app/cache
 ENV LOG_LEVEL=INFO
-ENV PORT=8000
+ENV PORT=8001
 ENV PYTHONUNBUFFERED=1
 
 # Switch to non-root user
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8001
 
 # Run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]
 

@@ -12,19 +12,18 @@ services:
       - NODE_ENV=development
       - JWT_SECRET=your_jwt_secret_key_here # Güvenli bir değerle değiştirilmeli
       - REDIS_URL=redis://redis:6379
-      # Diğer servislerin adresleri (eğer API Gateway bunları doğrudan çağırıyorsa)
-      # - SEGMENTATION_SERVICE_URL=http://segmentation-service:8000
-      # - RUNNER_SERVICE_URL=http://runner-service:8080
-      # - ARCHIVE_SERVICE_URL=http://archive-service:9000
-      # - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8001 
+      - SEGMENTATION_SERVICE_URL=http://segmentation-service:8000
+      - RUNNER_SERVICE_URL=http://runner-service:8080
+      - ARCHIVE_SERVICE_URL=http://archive-service:9000
+      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8001
     depends_on:
       - redis
-      # - segmentation-service # API Gateway'in başlatılmadan önce bu servislerin hazır olmasını bekliyorsa
-      # - runner-service
-      # - archive-service
-      # - ai-orchestrator
+      - segmentation-service
+      - runner-service
+      - archive-service
+      - ai-orchestrator
     volumes:
-      - ./api-gateway:/app # Yerel geliştirmede kod değişikliklerinin yansıması için
+      - ./api-gateway:/app
       - /app/node_modules # node_modules'ın üzerine yazılmasını engellemek için
 
   segmentation-service:
@@ -36,9 +35,12 @@ services:
     container_name: alt_las_segmentation_service
     environment:
       - PYTHONUNBUFFERED=1
+      - PORT=8000
       # - NATS_URL=nats://nats:4222 # Eğer NATS kullanıyorsa
     volumes:
-      - ./segmentation-service:/app # Yerel geliştirmede kod değişikliklerinin yansıması için
+      - ./segmentation-service:/app
+    # depends_on:
+      # - nats # Eğer NATS kullanıyorsa
 
   runner-service:
     build:
@@ -49,12 +51,13 @@ services:
     container_name: alt_las_runner_service
     environment:
       - RUST_LOG=info
-      - RUNNER_AI_SERVICE_URL=http://ai-orchestrator:8001 # AI Orchestrator'a bağlanmak için
+      - RUNNER_AI_SERVICE_URL=http://ai-orchestrator:8001
       # - NATS_URL=nats://nats:4222 # Eğer NATS kullanıyorsa
     depends_on:
-      - ai-orchestrator # AI Orchestrator'a bağımlı olabilir
+      - ai-orchestrator
+      # - nats # Eğer NATS kullanıyorsa
     volumes:
-      - ./runner-service:/usr/src/runner-service # Rust build'leri için kaynak kodu bağlama (Dockerfile'a göre ayarlanmalı)
+      - ./runner-service:/usr/src/runner-service
 
   archive-service:
     build:
@@ -66,28 +69,26 @@ services:
     environment:
       - DATABASE_URL=postgres://alt_las_user:alt_las_password@postgres_db:5432/alt_las_archive_db?sslmode=disable
       - NATS_URL=nats://nats:4222 # main.go'da NATS bağlantısı var
+      - PORT=9000
     depends_on:
       - postgres_db
       - nats
     volumes:
-      - ./archive-service:/app # Yerel geliştirmede kod değişikliklerinin yansıması için
+      - ./archive-service:/app
 
   ai-orchestrator:
     build:
       context: ./ai-orchestrator
-      dockerfile: Dockerfile # ai-orchestrator için bir Dockerfile oluşturulmalı
+      dockerfile: Dockerfile
     ports:
-      - "8001:8001" # Örnek port, servis implementasyonuna göre ayarlanmalı
+      - "8001:8001"
     container_name: alt_las_ai_orchestrator
     environment:
       - PYTHONUNBUFFERED=1
+      - PORT=8001
       # - OPENAI_API_KEY=your_openai_key_here # Örnek AI modeli için
     volumes:
-      - ./ai-orchestrator:/app # Yerel geliştirmede kod değişikliklerinin yansıması için
-
-  # ui-desktop: Bu bir Electron uygulaması olduğundan, genellikle docker-compose ile geliştirme ortamında çalıştırılmaz.
-  # Eğer UI'ın test veya belirli backend ihtiyaçları için bir Docker imajı varsa buraya eklenebilir.
-  # Şimdilik yer tutucu olarak bırakılmıştır.
+      - ./ai-orchestrator:/app
 
   redis:
     image: "redis:7-alpine"

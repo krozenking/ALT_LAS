@@ -469,3 +469,17 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   `docker/build-push-action` adımı, `api-gateway/Dockerfile` dosyasını kullanarak imajı oluşturur ve `ghcr.io/${{ github.repository_owner }}/alt_las_api_gateway:latest` etiketiyle registry'ye gönderir.
     *   Workflow dosyası ayrıca, workflow dosyasındaki değişikliklerde de tetiklenecek şekilde güncellendi.
     *   Bu güncelleme, API Gateway servisinin her başarılı `main` branch güncellemesinden sonra otomatik olarak bir Docker imajının oluşturulup yayınlanmasını sağlar, böylece sürekli entegrasyon ve dağıtım süreçlerine önemli bir katkıda bulunur.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 06:26 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: Standartlaştırılmış Loglama - Ortak Loglama Kütüphanesi/Formatı (JSON)**
+    *   Proje genelinde `/home/ubuntu/ALT_LAS_with_token/config/logging_standard.json` dosyasında tanımlanan JSON tabanlı loglama standardı referans alınarak servislerdeki loglama altyapıları incelenmiş ve güncellenmiştir.
+    *   **API Gateway (Node.js):** Mevcut `src/utils/logger.ts` dosyasındaki Winston tabanlı loglama yapılandırmasının zaten JSON formatında log ürettiği ve standartla uyumlu olduğu teyit edildi. Konsol ve dosya transportları için JSON formatı kullanılmaktadır.
+    *   **Segmentation Service (Python):** Serviste standart bir loglama altyapısı bulunmuyordu. Bu eksikliği gidermek amacıyla, `config/logging_standard.json` dosyasındaki prensiplere uygun olarak JSON formatında log üreten `segmentation-service/logger_utils.py` adında yeni bir yardımcı modül oluşturuldu. Bu modül, standart Python `logging` kütüphanesini kullanarak yapılandırılmış JSON logları üretir ve servis genelinde kullanılabilir.
+    *   **Diğer Servisler (Runner, Archive, AI Orchestrator):** Bu servislerin loglama altyapıları da benzer şekilde JSON standardına uygunluk açısından incelenecek ve gerekirse güncellenecektir. Bu, bu alt görevin devam eden adımları olacaktır.
+    *   Hedef, tüm servislerin tutarlı bir JSON formatında, yapılandırılmış loglar üretmesini sağlamaktır. Bu, logların merkezi bir sistemde toplanmasını, analiz edilmesini ve izlenmesini kolaylaştıracaktır.

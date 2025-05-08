@@ -12,7 +12,7 @@ import {
 import * as bcrypt from "bcrypt";
 import crypto from "crypto"; // For generating reset tokens
 
-// --- Mock Data Store --- 
+// --- Mock Data Store ---
 
 interface User {
   id: string;
@@ -214,10 +214,8 @@ const createSession = async (
   userAgent: string
 ): Promise<void> => {
   // This is a placeholder. Sessions are managed by sessionService.
-  // A refresh token would typically be generated here and stored in the session.
-  const refreshToken = jwtService.generateRefreshToken(userId); // Generate a token
-  // Use ip instead of ipAddress based on DeviceInfo interface
   // The session ID is generated within sessionService.createSession, so don't pass it here.
+  const refreshToken = jwtService.generateRefreshToken(userId); // Generate a token
   sessionService.createSession(userId, refreshToken, { ip: ipAddress, userAgent });
   logger.info(`Session created for user ${userId}`); // Log without session ID as it's created internally
 };
@@ -537,5 +535,51 @@ const updateUserPermissions = async (
 const refreshAccessToken = async (
   refreshToken: string
 ): Promise<{ token: string }> => {
-  
-(Content truncated due to size limit. Use line ranges to read in chunks)
+  const session = sessionService.getSessionByRefreshToken(refreshToken);
+  if (!session || session.expiresAt < new Date()) {
+    throw new UnauthorizedError("Geçersiz veya süresi dolmuş refresh token");
+  }
+
+  const user = await getUserById(session.userId);
+  if (!user || !user.isActive) {
+    throw new UnauthorizedError("Kullanıcı bulunamadı veya aktif değil");
+  }
+
+  // Create new access token
+  const tokenPayload = {
+    userId: user.id,
+    username: user.username,
+    roles: user.roles,
+    permissions: await getUserPermissions(user.id!),
+  };
+  const newAccessToken = jwtService.generateToken(tokenPayload);
+
+  return { token: newAccessToken };
+};
+
+export default {
+  createUser,
+  validateUser,
+  saveRefreshToken,
+  validateRefreshToken,
+  invalidateRefreshToken,
+  createSession,
+  endSession,
+  endAllSessions,
+  endAllSessionsExcept,
+  getUserById,
+  getUserByEmail,
+  getUserDetailsForAuth,
+  getAllUsers,
+  getUserSessions,
+  savePasswordResetToken,
+  validatePasswordResetToken,
+  invalidatePasswordResetToken,
+  requestPasswordReset,
+  resetPassword,
+  changePassword,
+  updateUserRoles,
+  getUserPermissions,
+  updateUserPermissions,
+  refreshAccessToken,
+};

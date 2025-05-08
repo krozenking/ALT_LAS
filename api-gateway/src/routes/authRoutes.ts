@@ -74,10 +74,10 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     const user = await authService.createUser({
       username,
       email,
-      passwordHash: password, 
+      passwordHash: password, // In a real app, hash the password before saving
       firstName,
       lastName,
-      roles: ['user'] 
+      roles: ['user'] // Default role
     });
     
     // userService.createUser now handles initial token generation and "sends" email
@@ -439,8 +439,7 @@ router.put('/profile', authenticateJWT, async (req: Request, res: Response, next
         if (!emailRegex.test(email)) {
             throw new BadRequestError('Geçerli bir email adresi giriniz');
         }
-        updateData.email = email; 
-        // userService.updateUser will handle re-verification logic if email changes
+        updateData.email = email; // userService.updateUser will handle re-verification logic if email changes
     }
 
     const updatedUser = await authService.updateUser(String(userId), updateData);
@@ -564,5 +563,111 @@ router.get(
  *             properties:
  *               firstName:
  *                 type: string
- *               l
-(Content truncated due to size limit. Use line ranges to read in chunks)
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               isEmailVerified:
+ *                 type: boolean
+ *               isAccountLocked:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Kullanıcı başarıyla güncellendi
+ *       400:
+ *         description: Geçersiz istek veya e-posta zaten kullanımda
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       403:
+ *         description: Yetki hatası (Admin rolü veya 'update:users' izni gerekli)
+ *       404:
+ *         description: Kullanıcı bulunamadı
+ *       500:
+ *         description: Sunucu hatası
+ */
+router.put(
+  '/users/:userId',
+  authenticateJWT,
+  authorizeRoute({ path: '/users/:userId', method: 'put', permissions: ['update:users'] }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.params;
+      const { firstName, lastName, email, roles, permissions, isEmailVerified, isAccountLocked } = req.body;
+
+      const updatedUser = await authService.updateUser(userId, {
+        firstName,
+        lastName,
+        email,
+        roles,
+        permissions,
+        isEmailVerified,
+        isAccountLocked
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Kullanıcı başarıyla güncellendi',
+        data: updatedUser
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/users/{userId}:
+ *   delete:
+ *     summary: Belirli bir kullanıcıyı siler (Admin)
+ *     tags: [Admin - Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Kullanıcı başarıyla silindi
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       403:
+ *         description: Yetki hatası (Admin rolü veya 'delete:users' izni gerekli)
+ *       404:
+ *         description: Kullanıcı bulunamadı
+ *       500:
+ *         description: Sunucu hatası
+ */
+router.delete(
+  '/users/:userId',
+  authenticateJWT,
+  authorizeRoute({ path: '/users/:userId', method: 'delete', permissions: ['delete:users'] }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.params;
+      await authService.deleteUser(userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Kullanıcı başarıyla silindi'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+export default router;
+

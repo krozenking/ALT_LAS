@@ -11,13 +11,12 @@ on:
       - 'api-gateway/**'
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         node-version: [18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     defaults:
       run:
@@ -31,13 +30,22 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         cache-dependency-path: api-gateway/package-lock.json
-    - run: npm ci
-    # - run: npm run build --if-present # Add build script if you have one
-    # - run: npm test # Add test script if you have one
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linters
+      run: npm run lint
+      
+    - name: Run build process
+      run: npm run build --if-present
+      
+    - name: Run tests
+      run: npm run test
 
   # Placeholder for Docker image build and push
   # build-and-push-docker-image:
-  #   needs: build # Depends on the build job
+  #   needs: build-and-test # Depends on the build and test job
   #   runs-on: ubuntu-latest
   #   if: github.event_name == 'push' && github.ref == 'refs/heads/main' # Only run on push to main
   #   steps:

@@ -440,3 +440,17 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   AI Orchestrator servisi için bir Dockerfile gerektiği not edildi ve `docker-compose.yml` dosyasına eklendi.
     *   UI Desktop (Electron uygulaması) için, genellikle geliştirme ortamında `docker-compose` ile çalıştırılmadığı belirtilerek yer tutucu olarak bırakıldı.
     *   Bu güncellenmiş `docker-compose.yml` dosyası, tüm servislerin yerel bir ortamda kolayca ayağa kaldırılmasını, test edilmesini ve geliştirilmesini sağlayarak servisler arası etkileşimi kolaylaştırır.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 06:24 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: CI/CD Pipeline (İlk Kurulum) - Temel Build, Test ve Linting Pipeline Kurulumu**
+    *   Mevcut `/home/ubuntu/ALT_LAS_with_token/.github/workflows/api_gateway_ci.yml` GitHub Actions workflow dosyası incelendi ve güncellendi.
+    *   API Gateway (`api-gateway`) servisi için CI pipeline, `package.json` dosyasında tanımlı olan `npm run lint` ve `npm run test` komutlarını içerecek şekilde genişletildi.
+    *   Pipeline artık bağımlılıkları kurduktan sonra lint kontrollerini çalıştıracak, ardından build işlemini gerçekleştirecek ve son olarak testleri yürütecektir.
+    *   Bu güncelleme, kod kalitesinin ve projenin sağlığının otomatik olarak doğrulanmasına yardımcı olacak temel bir CI sürecini oluşturur.
+    *   Docker imaj build ve push adımları hala yer tutucu olarak bırakılmıştır ve bu teknik alt görevin bir sonraki adımı olan "Otomatik Docker imaj build'lerini ve bir container registry'ye push işlemlerini yapılandırın" kapsamında ele alınacaktır.

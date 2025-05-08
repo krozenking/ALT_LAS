@@ -2,7 +2,29 @@ import { Request, Response, NextFunction } from "express";
 import redisClient from "../utils/redisClient"; // Import the potentially null Redis client
 import logger from "../utils/logger";
 
-const cacheMiddleware = (duration: number) => {
+interface CacheOptions {
+  duration: number;
+  keyPrefix?: string;
+  ignoreQueryParams?: boolean;
+  varyByUser?: boolean;
+  statusCodes?: number[];
+}
+
+const cacheMiddleware = (options: number | CacheOptions) => {
+  // Eski API uyumluluğu için number tipini destekle
+  const opts: CacheOptions = typeof options === 'number'
+    ? { duration: options }
+    : options;
+
+  // Varsayılan değerleri ayarla
+  const {
+    duration,
+    keyPrefix = "__express__",
+    ignoreQueryParams = false,
+    varyByUser = false,
+    statusCodes = [200]
+  } = opts;
+
   return async (req: Request, res: Response, next: NextFunction) => {
     // If Redis client is not available (e.g., in test env), skip caching
     if (!redisClient) {
@@ -15,8 +37,20 @@ const cacheMiddleware = (duration: number) => {
       return next();
     }
 
-    // Use originalUrl or url as the key, consider query params
-    const key = "__express__" + (req.originalUrl || req.url);
+    // Cache key oluşturma
+    let url = req.originalUrl || req.url;
+
+    // Query parametrelerini yoksay
+    if (ignoreQueryParams && url.includes('?')) {
+      url = url.split('?')[0];
+    }
+
+    // Kullanıcıya göre değişken cache
+    const userPart = varyByUser && req.user?.id ? `:user:${req.user.id}` : '';
+
+    // Final cache key
+    const key = `${keyPrefix}:${url}${userPart}`;
+
     let cachedBody: string | null = null; // Explicitly type as string | null
 
     try {
@@ -26,8 +60,16 @@ const cacheMiddleware = (duration: number) => {
         logger.warn("Redis not ready, skipping cache GET.");
         return next();
       }
+
       // Ensure redisClient is not null before calling get
       cachedBody = await redisClient.get(key);
+
+      // Cache hit istatistiği (opsiyonel)
+      if (cachedBody) {
+        await redisClient.hincrby('cache:stats', 'hits', 1).catch(() => {});
+      } else {
+        await redisClient.hincrby('cache:stats', 'misses', 1).catch(() => {});
+      }
     } catch (err: any) { // Add type for err
       logger.error(`Redis GET error for key ${key}:`, err);
       // If Redis fails, proceed without caching
@@ -35,56 +77,121 @@ const cacheMiddleware = (duration: number) => {
     }
 
     if (cachedBody) {
-      // logger.info(`Redis Cache hit for ${key}`);
-      // Send the cached response
+      // Cache hit
       try {
+        // Cache metadata
         res.setHeader("X-Cache", "HIT");
-        // Attempt to parse as JSON, fallback to sending as is
+        res.setHeader("X-Cache-Key", key);
+
+        // Content-Type ve diğer metadata'yı ayrı bir key'de saklama (gelişmiş)
+        let contentType = "application/json"; // Varsayılan
+        let cacheMetadata = null;
+
         try {
-          res.setHeader("Content-Type", "application/json");
-          res.send(JSON.parse(cachedBody)); // No return here
-        } catch (parseError) {
-          // If not JSON, send as plain text or original content type if stored
-          // For simplicity, sending as plain text here. Could store content-type in Redis too.
-          res.setHeader("Content-Type", "text/plain"); 
-          res.send(cachedBody); // No return here
+          // Metadata'yı kontrol et (opsiyonel)
+          cacheMetadata = await redisClient.get(`${key}:meta`).catch(() => null);
+          if (cacheMetadata) {
+            const meta = JSON.parse(cacheMetadata);
+            if (meta.contentType) {
+              contentType = meta.contentType;
+            }
+            // Diğer header'ları da ekleyebiliriz
+            if (meta.headers) {
+              Object.entries(meta.headers).forEach(([name, value]) => {
+                if (typeof value === 'string') {
+                  res.setHeader(name, value);
+                }
+              });
+            }
+          }
+        } catch (metaError) {
+          logger.warn(`Error parsing cache metadata for ${key}:`, metaError);
+          // Metadata hatası kritik değil, devam et
         }
-      } catch (e: any) { // Add type for e
+
+        // Content-Type'ı ayarla
+        res.setHeader("Content-Type", contentType);
+
+        // İçeriği gönder
+        if (contentType.includes('application/json')) {
+          try {
+            res.send(JSON.parse(cachedBody));
+          } catch (parseError) {
+            // JSON parse hatası - düz metin olarak gönder
+            res.setHeader("Content-Type", "text/plain");
+            res.send(cachedBody);
+          }
+        } else {
+          // JSON olmayan içerik
+          res.send(cachedBody);
+        }
+      } catch (e: any) {
         logger.error("Error sending cached response:", e);
-        // If sending cached response fails, maybe proceed?
-        // Depending on desired behavior, could call next() or just end response.
-        // For now, let's just log and end.
         if (!res.headersSent) {
-          res.status(500).send("Error retrieving cached response");
+          res.status(500).json({
+            error: "Cache Error",
+            message: "Error retrieving cached response"
+          });
         }
       }
-      return; // Stop further processing after attempting to send cached response
+      return; // Cache hit durumunda işlemi sonlandır
     } else {
-      // logger.info(`Redis Cache miss for ${key}`);
+      // Cache miss
       res.setHeader("X-Cache", "MISS");
-      // Override res.send to cache the response in Redis
-      const originalSend = res.send.bind(res); // Bind context
+      res.setHeader("X-Cache-Key", key);
 
-      // Define the new send function with a matching signature (approximated)
-      res.send = (body?: any): Response => { 
-        // Only cache successful responses (2xx)
-        // Ensure redisClient is not null before attempting to set cache
-        if (redisClient && res.statusCode >= 200 && res.statusCode < 300 && body != null) { // Check if body is not null/undefined
+      // Orijinal send metodunu kaydet
+      const originalSend = res.send.bind(res);
+
+      // Send metodunu override et
+      res.send = (body?: any): Response => {
+        // Cache'leme koşullarını kontrol et
+        if (
+          redisClient &&
+          body != null &&
+          statusCodes.includes(res.statusCode)
+        ) {
           try {
-            // Store the body in Redis with expiration (EX = seconds)
-            // Stringify JSON bodies before storing
+            // Cache için body hazırla
             const bodyToCache = (typeof body === "string") ? body : JSON.stringify(body);
-            // Ensure redisClient is not null before calling set
-            redisClient.set(key, bodyToCache, 'EX', duration)
-              .then(() => { /* logger.info(`Redis Cached response for ${key} for ${duration} seconds`); */ })
-              .catch((err: any) => logger.error(`Redis SET error for key ${key}:`, err)); // Add type for err
-          } catch (err: any) { // Add type for err
-            logger.error(`Error caching response body for key ${key}:`, err);
+
+            // Multi komut ile atomik işlem
+            const pipeline = redisClient.pipeline();
+
+            // Ana içeriği cache'le
+            pipeline.set(key, bodyToCache, 'EX', duration);
+
+            // Metadata'yı da cache'le (opsiyonel)
+            const metadata = {
+              contentType: res.getHeader('Content-Type') || 'application/json',
+              timestamp: Date.now(),
+              statusCode: res.statusCode,
+              headers: {
+                // Önemli header'ları sakla
+                'ETag': res.getHeader('ETag'),
+                'Last-Modified': res.getHeader('Last-Modified')
+              }
+            };
+
+            pipeline.set(`${key}:meta`, JSON.stringify(metadata), 'EX', duration);
+
+            // Pipeline'ı çalıştır
+            pipeline.exec()
+              .then(() => {
+                // logger.debug(`Cached response for ${key} (${duration}s)`);
+              })
+              .catch(err => {
+                logger.error(`Redis cache pipeline error for ${key}:`, err);
+              });
+          } catch (err: any) {
+            logger.error(`Error preparing cache for ${key}:`, err);
           }
         }
-        // Call the original send method with the original context and return its result
+
+        // Orijinal send metodunu çağır
         return originalSend.call(res, body);
       };
+
       next();
     }
   };

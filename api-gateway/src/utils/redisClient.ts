@@ -39,11 +39,26 @@ if (process.env.NODE_ENV === "test") {
   // Configure Redis connection using environment variables or defaults for non-test environments
   const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
   const options: RedisOptions = {
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: 5, // Daha fazla yeniden deneme
     enableReadyCheck: true,
+    connectTimeout: 10000, // 10 saniye bağlantı zaman aşımı
+    commandTimeout: 5000, // 5 saniye komut zaman aşımı
+    keepAlive: 10000, // 10 saniyede bir keepalive
+    reconnectOnError: (err) => {
+      const targetError = 'READONLY';
+      if (err.message.includes(targetError)) {
+        // Sadece READONLY hatası için yeniden bağlan (failover durumunda)
+        return 1;
+      }
+      return false;
+    },
     // Add retry strategy for better resilience
     retryStrategy(times: number): number | void {
-      const delay = Math.min(times * 50, 2000); // Exponential backoff up to 2 seconds
+      if (times > 10) {
+        logger.error('Redis connection failed after 10 attempts. Giving up.');
+        return undefined; // Yeniden denemeyi durdur (void dönüş tipi için undefined kullan)
+      }
+      const delay = Math.min(times * 100, 3000); // Exponential backoff up to 3 seconds
       logger.warn(`Redis connection failed. Retrying in ${delay}ms (attempt ${times})...`);
       return delay;
     },

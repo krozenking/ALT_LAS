@@ -22,7 +22,7 @@ const circuitBreakerOptions: CircuitBreaker.Options = {
 };
 
 // Store circuit breakers for each service
-const breakers: { [key: string]: CircuitBreaker<any[], any> } = {};
+export const breakers: { [key: string]: CircuitBreaker<any[], any> } = {};
 
 type BreakerProxyFunction = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -30,21 +30,44 @@ const getCircuitBreaker = (serviceName: string, proxyFunction: BreakerProxyFunct
   if (!breakers[serviceName]) {
     const breaker = new CircuitBreaker<[Request, Response, NextFunction], void>(proxyFunction, circuitBreakerOptions);
 
-    breaker.on('open', () => logger.warn(`[CIRCUIT BREAKER] Circuit for ${serviceName} opened.`));
-    breaker.on('halfOpen', () => logger.info(`[CIRCUIT BREAKER] Circuit for ${serviceName} half-opened.`));
-    breaker.on('close', () => logger.info(`[CIRCUIT BREAKER] Circuit for ${serviceName} closed.`));
-    breaker.on('fallback', (result: any, err: Error | any) => logger.error(`[CIRCUIT BREAKER] Fallback triggered for ${serviceName}: ${err?.message || 'Unknown error'}`));
+    breaker.on('open', () => {
+      logger.warn(`[CIRCUIT BREAKER] Circuit for ${serviceName} opened.`);
+      // Metrik güncelleme
+      if (global.updateCircuitBreakerMetrics) {
+        global.updateCircuitBreakerMetrics(serviceName, 'open', 1);
+      }
+    });
+
+    breaker.on('halfOpen', () => {
+      logger.info(`[CIRCUIT BREAKER] Circuit for ${serviceName} half-opened.`);
+      // Metrik güncelleme
+      if (global.updateCircuitBreakerMetrics) {
+        global.updateCircuitBreakerMetrics(serviceName, 'half-open');
+      }
+    });
+
+    breaker.on('close', () => {
+      logger.info(`[CIRCUIT BREAKER] Circuit for ${serviceName} closed.`);
+      // Metrik güncelleme
+      if (global.updateCircuitBreakerMetrics) {
+        global.updateCircuitBreakerMetrics(serviceName, 'closed');
+      }
+    });
+
+    breaker.on('fallback', (result: any, err: Error | any) => {
+      logger.error(`[CIRCUIT BREAKER] Fallback triggered for ${serviceName}: ${err?.message || 'Unknown error'}`);
+    });
 
     breaker.fallback((req: Request, res: Response, next: NextFunction, err: Error) => {
       logger.error(`[CIRCUIT BREAKER FALLBACK] Service ${serviceName} unavailable: ${err?.message}`);
       if (!res.headersSent) {
-        return res.status(503).json({ 
-          error: 'Service Unavailable', 
-          message: `The ${serviceName} service is currently unavailable due to repeated failures. Please try again later.` 
+        return res.status(503).json({
+          error: 'Service Unavailable',
+          message: `The ${serviceName} service is currently unavailable due to repeated failures. Please try again later.`
         });
       }
       logger.error(`[CIRCUIT BREAKER FALLBACK] Headers already sent for ${req.originalUrl}, cannot send 503 response.`);
-      return undefined; 
+      return undefined;
     });
 
     breakers[serviceName] = breaker;
@@ -55,8 +78,8 @@ const getCircuitBreaker = (serviceName: string, proxyFunction: BreakerProxyFunct
 // Default proxy options - Use correct types from http-proxy-middleware
 const defaultOptions: Options = {
   changeOrigin: true,
-  selfHandleResponse: true, 
-  pathRewrite: {}, 
+  selfHandleResponse: true,
+  pathRewrite: {},
   on: {
     // Use http.IncomingMessage here, but access originalUrl added via declaration merging
     proxyReq: (proxyReq, req: http.IncomingMessage, res) => {
@@ -70,9 +93,9 @@ const defaultOptions: Options = {
         const serverResponse = res as http.ServerResponse;
         if (!serverResponse.headersSent) {
             serverResponse.writeHead(502, { 'Content-Type': 'application/json' });
-            serverResponse.end(JSON.stringify({ 
-                error: 'Bad Gateway', 
-                message: 'Error connecting to the backend service.' 
+            serverResponse.end(JSON.stringify({
+                error: 'Bad Gateway',
+                message: 'Error connecting to the backend service.'
             }));
         } else {
             serverResponse.destroy(err);
@@ -82,10 +105,10 @@ const defaultOptions: Options = {
 };
 
 export const createServiceProxy = (
-  serviceName: string, 
-  pathPrefix: string, 
+  serviceName: string,
+  pathPrefix: string,
   options: Partial<Options> = {}
-): ExpressRequestHandler => { 
+): ExpressRequestHandler => {
   const serviceAvailabilityCheck: ExpressRequestHandler = (req, res, next) => {
     try {
       // Attach originalUrl to the raw request object for potential use in proxy events
@@ -93,32 +116,35 @@ export const createServiceProxy = (
       // If this causes issues, remove it and rely on req.originalUrl within the breaker scope.
       // (req as any)._originalUrl = req.originalUrl; // Use a less intrusive property name
       // Let's remove the problematic line for now as originalUrl is available in the breaker scope
-      // req.socket.parser.incoming.originalUrl = req.originalUrl; 
-      serviceDiscovery.getServiceUrl(serviceName); 
-      next(); 
+      // req.socket.parser.incoming.originalUrl = req.originalUrl;
+      serviceDiscovery.getServiceUrl(serviceName);
+      next();
     } catch (error: any) {
       logger.error(`Service '${serviceName}' not configured: ${error?.message}`);
-      res.status(503).json({ 
-        error: 'Service Unavailable', 
-        message: `The ${serviceName} service is not configured properly.` 
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: `The ${serviceName} service is not configured properly.`
       });
     }
   };
 
   try {
     const targetUrl = serviceDiscovery.getServiceUrl(serviceName);
-    
+
     const proxyOptions: Options = {
       ...defaultOptions,
       target: targetUrl,
       ...options,
-      selfHandleResponse: true, 
+      selfHandleResponse: true,
     };
-    
+
     const proxy = createProxyMiddleware(proxyOptions);
 
     // This function is wrapped by the circuit breaker
     const proxyFunction: BreakerProxyFunction = (req, res, next) => {
+      // İstek başlangıç zamanını kaydet
+      const startTime = Date.now();
+
       return new Promise<void>((resolve, reject) => {
         const customOnProxyRes = (proxyRes: http.IncomingMessage, reqFromProxy: http.IncomingMessage, resFromProxy: http.ServerResponse) => {
           let body = Buffer.from([]);
@@ -127,31 +153,66 @@ export const createServiceProxy = (
           });
           proxyRes.on('end', () => {
             try {
+              // İstek süresini hesapla
+              const duration = Date.now() - startTime;
+
               // Use originalUrl directly from the Express Request object (req) captured in the closure
               resFromProxy.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
               resFromProxy.end(body);
-              logger.info(`[PROXY RES] ${req.method} ${req.originalUrl} -> ${proxyRes.statusCode}`);
+
+              // Proxy yanıt durumunu belirle
+              const statusCategory = proxyRes.statusCode ?
+                proxyRes.statusCode < 400 ? "success" :
+                proxyRes.statusCode < 500 ? "client_error" : "server_error"
+                : "unknown";
+
+              logger.info(`[PROXY RES] ${req.method} ${req.originalUrl} -> ${proxyRes.statusCode} (${duration}ms)`);
+
+              // Metrik güncelleme
+              if (global.updateProxyMetrics) {
+                global.updateProxyMetrics(req.method, serviceName, statusCategory, duration);
+              }
+
+              // Yanıt başarılı mı?
               if (proxyRes.statusCode && proxyRes.statusCode < 500) {
                 resolve();
               } else {
                 reject(new Error(`Service ${serviceName} returned status ${proxyRes.statusCode}`));
               }
             } catch (error: any) {
+              // İstek süresini hesapla
+              const duration = Date.now() - startTime;
+
               logger.error(`[PROXY RES END ERROR] Error processing proxy response for ${req.originalUrl}: ${error?.message}`);
-              reject(error); 
+
+              // Metrik güncelleme - hata durumu
+              if (global.updateProxyMetrics) {
+                global.updateProxyMetrics(req.method, serviceName, "error", duration);
+              }
+
+              reject(error);
             }
           });
-           proxyRes.on('error', (err) => {
-                logger.error(`[PROXY RES ERROR] Error receiving proxy response for ${req.originalUrl}: ${err.message}`);
-                reject(err);
-            });
+          proxyRes.on('error', (err) => {
+            // İstek süresini hesapla
+            const duration = Date.now() - startTime;
+
+            logger.error(`[PROXY RES ERROR] Error receiving proxy response for ${req.originalUrl}: ${err.message}`);
+
+            // Metrik güncelleme - hata durumu
+            if (global.updateProxyMetrics) {
+              global.updateProxyMetrics(req.method, serviceName, "error", duration);
+            }
+
+            reject(err);
+          });
         };
 
         const eventAttachedProxy = proxy as any;
         // Ensure we don't attach multiple listeners if the middleware instance is somehow reused
-        eventAttachedProxy.off('proxyRes', customOnProxyRes); 
+        eventAttachedProxy.off('proxyRes', customOnProxyRes);
         eventAttachedProxy.on('proxyRes', customOnProxyRes);
-        
+
         // Execute the proxy middleware. Pass the original Express req/res.
         // http-proxy-middleware types expect IncomingMessage/ServerResponse, but it works with Express req/res.
         (proxy as ExpressRequestHandler)(req, res, (err?: any) => {
@@ -167,7 +228,7 @@ export const createServiceProxy = (
                  reject(new Error('Proxy finished without sending response or error'));
             } else {
                  // Assume success if headers were sent, though this is ambiguous
-                 resolve(); 
+                 resolve();
             }
           }
         });
@@ -178,9 +239,9 @@ export const createServiceProxy = (
 
     const finalMiddleware: ExpressRequestHandler = (req, res, next) => {
       serviceAvailabilityCheck(req, res, (err?: any) => {
-        if (err) { 
+        if (err) {
            logger.error("[UNEXPECTED] Error passed from serviceAvailabilityCheck");
-           return; 
+           return;
         }
         breaker.fire(req, res, next).catch(err => {
           // Fallback is handled by the breaker itself. This catch is for unexpected errors during .fire()
@@ -196,9 +257,9 @@ export const createServiceProxy = (
   } catch (error: any) {
     logger.error(`Failed to create proxy for service '${serviceName}': ${error?.message}`);
     const errorMiddleware: ExpressRequestHandler = (req, res) => {
-      res.status(503).json({ 
-        error: 'Service Unavailable', 
-        message: `The ${serviceName} service is not configured properly.` 
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: `The ${serviceName} service is not configured properly.`
       });
     };
     return errorMiddleware;
@@ -207,25 +268,33 @@ export const createServiceProxy = (
 
 // Export pre-configured proxies for each service
 export const segmentationServiceProxy = createServiceProxy(
-  'segmentation', 
-  '/api/segmentation', 
+  'segmentation',
+  '/api/segmentation',
   {
-    pathRewrite: { '^/api/segmentation': '/api' } 
+    pathRewrite: { '^/api/segmentation': '/api' }
   }
 );
 
 export const runnerServiceProxy = createServiceProxy(
-  'runner', 
-  '/api/runner', 
+  'runner',
+  '/api/runner',
   {
-    pathRewrite: { '^/api/runner': '/api' } 
+    pathRewrite: { '^/api/runner': '/api' }
   }
 );
 
 export const archiveServiceProxy = createServiceProxy(
-  'archive', 
-  '/api/archive', 
+  'archive',
+  '/api/archive',
   {
-    pathRewrite: { '^/api/archive': '/api' } 
+    pathRewrite: { '^/api/archive': '/api' }
+  }
+);
+
+export const aiOrchestratorServiceProxy = createServiceProxy(
+  'ai-orchestrator',
+  '/api/ai',
+  {
+    pathRewrite: { '^/api/ai': '/api' }
   }
 );

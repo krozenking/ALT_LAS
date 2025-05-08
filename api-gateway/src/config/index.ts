@@ -31,6 +31,7 @@ export const config = {
     segmentation: ensureUrlFormat(process.env.SEGMENTATION_SERVICE_URL, 'http://localhost:8001'),
     runner: ensureUrlFormat(process.env.RUNNER_SERVICE_URL, 'http://localhost:8002'),
     archive: ensureUrlFormat(process.env.ARCHIVE_SERVICE_URL, 'http://localhost:8003'),
+    'ai-orchestrator': ensureUrlFormat(process.env.AI_ORCHESTRATOR_URL, 'http://localhost:8004'),
     // Add other service URLs as needed
   },
   // Add other configurations as needed (database, logging, etc.)
@@ -40,4 +41,5 @@ console.log('Service Configuration:');
 console.log(`- Segmentation Service: ${config.services.segmentation}`);
 console.log(`- Runner Service: ${config.services.runner}`);
 console.log(`- Archive Service: ${config.services.archive}`);
+console.log(`- AI Orchestrator Service: ${config.services['ai-orchestrator']}`);
 

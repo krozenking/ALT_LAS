@@ -305,3 +305,20 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   Gitflow benzeri bir dallanma stratejisi (main, develop, feature, release, hotfix branch'leri) ve anlamlı commit mesajları için Conventional Commits formatı önerilmiştir.
     *   Her servis için bağımlılık yönetimi ve kilit dosyalarının önemi vurgulanmıştır.
     *   Bu standartlar, kod kalitesini artırmayı, geliştirici onboarding sürecini kolaylaştırmayı ve proje genelinde tutarlılığı sağlamayı hedeflemektedir.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 01:49 UTC):**
+
+**Görev: 2. API Gateway (Çekirdek İşlevsellik)**
+*   **Durum:** Mevcut API Gateway implementasyonu (`api-gateway/src/index.ts`) incelendi ve Pre-Alpha hedefleriyle büyük ölçüde uyumlu olduğu veya bu hedefleri aştığı tespit edildi.
+*   **Temel İstek İşleme ve Yönlendirme:** Express.js tabanlı yönlendirme mekanizması, planlanan Pre-Alpha servisleri (Segmentation, Runner, Archive) için proxy middleware (`segmentationServiceProxy`, `runnerServiceProxy`, `archiveServiceProxy`) aracılığıyla temel yönlendirmeyi sağlamaktadır.
+*   **Kimlik Doğrulama/Yetkilendirme:** `authenticateJWT` middleware ile JWT tabanlı kimlik doğrulama ve `routeAuthorization` ile rota tabanlı yetkilendirme mekanizmaları mevcuttur. Bu, Pre-Alpha için belirtilen "basit" gereksinimi karşılamakta ve hatta aşmaktadır.
+*   **Servis Keşfi (Statik):** Proxy yapılandırmalarının, Pre-Alpha için yeterli olan statik servis adreslerini (muhtemelen ortam değişkenleri veya yapılandırma dosyaları aracılığıyla) kullandığı varsayılmaktadır.
+*   **Güvenlik Middleware'leri:** `helmet`, `cors`, `compression` ve `rateLimiter` gibi temel güvenlik ve performans middleware'leri entegre edilmiştir.
+*   **Sağlık Kontrolleri:** `setupHealthCheck(app)` fonksiyonu ile `/health` endpoint'i üzerinden sağlık kontrolü yeteneği eklenmiştir.
+*   **API Dokümantasyonu:** Swagger/OpenAPI (`swagger-ui-express` ve `swagger.yaml`) entegrasyonu ile API dokümantasyonu sunulmaktadır.
+*   **Loglama ve İzleme:** `winston` ile detaylı loglama, `morgan` benzeri istek loglama (`requestLogger`) ve OpenTelemetry (`startOpenTelemetry()`, `setupMetrics(app)`) ile gelişmiş izleme ve metrik toplama yetenekleri mevcuttur. Bu, Pre-Alpha için belirtilen temel gereksinimleri fazlasıyla karşılamaktadır.
+*   **Sonuç:** API Gateway, Pre-Alpha aşamasının çekirdek işlevsellik gereksinimlerini karşılayacak düzeyde ve hatta daha gelişmiş özelliklere sahiptir. Bu aşamada ek bir geliştirme yapılmasına gerek görülmemiştir. Mevcut yapı, sonraki servislerin entegrasyonu için sağlam bir temel sunmaktadır.

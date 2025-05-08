@@ -454,3 +454,18 @@ Bu detaylı liste Proje Yöneticisi tarafından sürdürülecek ve Pre-Alpha aş
     *   Pipeline artık bağımlılıkları kurduktan sonra lint kontrollerini çalıştıracak, ardından build işlemini gerçekleştirecek ve son olarak testleri yürütecektir.
     *   Bu güncelleme, kod kalitesinin ve projenin sağlığının otomatik olarak doğrulanmasına yardımcı olacak temel bir CI sürecini oluşturur.
     *   Docker imaj build ve push adımları hala yer tutucu olarak bırakılmıştır ve bu teknik alt görevin bir sonraki adımı olan "Otomatik Docker imaj build'lerini ve bir container registry'ye push işlemlerini yapılandırın" kapsamında ele alınacaktır.
+
+
+
+---
+
+**İlerleme Özeti (08 Mayıs 2025 - 06:25 UTC):**
+
+**Görev: 1. Temel Altyapı (Proje Geneli)**
+*   **Alt Görev: CI/CD Pipeline (İlk Kurulum) - Otomatik Docker İmaj Build ve Push İşlemlerini Yapılandırma**
+    *   `/home/ubuntu/ALT_LAS_with_token/.github/workflows/api_gateway_ci.yml` GitHub Actions workflow dosyası, API Gateway servisi için otomatik Docker imajı oluşturma ve GitHub Container Registry (ghcr.io) üzerine gönderme (push) adımlarını içerecek şekilde güncellendi.
+    *   Yeni bir iş (`build-and-push-docker-image`) eklendi. Bu iş, `build-and-test` işi başarıyla tamamlandıktan sonra ve yalnızca `main` branch'ine yapılan `push` olaylarında çalışacak şekilde yapılandırıldı.
+    *   Bu iş, `docker/setup-qemu-action`, `docker/setup-buildx-action` ve `docker/login-action` adımlarını kullanarak Docker build ortamını hazırlar ve GitHub Container Registry'ye giriş yapar.
+    *   `docker/build-push-action` adımı, `api-gateway/Dockerfile` dosyasını kullanarak imajı oluşturur ve `ghcr.io/${{ github.repository_owner }}/alt_las_api_gateway:latest` etiketiyle registry'ye gönderir.
+    *   Workflow dosyası ayrıca, workflow dosyasındaki değişikliklerde de tetiklenecek şekilde güncellendi.
+    *   Bu güncelleme, API Gateway servisinin her başarılı `main` branch güncellemesinden sonra otomatik olarak bir Docker imajının oluşturulup yayınlanmasını sağlar, böylece sürekli entegrasyon ve dağıtım süreçlerine önemli bir katkıda bulunur.

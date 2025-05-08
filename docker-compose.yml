@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    container_name: alt_las_api_gateway
+    # environment:
+      # - NODE_ENV=development
+      # - JWT_SECRET=your_jwt_secret_key_here
+      # - REDIS_URL=redis://redis:6379
+    # depends_on:
+      # - redis # If you add a Redis service
+
+  segmentation-service:
+    build:
+      context: ./segmentation-service
+      dockerfile: Dockerfile # Assuming Dockerfile exists or will be created
+    container_name: alt_las_segmentation_service
+    # ports:
+      # - "8000:8000" # If it's a FastAPI service, for example
+    # environment:
+      # - PYTHONUNBUFFERED=1
+
+  runner-service:
+    build:
+      context: ./runner-service
+      dockerfile: Dockerfile # Assuming Dockerfile exists or will be created
+    container_name: alt_las_runner_service
+    # environment:
+      # - RUST_LOG=info
+
+  archive-service:
+    build:
+      context: ./archive-service
+      dockerfile: Dockerfile # Assuming Dockerfile exists or will be created
+    container_name: alt_las_archive_service
+    # environment:
+      # - DATABASE_URL=postgres://user:password@postgres_db:5432/alt_las_archive
+    # depends_on:
+      # - postgres_db # If you add a PostgreSQL service
+
+  # ai-orchestrator: # Placeholder for future addition
+  #   build:
+  #     context: ./ai-orchestrator
+  #     dockerfile: Dockerfile
+  #   container_name: alt_las_ai_orchestrator
+
+  # ui-desktop: # This is an Electron app, typically not run in docker-compose for dev, but placeholder if needed for some backend part
+  #   build:
+  #     context: ./ui-desktop
+  #     dockerfile: Dockerfile # If applicable
+  #   container_name: alt_las_ui_desktop
+
+  # Example Redis service (uncomment if API Gateway or others need it)
+  # redis:
+  #   image: "redis:alpine"
+  #   container_name: alt_las_redis
+  #   ports:
+  #     - "6379:6379"
+
+  # Example PostgreSQL service (uncomment if Archive service needs it)
+  # postgres_db:
+  #   image: postgres:13-alpine
+  #   container_name: alt_las_postgres_db
+  #   environment:
+  #     POSTGRES_USER: user
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: alt_las_archive
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+# volumes: # Uncomment if using postgres_db or other services needing persistent data
+  # postgres_data:
+

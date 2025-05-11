@@ -39,7 +39,7 @@
     "@storybook/addon-onboarding": "^8.6.12",
     "@storybook/blocks": "^8.6.12",
     "@storybook/react": "^7.6.10",
-    "@storybook/react-webpack5": "^7.6.10",
+    "@storybook/react-webpack5": "^8.6.12",
     "@storybook/test": "^7.6.10",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^14.1.2",

@@ -1,0 +1,19 @@
+server:
+  port: 8081
+
+nats:
+  url: nats://nats:4222
+  subject: last.files
+  queue_group: archive-service
+
+db:
+  host: postgres-db
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: altlas
+  sslmode: disable
+
+logging:
+  level: info
+  log_dir: ./logs

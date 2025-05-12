@@ -1,0 +1,410 @@
+# Beta Dockerfile for API Gateway Service
+# Created by Can Tekin (DevOps Engineer)
+
+# Build stage
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache --virtual .build-deps python3 make g++
+
+# Copy package files
+COPY api-gateway/package.json api-gateway/package-lock.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY api-gateway /app/
+
+# Create a new index.js file with CommonJS syntax
+RUN echo '/**\n\
+ * API Gateway için güncellenmiş index.js dosyası\n\
+ * \n\
+ * Bu dosya, tüm yeni bileşenleri entegre eder ve API Gateway'\''i yapılandırır.\n\
+ * Token yenileme, çıkış işlemleri, gelişmiş servis keşfi ve performans izleme eklendi.\n\
+ */\n\
+\n\
+const express = require("express");\n\
+const cors = require("cors");\n\
+const helmet = require("helmet");\n\
+const morgan = require("morgan");\n\
+const swaggerUi = require("swagger-ui-express");\n\
+const YAML = require("yamljs");\n\
+const path = require("path");\n\
+\n\
+// Middleware ve servisler\n\
+const rateLimiter = require("./middleware/rateLimiter");\n\
+const apiVersioning = require("./middleware/apiVersioning");\n\
+const authenticateJWT = require("./middleware/authenticateJWT");\n\
+const authService = require("./services/authService");\n\
+// const serviceDiscovery = require("./services/serviceDiscovery"); // Eski servis keşfi yerine yenisi kullanılacak\n\
+const enhancedServiceDiscovery = require("./services/enhancedServiceDiscovery"); // Gelişmiş servis keşfi\n\
+const performanceMonitor = require("./services/performanceMonitor"); // Performans izleme\n\
+\n\
+// Initialize express app\n\
+const app = express();\n\
+const port = process.env.PORT || 3000;\n\
+\n\
+// Middleware\n\
+app.use(performanceMonitor.middleware()); // Performans izleme middleware'\''i (en başa eklenmeli)\n\
+app.use(helmet()); // Security headers\n\
+app.use(cors()); // Enable CORS\n\
+app.use(express.json()); // Parse JSON bodies\n\
+app.use(morgan("dev")); // Logging\n\
+\n\
+// Rate limiter - tüm istekler için\n\
+app.use(rateLimiter({\n\
+  windowMs: 60 * 1000, // 1 dakika\n\
+  maxRequests: 100 // dakikada 100 istek\n\
+}));\n\
+\n\
+// API versiyonlama\n\
+app.use(apiVersioning({\n\
+  defaultVersion: "v1",\n\
+  supportedVersions: ["v1"]\n\
+}));\n\
+\n\
+// Swagger dokümantasyonu\n\
+const swaggerDocument = YAML.load(path.join(__dirname, "../swagger.yaml"));\n\
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));\n\
+\n\
+// Test servisleri kaydet (geliştirme ortamı için)\n\
+if (process.env.NODE_ENV === "development") {\n\
+  enhancedServiceDiscovery.register("segmentation-service", "localhost", 3001, { version: "1.0.0" });\n\
+  enhancedServiceDiscovery.register("runner-service", "localhost", 3002, { version: "1.0.0" });\n\
+  enhancedServiceDiscovery.register("archive-service", "localhost", 3003, { version: "1.0.0" });\n\
+  console.log("Test services registered with health checks");\n\
+}\n\
+\n\
+// Kimlik doğrulama rotaları\n\
+app.post("/api/auth/register", (req, res) => {\n\
+  try {\n\
+    const { username, password, roles } = req.body;\n\
+    const user = authService.register(username, password, roles || ["user"]);\n\
+    res.status(201).json(user);\n\
+  } catch (error) {\n\
+    res.status(400).json({ message: error.message });\n\
+  }\n\
+});\n\
+\n\
+app.post("/api/auth/login", (req, res) => {\n\
+  try {\n\
+    const { username, password } = req.body;\n\
+    const result = authService.login(username, password);\n\
+    res.json(result);\n\
+  } catch (error) {\n\
+    res.status(401).json({ message: error.message });\n\
+  }\n\
+});\n\
+\n\
+app.post("/api/auth/refresh", (req, res) => {\n\
+  try {\n\
+    const { refreshToken } = req.body;\n\
+    if (!refreshToken) {\n\
+      return res.status(400).json({ message: "Refresh token is required" });\n\
+    }\n\
+    const result = authService.refreshAccessToken(refreshToken);\n\
+    res.json(result);\n\
+  } catch (error) {\n\
+    res.status(401).json({ message: error.message });\n\
+  }\n\
+});\n\
+\n\
+app.post("/api/auth/logout", (req, res) => {\n\
+  try {\n\
+    const { refreshToken } = req.body;\n\
+    if (!refreshToken) {\n\
+      return res.status(400).json({ message: "Refresh token is required" });\n\
+    }\n\
+    const success = authService.logout(refreshToken);\n\
+    if (success) {\n\
+      res.status(200).json({ message: "Successfully logged out" });\n\
+    } else {\n\
+      res.status(200).json({ message: "Logout processed" });\n\
+    }\n\
+  } catch (error) {\n\
+    res.status(500).json({ message: "Logout failed", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+// Servis keşif ve durum rotaları (Admin erişimi)\n\
+app.get("/api/services", authenticateJWT, authService.authorize(["admin"]), (req, res) => {\n\
+  const services = enhancedServiceDiscovery.findAll();\n\
+  res.json(services);\n\
+});\n\
+\n\
+app.get("/api/status", authenticateJWT, authService.authorize(["admin"]), (req, res) => {\n\
+  const healthStatus = enhancedServiceDiscovery.getHealthStatus();\n\
+  res.json(healthStatus);\n\
+});\n\
+\n\
+app.post("/api/services/register", authenticateJWT, authService.authorize(["admin"]), (req, res) => {\n\
+  try {\n\
+    const { name, host, port, metadata, healthCheckOptions } = req.body;\n\
+    const service = enhancedServiceDiscovery.register(name, host, port, metadata, healthCheckOptions);\n\
+    res.status(201).json(service);\n\
+  } catch (error) {\n\
+    res.status(400).json({ message: error.message });\n\
+  }\n\
+});\n\
+\n\
+// Not: Heartbeat endpoint'\''i kaldırıldı, sağlık kontrolü bu işlevi görüyor.\n\
+// app.post("/api/services/:serviceId/heartbeat", ... );\n\
+\n\
+// Performans Metrikleri Rotaları (Admin erişimi)\n\
+app.get("/api/metrics", authenticateJWT, authService.authorize(["admin"]), (req, res) => {\n\
+  const metrics = performanceMonitor.getMetrics();\n\
+  res.json(metrics);\n\
+});\n\
+\n\
+app.get("/api/metrics/summary", authenticateJWT, authService.authorize(["admin"]), (req, res) => {\n\
+  const summary = performanceMonitor.getSummary();\n\
+  res.json(summary);\n\
+});\n\
+\n\
+// Ana rotalar\n\
+app.get("/", (req, res) => {\n\
+  res.json({ \n\
+    message: "Welcome to ALT_LAS API Gateway",\n\
+    documentation: "/api-docs",\n\
+    version: req.apiVersion || "v1"\n\
+  });\n\
+});\n\
+\n\
+// Health check endpoint (API Gateway'\''in kendi sağlığı)\n\
+app.get("/health", (req, res) => {\n\
+  // Daha kapsamlı bir sağlık kontrolü eklenebilir (örn: veritabanı bağlantısı)\n\
+  res.json({ status: "UP" });\n\
+});\n\
+\n\
+// Korumalı servis rotaları (Tüm doğrulanmış kullanıcılar erişebilir)\n\
+// Mikroservislere yönlendirme yaparken gelişmiş servis keşfini kullan\n\
+\n\
+// Segmentation Service\n\
+app.post("/api/v1/segmentation", authenticateJWT, async (req, res) => {\n\
+  try {\n\
+    const service = enhancedServiceDiscovery.findOneHealthy("segmentation-service");\n\
+    if (!service) {\n\
+      performanceMonitor.recordServiceDiscovery("failure");\n\
+      return res.status(503).json({ message: "Segmentation service unavailable or unhealthy" });\n\
+    }\n\
+    performanceMonitor.recordServiceDiscovery("request", service);\n\
+    \n\
+    // Gerçek uygulamada, burada HTTP isteği yapılır (axios kullanarak)\n\
+    // const response = await axios.post(`${service.url}/segment`, req.body);\n\
+    // res.json(response.data);\n\
+\n\
+    // Şimdilik mock yanıt döndürüyoruz\n\
+    const mockResponse = {\n\
+      id: Math.random().toString(36).substring(7),\n\
+      status: "success",\n\
+      altFile: `task_${Date.now()}.alt`,\n\
+      metadata: {\n\
+        timestamp: new Date().toISOString(),\n\
+        mode: req.body.mode || "Normal",\n\
+        persona: req.body.persona || "technical_expert",\n\
+        userId: req.user.sub\n\
+      }\n\
+    };\n\
+    res.json(mockResponse);\n\
+  } catch (error) {\n\
+    console.error("Error proxying to segmentation service:", error);\n\
+    res.status(500).json({ message: "Segmentation service proxy error", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+app.get("/api/v1/segmentation/:id", authenticateJWT, async (req, res) => {\n\
+  const { id } = req.params;\n\
+  try {\n\
+    const service = enhancedServiceDiscovery.findOneHealthy("segmentation-service");\n\
+    if (!service) {\n\
+      performanceMonitor.recordServiceDiscovery("failure");\n\
+      return res.status(503).json({ message: "Segmentation service unavailable or unhealthy" });\n\
+    }\n\
+    performanceMonitor.recordServiceDiscovery("request", service);\n\
+    \n\
+    // Gerçek uygulamada: await axios.get(`${service.url}/segment/${id}`);\n\
+    // Mock yanıt\n\
+    res.json({\n\
+      id,\n\
+      status: "completed",\n\
+      altFile: `task_${id}.alt`\n\
+    });\n\
+  } catch (error) {\n\
+     console.error("Error proxying to segmentation service:", error);\n\
+     res.status(500).json({ message: "Segmentation service proxy error", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+// Runner Service\n\
+app.post("/api/v1/runner", authenticateJWT, async (req, res) => {\n\
+  try {\n\
+    const service = enhancedServiceDiscovery.findOneHealthy("runner-service");\n\
+    if (!service) {\n\
+      performanceMonitor.recordServiceDiscovery("failure");\n\
+      return res.status(503).json({ message: "Runner service unavailable or unhealthy" });\n\
+    }\n\
+    performanceMonitor.recordServiceDiscovery("request", service);\n\
+\n\
+    // Gerçek uygulamada: await axios.post(`${service.url}/run`, req.body);\n\
+    // Mock yanıt\n\
+    const mockResponse = {\n\
+      id: Math.random().toString(36).substring(7),\n\
+      status: "running",\n\
+      progress: 0,\n\
+      lastFile: null,\n\
+      metadata: { userId: req.user.sub }\n\
+    };\n\
+    res.json(mockResponse);\n\
+  } catch (error) {\n\
+    console.error("Error proxying to runner service:", error);\n\
+    res.status(500).json({ message: "Runner service proxy error", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+app.get("/api/v1/runner/:id", authenticateJWT, async (req, res) => {\n\
+  const { id } = req.params;\n\
+   try {\n\
+    const service = enhancedServiceDiscovery.findOneHealthy("runner-service");\n\
+    if (!service) {\n\
+      performanceMonitor.recordServiceDiscovery("failure");\n\
+      return res.status(503).json({ message: "Runner service unavailable or unhealthy" });\n\
+    }\n\
+    performanceMonitor.recordServiceDiscovery("request", service);\n\
+\n\
+    // Gerçek uygulamada: await axios.get(`${service.url}/run/${id}`);\n\
+    // Mock yanıt\n\
+    res.json({\n\
+      id,\n\
+      status: "running",\n\
+      progress: Math.floor(Math.random() * 100),\n\
+      lastFile: Math.random() > 0.5 ? `result_${id}.last` : null\n\
+    });\n\
+  } catch (error) {\n\
+     console.error("Error proxying to runner service:", error);\n\
+     res.status(500).json({ message: "Runner service proxy error", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+// Archive Service\n\
+app.post("/api/v1/archive", authenticateJWT, async (req, res) => {\n\
+  try {\n\
+    const service = enhancedServiceDiscovery.findOneHealthy("archive-service");\n\
+    if (!service) {\n\
+      performanceMonitor.recordServiceDiscovery("failure");\n\
+      return res.status(503).json({ message: "Archive service unavailable or unhealthy" });\n\
+    }\n\
+    performanceMonitor.recordServiceDiscovery("request", service);\n\
+\n\
+    // Gerçek uygulamada: await axios.post(`${service.url}/archive`, req.body);\n\
+    // Mock yanıt\n\
+    const mockResponse = {\n\
+      id: Math.random().toString(36).substring(7),\n\
+      status: "success",\n\
+      atlasId: `atlas_${Date.now()}`,\n\
+      successRate: Math.floor(Math.random() * 100),\n\
+      metadata: { userId: req.user.sub }\n\
+    };\n\
+    res.json(mockResponse);\n\
+  } catch (error) {\n\
+    console.error("Error proxying to archive service:", error);\n\
+    res.status(500).json({ message: "Archive service proxy error", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+app.get("/api/v1/archive/:id", authenticateJWT, async (req, res) => {\n\
+  const { id } = req.params;\n\
+  try {\n\
+    const service = enhancedServiceDiscovery.findOneHealthy("archive-service");\n\
+    if (!service) {\n\
+      performanceMonitor.recordServiceDiscovery("failure");\n\
+      return res.status(503).json({ message: "Archive service unavailable or unhealthy" });\n\
+    }\n\
+    performanceMonitor.recordServiceDiscovery("request", service);\n\
+\n\
+    // Gerçek uygulamada: await axios.get(`${service.url}/archive/${id}`);\n\
+    // Mock yanıt\n\
+    res.json({\n\
+      id,\n\
+      status: "success",\n\
+      atlasId: `atlas_${id}`,\n\
+      successRate: Math.floor(Math.random() * 100)\n\
+    });\n\
+  } catch (error) {\n\
+     console.error("Error proxying to archive service:", error);\n\
+     res.status(500).json({ message: "Archive service proxy error", error: error.message });\n\
+  }\n\
+});\n\
+\n\
+// Error handling middleware\n\
+app.use((err, req, res, next) => {\n\
+  console.error(err.stack);\n\
+  // Performans izleyiciye hata kaydı ekle (opsiyonel)\n\
+  // performanceMonitor.recordError(err);\n\
+  res.status(500).json({\n\
+    message: "Something went wrong!",\n\
+    error: process.env.NODE_ENV === "development" ? err.message : undefined\n\
+  });\n\
+});\n\
+\n\
+// 404 handler\n\
+app.use((req, res) => {\n\
+  res.status(404).json({ message: "Not Found" });\n\
+});\n\
+\n\
+// Start server\n\
+if (process.env.NODE_ENV !== "test") {\n\
+  app.listen(port, () => {\n\
+    console.log(`API Gateway running on port ${port}`);\n\
+    console.log(`Swagger documentation available at http://localhost:${port}/api-docs`);\n\
+    console.log(`Metrics available at http://localhost:${port}/api/metrics (Admin only)`);\n\
+    console.log(`Service status available at http://localhost:${port}/api/status (Admin only)`);\n\
+  });\n\
+}\n\
+\n\
+module.exports = app; // For testing\n\
+' > /app/src/index.js
+
+# Remove build dependencies
+RUN apk del .build-deps
+
+# Runtime stage
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copy dependencies and application code from builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/swagger.yaml ./swagger.yaml
+COPY --from=builder /app/package.json ./package.json
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app
+
+# Create necessary directories for read-only filesystem
+RUN mkdir -p /app/tmp && chown -R appuser:appgroup /app/tmp
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 3000
+
+# Add health check (standard production interval)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Environment variables for production
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Command to run the application
+CMD ["node", "src/index.js"]

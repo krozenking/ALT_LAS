@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-policy
+  namespace: alt-las
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres-db
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Segmentation Service'den gelen trafiğe izin ver
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: segmentation-service
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Runner Service'den gelen trafiğe izin ver
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: runner-service
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Archive Service'den gelen trafiğe izin ver
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: archive-service
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  # DNS trafiğine izin ver
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

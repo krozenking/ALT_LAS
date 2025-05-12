@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: segmentation-service
+  namespace: alt-las
   labels:
     app: segmentation-service
     app.kubernetes.io/component: backend
@@ -26,9 +27,16 @@ spec:
           type: RuntimeDefault
       containers:
       - name: segmentation-service
-        image: your-registry/alt-las-segmentation-service:latest
+        image: frozen68/segmentation-service:beta
         ports:
         - containerPort: 8000
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
         env:
         - name: LOG_LEVEL
           value: "INFO"

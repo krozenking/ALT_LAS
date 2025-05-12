@@ -1,0 +1,84 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: api-gateway-policy
+  namespace: alt-las
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: segmentation-service-policy
+  namespace: alt-las
+spec:
+  selector:
+    matchLabels:
+      app: segmentation-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/alt-las/sa/api-gateway"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: runner-service-policy
+  namespace: alt-las
+spec:
+  selector:
+    matchLabels:
+      app: runner-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/alt-las/sa/api-gateway"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: archive-service-policy
+  namespace: alt-las
+spec:
+  selector:
+    matchLabels:
+      app: archive-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/alt-las/sa/api-gateway"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ai-orchestrator-policy
+  namespace: alt-las
+spec:
+  selector:
+    matchLabels:
+      app: ai-orchestrator
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/alt-las/sa/api-gateway", "cluster.local/ns/alt-las/sa/segmentation-service", "cluster.local/ns/alt-las/sa/runner-service"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]

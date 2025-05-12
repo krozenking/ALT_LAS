@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-report-script
+  namespace: alt-las
+data:
+  generate-report.sh: |
+    #!/bin/bash
+    set -e
+
+    REPORT_DIR="/reports"
+    DATE=$(date +%Y%m%d%H%M%S)
+    FINAL_REPORT="${REPORT_DIR}/security-report-${DATE}.md"
+
+    echo "Generating security report..."
+
+    echo "# ALT_LAS Security Scan Report" > ${FINAL_REPORT}
+    echo "Date: $(date)" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    echo "## Overview" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    echo "This report contains the results of security scans performed on the ALT_LAS Kubernetes cluster and applications." >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+
+    # Trivy vulnerability scan results
+    echo "## Container Image Vulnerability Scan (Trivy)" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    
+    TRIVY_SUMMARY=$(find ${REPORT_DIR} -name "trivy-summary-*.txt" -type f | sort -r | head -1)
+    
+    if [ -f "${TRIVY_SUMMARY}" ]; then
+      cat ${TRIVY_SUMMARY} >> ${FINAL_REPORT}
+    else
+      echo "No Trivy scan results found." >> ${FINAL_REPORT}
+    fi
+    
+    echo "" >> ${FINAL_REPORT}
+
+    # Kubesec manifest scan results
+    echo "## Kubernetes Manifest Security Scan (Kubesec)" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    
+    KUBESEC_SUMMARY=$(find ${REPORT_DIR} -name "kubesec-summary-*.md" -type f | sort -r | head -1)
+    
+    if [ -f "${KUBESEC_SUMMARY}" ]; then
+      cat ${KUBESEC_SUMMARY} >> ${FINAL_REPORT}
+    else
+      echo "No Kubesec scan results found." >> ${FINAL_REPORT}
+    fi
+    
+    echo "" >> ${FINAL_REPORT}
+
+    # Kube-bench cluster scan results
+    echo "## Kubernetes Cluster Security Scan (Kube-bench)" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    
+    KUBE_BENCH_REPORT=$(find ${REPORT_DIR} -name "kube-bench-report.json" -type f)
+    
+    if [ -f "${KUBE_BENCH_REPORT}" ]; then
+      echo "### Summary" >> ${FINAL_REPORT}
+      echo "" >> ${FINAL_REPORT}
+      
+      # Extract summary information
+      TOTAL_CHECKS=$(jq '.Totals.total_checks' ${KUBE_BENCH_REPORT})
+      PASSED_CHECKS=$(jq '.Totals.total_pass' ${KUBE_BENCH_REPORT})
+      FAILED_CHECKS=$(jq '.Totals.total_fail' ${KUBE_BENCH_REPORT})
+      WARN_CHECKS=$(jq '.Totals.total_warn' ${KUBE_BENCH_REPORT})
+      INFO_CHECKS=$(jq '.Totals.total_info' ${KUBE_BENCH_REPORT})
+      
+      echo "- Total checks: ${TOTAL_CHECKS}" >> ${FINAL_REPORT}
+      echo "- Passed checks: ${PASSED_CHECKS}" >> ${FINAL_REPORT}
+      echo "- Failed checks: ${FAILED_CHECKS}" >> ${FINAL_REPORT}
+      echo "- Warning checks: ${WARN_CHECKS}" >> ${FINAL_REPORT}
+      echo "- Info checks: ${INFO_CHECKS}" >> ${FINAL_REPORT}
+      
+      echo "" >> ${FINAL_REPORT}
+      echo "### Failed Checks" >> ${FINAL_REPORT}
+      echo "" >> ${FINAL_REPORT}
+      
+      # Extract failed checks
+      jq -r '.Controls[] | .Tests[] | .Results[] | select(.status=="FAIL") | "- **" + .test_number + "**: " + .test_desc' ${KUBE_BENCH_REPORT} >> ${FINAL_REPORT}
+    else
+      echo "No Kube-bench scan results found." >> ${FINAL_REPORT}
+    fi
+    
+    echo "" >> ${FINAL_REPORT}
+    echo "## Recommendations" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    echo "Based on the security scan results, the following recommendations are provided:" >> ${FINAL_REPORT}
+    echo "" >> ${FINAL_REPORT}
+    echo "1. **Update vulnerable container images**: Update container images with critical and high vulnerabilities." >> ${FINAL_REPORT}
+    echo "2. **Implement security context**: Add security context to all pod specifications with appropriate settings." >> ${FINAL_REPORT}
+    echo "3. **Set resource limits**: Define resource limits for all containers to prevent resource exhaustion attacks." >> ${FINAL_REPORT}
+    echo "4. **Use network policies**: Implement network policies to restrict pod-to-pod communication." >> ${FINAL_REPORT}
+    echo "5. **Enable RBAC**: Use Role-Based Access Control for all service accounts." >> ${FINAL_REPORT}
+    echo "6. **Implement pod security policies**: Define pod security policies to enforce security best practices." >> ${FINAL_REPORT}
+    echo "7. **Secure Kubernetes API server**: Follow CIS Benchmark recommendations for API server configuration." >> ${FINAL_REPORT}
+    echo "8. **Regular security scanning**: Implement regular security scanning as part of the CI/CD pipeline." >> ${FINAL_REPORT}
+    
+    echo "Security report generated: ${FINAL_REPORT}"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: security-report-generator
+  namespace: alt-las
+spec:
+  template:
+    spec:
+      containers:
+      - name: report-generator
+        image: alpine:3.18
+        command:
+        - /bin/sh
+        - /scripts/generate-report.sh
+        volumeMounts:
+        - name: reports-volume
+          mountPath: /reports
+        - name: scripts-volume
+          mountPath: /scripts
+      restartPolicy: OnFailure
+      volumes:
+      - name: reports-volume
+        emptyDir: {}
+      - name: scripts-volume
+        configMap:
+          name: security-report-script
+          defaultMode: 0755

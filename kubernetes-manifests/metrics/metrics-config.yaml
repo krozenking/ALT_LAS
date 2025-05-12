@@ -1,0 +1,361 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-config
+  namespace: alt-las
+data:
+  metrics-strategy.yaml: |
+    # Metrik Toplama Stratejisi
+    
+    ## Pipeline Metrikleri
+    pipelineMetrics:
+      # Yapı Süresi
+      - name: build-time
+        description: "Yapı süresi"
+        unit: "seconds"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+          - commit
+      
+      # Test Süresi
+      - name: test-time
+        description: "Test süresi"
+        unit: "seconds"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+          - commit
+      
+      # Dağıtım Süresi
+      - name: deployment-time
+        description: "Dağıtım süresi"
+        unit: "seconds"
+        aggregation: "average"
+        labels:
+          - service
+          - environment
+          - version
+      
+      # Toplam Pipeline Süresi
+      - name: total-pipeline-time
+        description: "Toplam pipeline süresi"
+        unit: "seconds"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+          - commit
+      
+      # Başarı Oranı
+      - name: success-rate
+        description: "Başarı oranı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+      
+      # Başarısızlık Oranı
+      - name: failure-rate
+        description: "Başarısızlık oranı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+          - stage
+      
+      # Yapı Frekansı
+      - name: build-frequency
+        description: "Yapı frekansı"
+        unit: "count"
+        aggregation: "sum"
+        labels:
+          - service
+          - branch
+          - user
+    
+    ## Dağıtım Metrikleri
+    deploymentMetrics:
+      # Dağıtım Frekansı
+      - name: deployment-frequency
+        description: "Dağıtım frekansı"
+        unit: "count"
+        aggregation: "sum"
+        labels:
+          - service
+          - environment
+      
+      # Dağıtım Başarı Oranı
+      - name: deployment-success-rate
+        description: "Dağıtım başarı oranı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - environment
+      
+      # Dağıtım Geri Alma Oranı
+      - name: deployment-rollback-rate
+        description: "Dağıtım geri alma oranı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - environment
+      
+      # Değişiklik Başarısızlık Oranı
+      - name: change-failure-rate
+        description: "Değişiklik başarısızlık oranı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - environment
+      
+      # Ortalama Kurtarma Süresi
+      - name: mean-time-to-recovery
+        description: "Ortalama kurtarma süresi"
+        unit: "seconds"
+        aggregation: "average"
+        labels:
+          - service
+          - environment
+      
+      # Dağıtım Boyutu
+      - name: deployment-size
+        description: "Dağıtım boyutu"
+        unit: "lines"
+        aggregation: "average"
+        labels:
+          - service
+          - environment
+    
+    ## Kalite Metrikleri
+    qualityMetrics:
+      # Test Kapsamı
+      - name: test-coverage
+        description: "Test kapsamı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+      
+      # Test Başarı Oranı
+      - name: test-success-rate
+        description: "Test başarı oranı"
+        unit: "percentage"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+          - test-type
+      
+      # Kod Kalitesi
+      - name: code-quality
+        description: "Kod kalitesi"
+        unit: "score"
+        aggregation: "average"
+        labels:
+          - service
+          - branch
+      
+      # Teknik Borç
+      - name: technical-debt
+        description: "Teknik borç"
+        unit: "days"
+        aggregation: "sum"
+        labels:
+          - service
+          - branch
+      
+      # Hata Sayısı
+      - name: bug-count
+        description: "Hata sayısı"
+        unit: "count"
+        aggregation: "sum"
+        labels:
+          - service
+          - branch
+          - severity
+      
+      # Güvenlik Açığı Sayısı
+      - name: vulnerability-count
+        description: "Güvenlik açığı sayısı"
+        unit: "count"
+        aggregation: "sum"
+        labels:
+          - service
+          - branch
+          - severity
+    
+    ## Metrik Eşik Değerleri
+    metricThresholds:
+      # Yapı Süresi
+      - name: build-time
+        warning: 300
+        critical: 600
+      
+      # Test Süresi
+      - name: test-time
+        warning: 600
+        critical: 1200
+      
+      # Dağıtım Süresi
+      - name: deployment-time
+        warning: 300
+        critical: 600
+      
+      # Toplam Pipeline Süresi
+      - name: total-pipeline-time
+        warning: 1200
+        critical: 2400
+      
+      # Başarı Oranı
+      - name: success-rate
+        warning: 90
+        critical: 80
+      
+      # Başarısızlık Oranı
+      - name: failure-rate
+        warning: 10
+        critical: 20
+      
+      # Dağıtım Geri Alma Oranı
+      - name: deployment-rollback-rate
+        warning: 5
+        critical: 10
+      
+      # Değişiklik Başarısızlık Oranı
+      - name: change-failure-rate
+        warning: 15
+        critical: 30
+      
+      # Test Kapsamı
+      - name: test-coverage
+        warning: 80
+        critical: 70
+      
+      # Kod Kalitesi
+      - name: code-quality
+        warning: 80
+        critical: 70
+  
+  metrics-dashboard.yaml: |
+    # Metrik Görselleştirme Yapılandırması
+    
+    ## Grafana Dashboard'ları
+    dashboards:
+      # CI/CD Pipeline Metrikleri Dashboard'u
+      - name: cicd-pipeline-metrics
+        title: "CI/CD Pipeline Metrikleri"
+        description: "CI/CD pipeline'ının performans ve etkinlik metrikleri"
+        panels:
+          - name: build-time
+            title: "Yapı Süresi"
+            type: "graph"
+            query: 'avg(build_time{service="$service"}) by (branch)'
+          
+          - name: test-time
+            title: "Test Süresi"
+            type: "graph"
+            query: 'avg(test_time{service="$service"}) by (branch)'
+          
+          - name: deployment-time
+            title: "Dağıtım Süresi"
+            type: "graph"
+            query: 'avg(deployment_time{service="$service", environment="$environment"}) by (version)'
+          
+          - name: total-pipeline-time
+            title: "Toplam Pipeline Süresi"
+            type: "graph"
+            query: 'avg(total_pipeline_time{service="$service"}) by (branch)'
+          
+          - name: success-rate
+            title: "Başarı Oranı"
+            type: "gauge"
+            query: 'avg(success_rate{service="$service"}) by (branch)'
+          
+          - name: failure-rate
+            title: "Başarısızlık Oranı"
+            type: "gauge"
+            query: 'avg(failure_rate{service="$service"}) by (branch)'
+          
+          - name: build-frequency
+            title: "Yapı Frekansı"
+            type: "graph"
+            query: 'sum(build_frequency{service="$service"}) by (branch)'
+      
+      # Dağıtım Metrikleri Dashboard'u
+      - name: deployment-metrics
+        title: "Dağıtım Metrikleri"
+        description: "Dağıtım süreci metrikleri"
+        panels:
+          - name: deployment-frequency
+            title: "Dağıtım Frekansı"
+            type: "graph"
+            query: 'sum(deployment_frequency{service="$service"}) by (environment)'
+          
+          - name: deployment-success-rate
+            title: "Dağıtım Başarı Oranı"
+            type: "gauge"
+            query: 'avg(deployment_success_rate{service="$service"}) by (environment)'
+          
+          - name: deployment-rollback-rate
+            title: "Dağıtım Geri Alma Oranı"
+            type: "gauge"
+            query: 'avg(deployment_rollback_rate{service="$service"}) by (environment)'
+          
+          - name: change-failure-rate
+            title: "Değişiklik Başarısızlık Oranı"
+            type: "gauge"
+            query: 'avg(change_failure_rate{service="$service"}) by (environment)'
+          
+          - name: mean-time-to-recovery
+            title: "Ortalama Kurtarma Süresi"
+            type: "graph"
+            query: 'avg(mean_time_to_recovery{service="$service"}) by (environment)'
+          
+          - name: deployment-size
+            title: "Dağıtım Boyutu"
+            type: "graph"
+            query: 'avg(deployment_size{service="$service"}) by (environment)'
+      
+      # Kalite Metrikleri Dashboard'u
+      - name: quality-metrics
+        title: "Kalite Metrikleri"
+        description: "Kod kalitesi ve test metrikleri"
+        panels:
+          - name: test-coverage
+            title: "Test Kapsamı"
+            type: "gauge"
+            query: 'avg(test_coverage{service="$service"}) by (branch)'
+          
+          - name: test-success-rate
+            title: "Test Başarı Oranı"
+            type: "gauge"
+            query: 'avg(test_success_rate{service="$service"}) by (branch)'
+          
+          - name: code-quality
+            title: "Kod Kalitesi"
+            type: "gauge"
+            query: 'avg(code_quality{service="$service"}) by (branch)'
+          
+          - name: technical-debt
+            title: "Teknik Borç"
+            type: "graph"
+            query: 'sum(technical_debt{service="$service"}) by (branch)'
+          
+          - name: bug-count
+            title: "Hata Sayısı"
+            type: "graph"
+            query: 'sum(bug_count{service="$service"}) by (severity)'
+          
+          - name: vulnerability-count
+            title: "Güvenlik Açığı Sayısı"
+            type: "graph"
+            query: 'sum(vulnerability_count{service="$service"}) by (severity)'

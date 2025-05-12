@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: segmentation-service-config
+  namespace: alt-las
+data:
+  AI_ORCHESTRATOR_URL: "http://ai-orchestrator:8001"

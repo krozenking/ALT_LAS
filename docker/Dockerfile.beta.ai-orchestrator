@@ -1,0 +1,82 @@
+# Beta Dockerfile for AI Orchestrator Service
+# Created by Can Tekin (DevOps Engineer)
+
+# Build stage
+FROM python:3.10-slim AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY ai-orchestrator/requirements.txt .
+
+# Install Python dependencies
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+# Runtime stage
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies and security updates
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    wget \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appgroup && \
+    useradd -r -g appgroup -d /app -s /sbin/nologin -c "Docker image user" appuser
+
+# Copy Python dependencies from builder stage
+COPY --from=builder /wheels /wheels
+COPY ai-orchestrator/requirements.txt .
+RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
+    && rm -rf /wheels requirements.txt
+
+# Copy application code
+COPY ai-orchestrator/src ./src
+COPY ai-orchestrator/src/main.py .
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/models /app/cache /app/logs /app/tmp && \
+    chown -R appuser:appgroup /app
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8001
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Environment variables for production
+ENV PYTHONUNBUFFERED=1
+ENV MODEL_DIR=/app/models
+ENV CACHE_DIR=/app/cache
+ENV LOG_LEVEL=INFO
+ENV PORT=8001
+ENV MAX_CONCURRENT_TASKS=8
+ENV MAX_CONCURRENT_AI_TASKS=4
+
+# Command to run the application
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]

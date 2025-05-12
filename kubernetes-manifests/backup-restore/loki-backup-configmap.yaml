@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-backup-scripts
+  namespace: alt-las
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Yedekleme zaman damgası
+    BACKUP_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    BACKUP_DIR="/backup"
+    LOKI_DATA_DIR="/data"
+    
+    # Yedekleme dosya adı
+    BACKUP_FILE="${BACKUP_DIR}/loki_${BACKUP_TIMESTAMP}.tar.gz"
+    
+    echo "Loki yedeklemesi başlatılıyor: ${BACKUP_FILE}"
+    
+    # Loki verilerini sıkıştırarak yedekle
+    tar -czf ${BACKUP_FILE} -C ${LOKI_DATA_DIR} .
+    
+    # Yedekleme başarılı mı kontrol ediliyor
+    if [ $? -eq 0 ]; then
+      echo "Loki yedeklemesi başarıyla tamamlandı: ${BACKUP_FILE}"
+      
+      # Eski yedeklemeleri temizle (7 günden eski)
+      find ${BACKUP_DIR} -name "loki_*.tar.gz" -type f -mtime +7 -delete
+      echo "7 günden eski yedeklemeler temizlendi"
+    else
+      echo "Loki yedeklemesi başarısız oldu!"
+      exit 1
+    fi
+    
+  restore.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Geri yükleme parametreleri
+    BACKUP_DIR="/backup"
+    LOKI_DATA_DIR="/data"
+    
+    # Geri yüklenecek dosya (en son yedekleme veya belirtilen dosya)
+    if [ -z "$1" ]; then
+      BACKUP_FILE=$(ls -t ${BACKUP_DIR}/loki_*.tar.gz | head -1)
+    else
+      BACKUP_FILE="${BACKUP_DIR}/$1"
+    fi
+    
+    if [ ! -f "${BACKUP_FILE}" ]; then
+      echo "Hata: Yedekleme dosyası bulunamadı: ${BACKUP_FILE}"
+      exit 1
+    fi
+    
+    echo "Loki geri yüklemesi başlatılıyor: ${BACKUP_FILE}"
+    
+    # Loki'yi durdur
+    # Not: Kubernetes ortamında, pod'u yeniden başlatmak için
+    # kubectl delete pod komutu kullanılabilir.
+    echo "Loki durduruluyor..."
+    
+    # Mevcut verileri temizle
+    rm -rf ${LOKI_DATA_DIR}/*
+    
+    # Yedeği geri yükle
+    tar -xzf ${BACKUP_FILE} -C ${LOKI_DATA_DIR}
+    
+    # Loki'yi yeniden başlat
+    echo "Loki yeniden başlatılıyor..."
+    
+    echo "Loki geri yüklemesi tamamlandı."
+    
+  list-backups.sh: |
+    #!/bin/bash
+    
+    BACKUP_DIR="/backup"
+    
+    echo "Mevcut Loki yedeklemeleri:"
+    ls -lh ${BACKUP_DIR}/loki_*.tar.gz 2>/dev/null || echo "Hiç yedekleme bulunamadı."

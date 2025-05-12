@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: alt-las
+spec:
+  schedule: "0 2 * * *"  # Her gün gece 02:00'de çalışır
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: redis-backup
+            image: redis:7-alpine
+            command:
+            - /bin/sh
+            - /scripts/backup.sh
+            env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: REDIS_PASSWORD
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+            - name: scripts-volume
+              mountPath: /scripts
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: redis-backup-pvc
+          - name: scripts-volume
+            configMap:
+              name: redis-backup-scripts
+              defaultMode: 0755

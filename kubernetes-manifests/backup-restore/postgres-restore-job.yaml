@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-restore
+  namespace: alt-las
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres-restore
+        image: postgres:15-alpine
+        command:
+        - /bin/bash
+        - /scripts/restore.sh
+        # Belirli bir yedekleme dosyasını geri yüklemek için aşağıdaki satırı kullanabilirsiniz
+        # args:
+        # - "postgres_altlas_db_20250513010000.sql.gz"
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: backup-volume
+          mountPath: /backup
+        - name: scripts-volume
+          mountPath: /scripts
+      restartPolicy: OnFailure
+      volumes:
+      - name: backup-volume
+        persistentVolumeClaim:
+          claimName: postgres-backup-pvc
+      - name: scripts-volume
+        configMap:
+          name: postgres-backup-scripts
+          defaultMode: 0755

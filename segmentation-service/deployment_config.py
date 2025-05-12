@@ -35,6 +35,10 @@ services:
     environment:
       - LOG_LEVEL={log_level}
       - PORT={internal_port}
+      - MEMORY_THRESHOLD_MB=500
+      - HIGH_MEMORY_THRESHOLD_MB=1000
+      - GC_INTERVAL=60
+      - MAX_CACHE_SIZE=100
     volumes:
       - segmentation_data:/app/data
     restart: unless-stopped
@@ -84,6 +88,14 @@ spec:
           value: "{log_level}"
         - name: PORT
           value: "{internal_port}"
+        - name: MEMORY_THRESHOLD_MB
+          value: "500"
+        - name: HIGH_MEMORY_THRESHOLD_MB
+          value: "1000"
+        - name: GC_INTERVAL
+          value: "60"
+        - name: MAX_CACHE_SIZE
+          value: "100"
         resources:
           limits:
             cpu: "{cpu_limit}"
@@ -154,10 +166,10 @@ spec:
 def generate_docker_compose(config: Dict[str, Any]) -> str:
     """
     Generate Docker Compose configuration
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         Docker Compose configuration as string
     """
@@ -173,15 +185,15 @@ def generate_docker_compose(config: Dict[str, Any]) -> str:
 def generate_kubernetes_manifests(config: Dict[str, Any]) -> Dict[str, str]:
     """
     Generate Kubernetes manifests
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         Dictionary of Kubernetes manifests
     """
     namespace = config.get("namespace", "default")
-    
+
     deployment = K8S_DEPLOYMENT_TEMPLATE.format(
         namespace=namespace,
         replicas=config.get("replicas", 3),
@@ -195,18 +207,18 @@ def generate_kubernetes_manifests(config: Dict[str, Any]) -> Dict[str, str]:
         cpu_request=config.get("cpu_request", "500m"),
         memory_request=config.get("memory_request", "512Mi")
     )
-    
+
     service = K8S_SERVICE_TEMPLATE.format(
         namespace=namespace,
         external_port=config.get("external_port", 8000),
         internal_port=config.get("internal_port", 8000)
     )
-    
+
     pvc = K8S_PVC_TEMPLATE.format(
         namespace=namespace,
         storage_size=config.get("storage_size", "1Gi")
     )
-    
+
     return {
         "deployment.yaml": deployment,
         "service.yaml": service,
@@ -216,10 +228,10 @@ def generate_kubernetes_manifests(config: Dict[str, Any]) -> Dict[str, str]:
 def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
     """
     Load configuration from file
-    
+
     Args:
         config_file: Path to configuration file
-        
+
     Returns:
         Configuration dictionary
     """
@@ -232,17 +244,17 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
         "log_level": "INFO",
         "namespace": "default",
         "replicas": 3,
-        "cpu_limit": "1",
-        "memory_limit": "1Gi",
-        "cpu_request": "500m",
-        "memory_request": "512Mi",
-        "storage_size": "1Gi"
+        "cpu_limit": "1.5",
+        "memory_limit": "1.5Gi",  # Increased memory limit to accommodate NLP models
+        "cpu_request": "750m",    # Increased CPU request for better performance
+        "memory_request": "768Mi", # Increased memory request to ensure enough memory is allocated
+        "storage_size": "2Gi"     # Increased storage size for caching and model storage
     }
-    
+
     if not config_file:
         logger.info("No configuration file provided, using default configuration")
         return default_config
-    
+
     try:
         with open(config_file, "r") as f:
             if config_file.endswith(".json"):
@@ -252,13 +264,13 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
             else:
                 logger.warning(f"Unsupported configuration file format: {config_file}")
                 return default_config
-        
+
         logger.info(f"Loaded configuration from {config_file}")
-        
+
         # Merge with default config
         merged_config = default_config.copy()
         merged_config.update(config)
-        
+
         return merged_config
     except Exception as e:
         logger.error(f"Error loading configuration: {str(e)}")
@@ -267,18 +279,18 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
 def write_file(content: str, output_file: str) -> bool:
     """
     Write content to file
-    
+
     Args:
         content: Content to write
         output_file: Output file path
-        
+
     Returns:
         True if successful, False otherwise
     """
     try:
         with open(output_file, "w") as f:
             f.write(content)
-        
+
         logger.info(f"Wrote content to {output_file}")
         return True
     except Exception as e:
@@ -291,20 +303,20 @@ def main():
     parser.add_argument("--config", help="Path to configuration file")
     parser.add_argument("--output-dir", default=".", help="Output directory")
     parser.add_argument("--format", choices=["docker-compose", "kubernetes", "all"], default="all", help="Output format")
-    
+
     args = parser.parse_args()
-    
+
     # Load configuration
     config = load_config(args.config)
-    
+
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
-    
+
     # Generate and write configurations
     if args.format in ["docker-compose", "all"]:
         docker_compose = generate_docker_compose(config)
         write_file(docker_compose, os.path.join(args.output_dir, "docker-compose.yml"))
-    
+
     if args.format in ["kubernetes", "all"]:
         k8s_manifests = generate_kubernetes_manifests(config)
         for filename, content in k8s_manifests.items():

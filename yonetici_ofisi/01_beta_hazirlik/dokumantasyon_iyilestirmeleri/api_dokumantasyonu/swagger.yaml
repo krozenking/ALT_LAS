@@ -1,0 +1,383 @@
+openapi: 3.0.0
+info:
+  title: ALT_LAS API
+  description: ALT_LAS projesi için API dokümantasyonu
+  version: 2.0.0
+  contact:
+    name: ALT_LAS Geliştirme Ekibi
+    email: dev@alt-las.com
+servers:
+  - url: https://api.alt-las.com/v2
+    description: Üretim ortamı
+  - url: https://staging-api.alt-las.com/v2
+    description: Test ortamı
+  - url: http://localhost:8080/v2
+    description: Yerel geliştirme ortamı
+
+tags:
+  - name: auth
+    description: Kimlik doğrulama ve yetkilendirme işlemleri
+  - name: users
+    description: Kullanıcı yönetimi işlemleri
+  - name: segmentation
+    description: Görüntü segmentasyonu işlemleri
+  - name: runner
+    description: İş sırası yönetimi işlemleri
+  - name: archive
+    description: Veri arşivleme işlemleri
+  - name: ai
+    description: AI model yönetimi işlemleri
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Kullanıcı girişi
+      description: Kullanıcı adı ve parola ile giriş yapma
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: johndoe
+                password:
+                  type: string
+                  format: password
+                  example: P@ssw0rd
+      responses:
+        '200':
+          description: Başarılı giriş
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Geçersiz kimlik bilgileri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Çok fazla istek
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+
+  /auth/refresh:
+    post:
+      tags:
+        - auth
+      summary: Token yenileme
+      description: Yenileme token'ı ile erişim token'ını yenileme
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token başarıyla yenilendi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Geçersiz yenileme token'ı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Kullanıcı çıkışı
+      description: Kullanıcı oturumunu sonlandırma
+      operationId: logout
+      responses:
+        '200':
+          description: Başarılı çıkış
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logout successful
+        '401':
+          description: Yetkilendirme hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+  /users:
+    get:
+      tags:
+        - users
+      summary: Kullanıcıları listeleme
+      description: Sistemdeki kullanıcıları listeleme
+      operationId: getUsers
+      parameters:
+        - name: page
+          in: query
+          description: Sayfa numarası
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          description: Sayfa başına öğe sayısı
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: Sıralama alanı
+          schema:
+            type: string
+            enum: [id, username, email, createdAt]
+            default: id
+        - name: order
+          in: query
+          description: Sıralama yönü
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Kullanıcı listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  page:
+                    type: integer
+                    example: 1
+                  size:
+                    type: integer
+                    example: 20
+                  totalElements:
+                    type: integer
+                    example: 100
+                  totalPages:
+                    type: integer
+                    example: 5
+        '401':
+          description: Yetkilendirme hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Yetkisiz erişim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+  /segmentation/jobs:
+    post:
+      tags:
+        - segmentation
+      summary: Segmentasyon işi oluşturma
+      description: Yeni bir segmentasyon işi oluşturma
+      operationId: createSegmentationJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - imageUrl
+                - algorithm
+              properties:
+                imageUrl:
+                  type: string
+                  format: uri
+                  example: https://storage.alt-las.com/images/sample.jpg
+                algorithm:
+                  type: string
+                  enum: [unet, maskrcnn, deeplab, pspnet]
+                  example: unet
+                parameters:
+                  type: object
+                  additionalProperties: true
+                  example:
+                    threshold: 0.5
+                    classes: ["person", "car", "building"]
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 5
+                  example: 5
+      responses:
+        '202':
+          description: İş kabul edildi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Geçersiz istek
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Yetkilendirme hatası
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+components:
+  schemas:
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expiresIn:
+          type: integer
+          example: 3600
+        tokenType:
+          type: string
+          example: Bearer
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [ROLE_USER, ROLE_ADMIN, ROLE_MANAGER]
+          example: [ROLE_USER]
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-01T00:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-01-01T00:00:00Z
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        type:
+          type: string
+          enum: [SEGMENTATION, ANALYSIS, TRAINING]
+          example: SEGMENTATION
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+          example: PENDING
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-01-01T00:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2025-01-01T00:00:00Z
+        parameters:
+          type: object
+          additionalProperties: true
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          type: string
+          example: null
+
+    Error:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-01-01T00:00:00Z
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Invalid request parameters
+        path:
+          type: string
+          example: /api/v2/users
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

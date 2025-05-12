@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runner-service
+  namespace: alt-las
+  labels:
+    app: runner-service
+    component: runner
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: runner-service
+  template:
+    metadata:
+      labels:
+        app: runner-service
+        component: runner
+        version: v1
+    spec:
+      serviceAccountName: runner-service
+      containers:
+      - name: runner-service
+        image: alt-las/runner-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: RUST_LOG
+          valueFrom:
+            configMapKeyRef:
+              name: runner-service-config
+              key: RUST_LOG
+        - name: RUNNER_AI_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: runner-service-config
+              key: RUNNER_AI_SERVICE_URL
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: runner-service-config
+              key: NATS_URL
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always

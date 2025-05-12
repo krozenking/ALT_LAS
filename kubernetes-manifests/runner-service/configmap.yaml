@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runner-service-config
+  namespace: alt-las
+data:
+  RUST_LOG: "info"
+  RUNNER_AI_SERVICE_URL: "http://ai-orchestrator:8001"
+  NATS_URL: "nats://nats:4222"

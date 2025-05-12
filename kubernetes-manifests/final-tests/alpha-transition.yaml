@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alpha-transition
+  namespace: alt-las
+  labels:
+    app: alpha-transition
+    component: deployment
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: alpha-transition
+        component: deployment
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: alpha-transition
+        image: alt-las/alpha-transition:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NAMESPACE
+          value: "alt-las"
+        - name: LOG_LEVEL
+          value: "info"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Starting Alpha Transition..."
+          
+          # Check if all tests have passed
+          INTEGRATION_TESTS_STATUS=$(kubectl get job integration-tests -n ${NAMESPACE} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
+          LOAD_TESTS_STATUS=$(kubectl get job load-tests -n ${NAMESPACE} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
+          SECURITY_TESTS_STATUS=$(kubectl get job security-tests -n ${NAMESPACE} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
+          ACCEPTANCE_TESTS_STATUS=$(kubectl get job acceptance-tests -n ${NAMESPACE} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
+          
+          if [ "$INTEGRATION_TESTS_STATUS" != "True" ] || [ "$LOAD_TESTS_STATUS" != "True" ] || [ "$SECURITY_TESTS_STATUS" != "True" ] || [ "$ACCEPTANCE_TESTS_STATUS" != "True" ]; then
+            echo "Not all tests have passed. Alpha transition aborted."
+            exit 1
+          fi
+          
+          echo "All tests have passed. Proceeding with Alpha transition..."
+          
+          # Update version labels
+          echo "Updating version labels..."
+          kubectl label namespace ${NAMESPACE} version=alpha --overwrite
+          
+          # Update ConfigMap
+          echo "Updating ConfigMap..."
+          kubectl patch configmap system-config -n ${NAMESPACE} --type=merge -p '{"data":{"ENVIRONMENT":"alpha"}}'
+          
+          # Update Deployments
+          echo "Updating Deployments..."
+          for deployment in api-gateway segmentation-service runner-service archive-service ai-orchestrator; do
+            kubectl set env deployment/${deployment} -n ${NAMESPACE} ENVIRONMENT=alpha
+            kubectl rollout restart deployment/${deployment} -n ${NAMESPACE}
+          done
+          
+          # Wait for all deployments to be ready
+          echo "Waiting for all deployments to be ready..."
+          for deployment in api-gateway segmentation-service runner-service archive-service ai-orchestrator; do
+            kubectl rollout status deployment/${deployment} -n ${NAMESPACE} --timeout=300s
+          done
+          
+          # Create Alpha status ConfigMap
+          echo "Creating Alpha status ConfigMap..."
+          kubectl create configmap alpha-status -n ${NAMESPACE} --from-literal=status=active --from-literal=transition-date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") --from-literal=version=1.0.0-alpha
+          
+          echo "Alpha transition completed successfully!"
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}

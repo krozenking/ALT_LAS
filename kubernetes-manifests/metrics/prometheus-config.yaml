@@ -1,0 +1,179 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-metrics-config
+  namespace: alt-las
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      scrape_timeout: 10s
+    
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+    
+    scrape_configs:
+      # CI/CD Pipeline Metrikleri
+      - job_name: 'cicd-pipeline-metrics'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['cicd-metrics-exporter:8080']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: cicd-metrics-exporter
+      
+      # Dağıtım Metrikleri
+      - job_name: 'deployment-metrics'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['deployment-metrics-exporter:8080']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: deployment-metrics-exporter
+      
+      # Kalite Metrikleri
+      - job_name: 'quality-metrics'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['quality-metrics-exporter:8080']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: quality-metrics-exporter
+      
+      # GitHub Metrikleri
+      - job_name: 'github-metrics'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['github-metrics-exporter:8080']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: github-metrics-exporter
+      
+      # Jenkins Metrikleri
+      - job_name: 'jenkins-metrics'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['jenkins-metrics-exporter:8080']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: jenkins-metrics-exporter
+      
+      # SonarQube Metrikleri
+      - job_name: 'sonarqube-metrics'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['sonarqube-metrics-exporter:8080']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: sonarqube-metrics-exporter
+  
+  rules.yml: |
+    groups:
+      - name: cicd_pipeline_alerts
+        rules:
+          # Yapı Süresi Alarmı
+          - alert: BuildTimeTooLong
+            expr: avg(build_time) by (service, branch) > 600
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Yapı süresi çok uzun"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki yapı süresi 10 dakikadan fazla."
+          
+          # Test Süresi Alarmı
+          - alert: TestTimeTooLong
+            expr: avg(test_time) by (service, branch) > 1200
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Test süresi çok uzun"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki test süresi 20 dakikadan fazla."
+          
+          # Dağıtım Süresi Alarmı
+          - alert: DeploymentTimeTooLong
+            expr: avg(deployment_time) by (service, environment) > 600
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Dağıtım süresi çok uzun"
+              description: "{{ $labels.service }} servisinin {{ $labels.environment }} ortamındaki dağıtım süresi 10 dakikadan fazla."
+          
+          # Toplam Pipeline Süresi Alarmı
+          - alert: TotalPipelineTimeTooLong
+            expr: avg(total_pipeline_time) by (service, branch) > 2400
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Toplam pipeline süresi çok uzun"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki toplam pipeline süresi 40 dakikadan fazla."
+          
+          # Başarı Oranı Alarmı
+          - alert: SuccessRateTooLow
+            expr: avg(success_rate) by (service, branch) < 80
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Başarı oranı çok düşük"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki başarı oranı %80'den az."
+          
+          # Başarısızlık Oranı Alarmı
+          - alert: FailureRateTooHigh
+            expr: avg(failure_rate) by (service, branch) > 20
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Başarısızlık oranı çok yüksek"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki başarısızlık oranı %20'den fazla."
+          
+          # Dağıtım Geri Alma Oranı Alarmı
+          - alert: DeploymentRollbackRateTooHigh
+            expr: avg(deployment_rollback_rate) by (service, environment) > 10
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Dağıtım geri alma oranı çok yüksek"
+              description: "{{ $labels.service }} servisinin {{ $labels.environment }} ortamındaki dağıtım geri alma oranı %10'dan fazla."
+          
+          # Değişiklik Başarısızlık Oranı Alarmı
+          - alert: ChangeFailureRateTooHigh
+            expr: avg(change_failure_rate) by (service, environment) > 30
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Değişiklik başarısızlık oranı çok yüksek"
+              description: "{{ $labels.service }} servisinin {{ $labels.environment }} ortamındaki değişiklik başarısızlık oranı %30'dan fazla."
+          
+          # Test Kapsamı Alarmı
+          - alert: TestCoverageTooLow
+            expr: avg(test_coverage) by (service, branch) < 70
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Test kapsamı çok düşük"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki test kapsamı %70'den az."
+          
+          # Kod Kalitesi Alarmı
+          - alert: CodeQualityTooLow
+            expr: avg(code_quality) by (service, branch) < 70
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Kod kalitesi çok düşük"
+              description: "{{ $labels.service }} servisinin {{ $labels.branch }} dalındaki kod kalitesi 70'den az."

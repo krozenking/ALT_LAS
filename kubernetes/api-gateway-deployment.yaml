@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-gateway
+  namespace: alt-las
   labels:
     app: api-gateway
     app.kubernetes.io/component: backend # Added label for network policy
@@ -26,9 +27,16 @@ spec:
           type: RuntimeDefault
       containers:
       - name: api-gateway
-        image: your-registry/alt-las-api-gateway:latest # Replace with actual image path
+        image: frozen68/api-gateway:beta
         ports:
         - containerPort: 3000
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
         env:
         - name: NODE_ENV
           value: "production" # Or staging, test, dev based on namespace

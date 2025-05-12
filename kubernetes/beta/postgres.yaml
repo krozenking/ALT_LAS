@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: atlas-postgres
+  namespace: atlas-beta
+spec:
+  serviceName: "atlas-postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: atlas-postgres
+  template:
+    metadata:
+      labels:
+        app: atlas-postgres
+        environment: beta
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: atlas-secrets
+              key: db_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: atlas-secrets
+              key: db_password
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: atlas-config
+              key: archive_db_name
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - atlas_user
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - atlas_user
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-postgres
+  namespace: atlas-beta
+  labels:
+    app: atlas-postgres
+    environment: beta
+spec:
+  selector:
+    app: atlas-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None

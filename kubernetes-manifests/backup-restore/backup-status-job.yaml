@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backup-status-check
+  namespace: alt-las
+spec:
+  template:
+    spec:
+      serviceAccountName: backup-manager
+      containers:
+      - name: backup-status
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - /scripts/check-backup-status.sh
+        volumeMounts:
+        - name: postgres-backup-volume
+          mountPath: /postgres-backup
+        - name: redis-backup-volume
+          mountPath: /redis-backup
+        - name: prometheus-backup-volume
+          mountPath: /prometheus-backup
+        - name: loki-backup-volume
+          mountPath: /loki-backup
+        - name: scripts-volume
+          mountPath: /scripts
+      restartPolicy: OnFailure
+      volumes:
+      - name: postgres-backup-volume
+        persistentVolumeClaim:
+          claimName: postgres-backup-pvc
+      - name: redis-backup-volume
+        persistentVolumeClaim:
+          claimName: redis-backup-pvc
+      - name: prometheus-backup-volume
+        persistentVolumeClaim:
+          claimName: prometheus-backup-pvc
+      - name: loki-backup-volume
+        persistentVolumeClaim:
+          claimName: loki-backup-pvc
+      - name: scripts-volume
+        configMap:
+          name: backup-status-scripts
+          defaultMode: 0755

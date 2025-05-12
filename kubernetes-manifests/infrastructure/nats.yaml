@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats
+  namespace: alt-las
+  labels:
+    app: nats
+    component: messaging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+        component: messaging
+    spec:
+      containers:
+      - name: nats
+        image: nats:2.9-alpine
+        ports:
+        - containerPort: 4222
+          name: client
+        - containerPort: 8222
+          name: monitoring
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: alt-las
+  labels:
+    app: nats
+    component: messaging
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4222
+    targetPort: 4222
+    protocol: TCP
+    name: client
+  - port: 8222
+    targetPort: 8222
+    protocol: TCP
+    name: monitoring
+  selector:
+    app: nats

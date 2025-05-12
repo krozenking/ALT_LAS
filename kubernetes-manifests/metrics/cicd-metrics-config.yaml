@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cicd-metrics-config
+  namespace: alt-las
+data:
+  config.yaml: |
+    # CI/CD Metrics Exporter Yapılandırması
+    
+    ## GitHub Yapılandırması
+    github:
+      owner: "altlas"
+      repositories:
+        - "api-gateway"
+        - "segmentation-service"
+        - "runner-service"
+        - "archive-service"
+        - "ai-orchestrator"
+      metrics:
+        - "commit_count"
+        - "pull_request_count"
+        - "pull_request_merge_time"
+        - "pull_request_review_count"
+        - "issue_count"
+        - "issue_resolution_time"
+    
+    ## Jenkins Yapılandırması
+    jenkins:
+      url: "http://jenkins:8080"
+      jobs:
+        - "api-gateway-build"
+        - "segmentation-service-build"
+        - "runner-service-build"
+        - "archive-service-build"
+        - "ai-orchestrator-build"
+      metrics:
+        - "build_time"
+        - "test_time"
+        - "deployment_time"
+        - "total_pipeline_time"
+        - "success_rate"
+        - "failure_rate"
+        - "build_frequency"
+    
+    ## SonarQube Yapılandırması
+    sonarqube:
+      url: "http://sonarqube:9000"
+      projects:
+        - "api-gateway"
+        - "segmentation-service"
+        - "runner-service"
+        - "archive-service"
+        - "ai-orchestrator"
+      metrics:
+        - "test_coverage"
+        - "code_quality"
+        - "technical_debt"
+        - "bug_count"
+        - "vulnerability_count"
+    
+    ## Dağıtım Yapılandırması
+    deployment:
+      environments:
+        - "development"
+        - "testing"
+        - "staging"
+        - "production"
+      services:
+        - "api-gateway"
+        - "segmentation-service"
+        - "runner-service"
+        - "archive-service"
+        - "ai-orchestrator"
+      metrics:
+        - "deployment_frequency"
+        - "deployment_success_rate"
+        - "deployment_rollback_rate"
+        - "change_failure_rate"
+        - "mean_time_to_recovery"
+        - "deployment_size"
+  
+  collectors.yaml: |
+    # CI/CD Metrics Collectors Yapılandırması
+    
+    ## GitHub Collector
+    github_collector:
+      interval: 15m
+      timeout: 30s
+      batch_size: 100
+      max_retries: 3
+      retry_interval: 5s
+    
+    ## Jenkins Collector
+    jenkins_collector:
+      interval: 5m
+      timeout: 30s
+      batch_size: 50
+      max_retries: 3
+      retry_interval: 5s
+    
+    ## SonarQube Collector
+    sonarqube_collector:
+      interval: 30m
+      timeout: 30s
+      batch_size: 50
+      max_retries: 3
+      retry_interval: 5s
+    
+    ## Deployment Collector
+    deployment_collector:
+      interval: 5m
+      timeout: 30s
+      batch_size: 50
+      max_retries: 3
+      retry_interval: 5s
+  
+  exporters.yaml: |
+    # CI/CD Metrics Exporters Yapılandırması
+    
+    ## Prometheus Exporter
+    prometheus_exporter:
+      port: 8080
+      endpoint: "/metrics"
+      metrics_prefix: "cicd_"
+      include_timestamps: true
+      include_labels: true
+      include_help: true
+    
+    ## Grafana Exporter
+    grafana_exporter:
+      url: "http://grafana:3000"
+      api_key: "${GRAFANA_API_KEY}"
+      dashboard_folder: "CI/CD Metrics"
+      dashboard_refresh: 5m
+    
+    ## Slack Exporter
+    slack_exporter:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#cicd-metrics"
+      username: "CI/CD Metrics Bot"
+      icon_emoji: ":chart_with_upwards_trend:"
+      interval: 1d
+      threshold_only: true
+    
+    ## Email Exporter
+    email_exporter:
+      smtp_server: "smtp.altlas.com"
+      smtp_port: 587
+      smtp_user: "${SMTP_USER}"
+      smtp_password: "${SMTP_PASSWORD}"
+      from_address: "cicd-metrics@altlas.com"
+      to_addresses:
+        - "devops@altlas.com"
+        - "developers@altlas.com"
+      subject_prefix: "[CI/CD Metrics]"
+      interval: 1d
+      threshold_only: true

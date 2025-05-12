@@ -1,0 +1,203 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubesec-scanner
+  namespace: alt-las
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubesec-scanner
+  namespace: alt-las
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets"]
+  verbs: ["get", "list"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubesec-scanner
+  namespace: alt-las
+subjects:
+- kind: ServiceAccount
+  name: kubesec-scanner
+  namespace: alt-las
+roleRef:
+  kind: Role
+  name: kubesec-scanner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubesec-config
+  namespace: alt-las
+data:
+  scan-script.sh: |
+    #!/bin/bash
+    set -e
+
+    NAMESPACE="alt-las"
+    REPORT_DIR="/reports"
+    DATE=$(date +%Y%m%d%H%M%S)
+    REPORT_FILE="${REPORT_DIR}/kubesec-report-${DATE}.json"
+    SUMMARY_FILE="${REPORT_DIR}/kubesec-summary-${DATE}.md"
+
+    echo "Starting Kubernetes manifest security scan..."
+    echo "Namespace: ${NAMESPACE}"
+    echo "Report file: ${REPORT_FILE}"
+
+    echo "# Kubesec Security Scan Report" > ${SUMMARY_FILE}
+    echo "Date: $(date)" >> ${SUMMARY_FILE}
+    echo "Namespace: ${NAMESPACE}" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+    echo "## Summary" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+    echo "| Resource | Type | Score | Critical | High | Medium | Low |" >> ${SUMMARY_FILE}
+    echo "|----------|------|-------|----------|------|--------|-----|" >> ${SUMMARY_FILE}
+
+    # Temporary directory for manifest files
+    TEMP_DIR="${REPORT_DIR}/manifests"
+    mkdir -p ${TEMP_DIR}
+
+    # Get all deployments in the namespace
+    DEPLOYMENTS=$(kubectl get deployments -n ${NAMESPACE} -o jsonpath='{.items[*].metadata.name}')
+
+    for DEPLOYMENT in ${DEPLOYMENTS}; do
+      echo "Scanning deployment: ${DEPLOYMENT}"
+      
+      # Export deployment manifest
+      MANIFEST_FILE="${TEMP_DIR}/${DEPLOYMENT}.yaml"
+      kubectl get deployment ${DEPLOYMENT} -n ${NAMESPACE} -o yaml > ${MANIFEST_FILE}
+      
+      # Run kubesec scan
+      RESULT=$(kubesec scan ${MANIFEST_FILE})
+      
+      # Extract scores and counts
+      SCORE=$(echo ${RESULT} | jq -r '.[0].score')
+      CRITICAL=$(echo ${RESULT} | jq -r '.[0].scoring.critical | length')
+      HIGH=$(echo ${RESULT} | jq -r '.[0].scoring.high | length')
+      MEDIUM=$(echo ${RESULT} | jq -r '.[0].scoring.medium | length')
+      LOW=$(echo ${RESULT} | jq -r '.[0].scoring.low | length')
+      
+      echo "| ${DEPLOYMENT} | Deployment | ${SCORE} | ${CRITICAL} | ${HIGH} | ${MEDIUM} | ${LOW} |" >> ${SUMMARY_FILE}
+      
+      # Save detailed results
+      echo ${RESULT} | jq . > "${REPORT_DIR}/${DEPLOYMENT}-kubesec.json"
+    done
+
+    # Get all statefulsets in the namespace
+    STATEFULSETS=$(kubectl get statefulsets -n ${NAMESPACE} -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
+
+    for STATEFULSET in ${STATEFULSETS}; do
+      echo "Scanning statefulset: ${STATEFULSET}"
+      
+      # Export statefulset manifest
+      MANIFEST_FILE="${TEMP_DIR}/${STATEFULSET}.yaml"
+      kubectl get statefulset ${STATEFULSET} -n ${NAMESPACE} -o yaml > ${MANIFEST_FILE}
+      
+      # Run kubesec scan
+      RESULT=$(kubesec scan ${MANIFEST_FILE})
+      
+      # Extract scores and counts
+      SCORE=$(echo ${RESULT} | jq -r '.[0].score')
+      CRITICAL=$(echo ${RESULT} | jq -r '.[0].scoring.critical | length')
+      HIGH=$(echo ${RESULT} | jq -r '.[0].scoring.high | length')
+      MEDIUM=$(echo ${RESULT} | jq -r '.[0].scoring.medium | length')
+      LOW=$(echo ${RESULT} | jq -r '.[0].scoring.low | length')
+      
+      echo "| ${STATEFULSET} | StatefulSet | ${SCORE} | ${CRITICAL} | ${HIGH} | ${MEDIUM} | ${LOW} |" >> ${SUMMARY_FILE}
+      
+      # Save detailed results
+      echo ${RESULT} | jq . > "${REPORT_DIR}/${STATEFULSET}-kubesec.json"
+    done
+
+    # Get all daemonsets in the namespace
+    DAEMONSETS=$(kubectl get daemonsets -n ${NAMESPACE} -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
+
+    for DAEMONSET in ${DAEMONSETS}; do
+      echo "Scanning daemonset: ${DAEMONSET}"
+      
+      # Export daemonset manifest
+      MANIFEST_FILE="${TEMP_DIR}/${DAEMONSET}.yaml"
+      kubectl get daemonset ${DAEMONSET} -n ${NAMESPACE} -o yaml > ${MANIFEST_FILE}
+      
+      # Run kubesec scan
+      RESULT=$(kubesec scan ${MANIFEST_FILE})
+      
+      # Extract scores and counts
+      SCORE=$(echo ${RESULT} | jq -r '.[0].score')
+      CRITICAL=$(echo ${RESULT} | jq -r '.[0].scoring.critical | length')
+      HIGH=$(echo ${RESULT} | jq -r '.[0].scoring.high | length')
+      MEDIUM=$(echo ${RESULT} | jq -r '.[0].scoring.medium | length')
+      LOW=$(echo ${RESULT} | jq -r '.[0].scoring.low | length')
+      
+      echo "| ${DAEMONSET} | DaemonSet | ${SCORE} | ${CRITICAL} | ${HIGH} | ${MEDIUM} | ${LOW} |" >> ${SUMMARY_FILE}
+      
+      # Save detailed results
+      echo ${RESULT} | jq . > "${REPORT_DIR}/${DAEMONSET}-kubesec.json"
+    done
+
+    echo "" >> ${SUMMARY_FILE}
+    echo "## Recommendations" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+    echo "### Critical Issues" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+    echo "The following critical security issues were found:" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+
+    # Extract critical issues from all reports
+    for FILE in ${REPORT_DIR}/*-kubesec.json; do
+      RESOURCE=$(basename ${FILE} -kubesec.json)
+      CRITICAL_ISSUES=$(jq -r '.[0].scoring.critical[] | "- **" + .id + "**: " + .message' ${FILE} 2>/dev/null || echo "")
+      
+      if [ ! -z "${CRITICAL_ISSUES}" ]; then
+        echo "#### ${RESOURCE}" >> ${SUMMARY_FILE}
+        echo "" >> ${SUMMARY_FILE}
+        echo "${CRITICAL_ISSUES}" >> ${SUMMARY_FILE}
+        echo "" >> ${SUMMARY_FILE}
+      fi
+    done
+
+    echo "Security scan completed."
+    echo "Report saved to: ${REPORT_FILE}"
+    echo "Summary saved to: ${SUMMARY_FILE}"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kubesec-scanner
+  namespace: alt-las
+spec:
+  template:
+    spec:
+      serviceAccountName: kubesec-scanner
+      containers:
+      - name: kubesec
+        image: kubesec/kubesec:v2
+        command:
+        - /bin/sh
+        - /config/scan-script.sh
+        volumeMounts:
+        - name: reports-volume
+          mountPath: /reports
+        - name: config-volume
+          mountPath: /config
+      restartPolicy: OnFailure
+      volumes:
+      - name: reports-volume
+        emptyDir: {}
+      - name: config-volume
+        configMap:
+          name: kubesec-config
+          defaultMode: 0755

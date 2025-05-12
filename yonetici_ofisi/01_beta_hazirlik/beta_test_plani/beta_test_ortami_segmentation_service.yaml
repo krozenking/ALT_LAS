@@ -1,0 +1,178 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: segmentation-service-secret
+  namespace: alt-las
+type: Opaque
+data:
+  API_KEY: YWx0bGFzX2FwaV9rZXk=  # altlas_api_key
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: segmentation-service-config
+  namespace: alt-las
+data:
+  config.json: |
+    {
+      "server": {
+        "port": 8081,
+        "cors": {
+          "enabled": true,
+          "origins": ["*"],
+          "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+          "headers": ["Content-Type", "Authorization", "X-API-Key"]
+        }
+      },
+      "database": {
+        "mongodb": {
+          "uri": "mongodb://altlas:altlas@mongodb.database.svc.cluster.local:27017/altlas_db",
+          "options": {
+            "useNewUrlParser": true,
+            "useUnifiedTopology": true
+          }
+        }
+      },
+      "messaging": {
+        "rabbitmq": {
+          "uri": "amqp://altlas:altlas@rabbitmq.messaging.svc.cluster.local:5672",
+          "queues": {
+            "segmentation_tasks": "segmentation_tasks",
+            "segmentation_results": "segmentation_results"
+          },
+          "exchanges": {
+            "segmentation": "segmentation"
+          }
+        }
+      },
+      "storage": {
+        "type": "local",
+        "local": {
+          "path": "/data/segmentation"
+        }
+      },
+      "logging": {
+        "level": "info",
+        "format": "json"
+      },
+      "monitoring": {
+        "enabled": true,
+        "prometheus": {
+          "enabled": true,
+          "path": "/metrics"
+        }
+      },
+      "ai": {
+        "models": {
+          "basePath": "/models",
+          "defaultModel": "unet_v1"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: segmentation-service-pvc
+  namespace: alt-las
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: segmentation-service
+  namespace: alt-las
+  labels:
+    app: segmentation-service
+    environment: beta
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: segmentation-service
+  template:
+    metadata:
+      labels:
+        app: segmentation-service
+        environment: beta
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: segmentation-service
+        image: altlas/segmentation-service:beta
+        ports:
+        - containerPort: 8081
+        env:
+        - name: NODE_ENV
+          value: "beta"
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: segmentation-service-secret
+              key: API_KEY
+        volumeMounts:
+        - name: segmentation-service-config
+          mountPath: /app/config
+        - name: segmentation-service-data
+          mountPath: /data
+        - name: segmentation-service-models
+          mountPath: /models
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+      volumes:
+      - name: segmentation-service-config
+        configMap:
+          name: segmentation-service-config
+      - name: segmentation-service-data
+        persistentVolumeClaim:
+          claimName: segmentation-service-pvc
+      - name: segmentation-service-models
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: segmentation-service
+  namespace: alt-las
+  labels:
+    app: segmentation-service
+    environment: beta
+spec:
+  ports:
+  - port: 8081
+    targetPort: 8081
+  selector:
+    app: segmentation-service
+  type: ClusterIP

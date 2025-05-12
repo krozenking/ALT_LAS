@@ -31,6 +31,17 @@ RUN mkdir -p /app/logs && \
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
+ENV LOG_LEVEL=INFO
+ENV MEMORY_THRESHOLD_MB=500
+ENV HIGH_MEMORY_THRESHOLD_MB=1000
+ENV GC_INTERVAL=60
+ENV MAX_CACHE_SIZE=100
+
+# Install spaCy models as root
+RUN python -m spacy download en_core_web_sm && \
+    python -m spacy download tr_core_news_sm && \
+    chown -R appuser:appuser /usr/local/lib/python3.10/site-packages/en_core_web_sm && \
+    chown -R appuser:appuser /usr/local/lib/python3.10/site-packages/tr_core_news_sm
 
 # Switch to non-root user
 USER appuser

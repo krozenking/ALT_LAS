@@ -1,7 +1,7 @@
 """
 Enhanced Multilanguage Support Module for ALT_LAS Segmentation Service
 
-This module extends language processing capabilities using spaCy for:
+This module extends language processing capabilities for:
 - Named Entity Recognition (NER)
 - Dependency Parsing
 - Improved tokenization and sentence segmentation
@@ -13,13 +13,37 @@ import re
 import string
 import logging
 import os
+import time
 from typing import Dict, List, Any, Optional, Tuple, Union, Set
-import spacy
-from spacy.tokens import Doc, Span, Token
-from spacy.language import Language
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords, wordnet
+
+# Check if we should disable spaCy
+DISABLE_SPACY = os.environ.get("DISABLE_SPACY", "false").lower() in ("true", "1", "yes")
+
+# Only import spaCy if not disabled
+if not DISABLE_SPACY:
+    import spacy
+    from spacy.tokens import Doc, Span, Token
+    from spacy.language import Language
+else:
+    # Create dummy classes for type hints when spaCy is disabled
+    class Doc:
+        pass
+
+    class Span:
+        pass
+
+    class Token:
+        pass
+
+    class Language:
+        @staticmethod
+        def factory(name):
+            def decorator(func):
+                return func
+            return decorator
 
 # Configure logging
 logger = logging.getLogger("enhanced_language_processor")
@@ -40,27 +64,45 @@ try:
 except LookupError:
     nltk.download('wordnet')
 
-# Load spaCy models
-try:
-    nlp_en = spacy.load("en_core_web_sm")
-    logger.info("Loaded spaCy model: en_core_web_sm")
-except OSError:
-    logger.warning("Could not load spaCy model 'en_core_web_sm'. Attempting to download...")
-    try:
-        os.system("python -m spacy download en_core_web_sm")
-        nlp_en = spacy.load("en_core_web_sm")
-        logger.info("Successfully downloaded and loaded spaCy model: en_core_web_sm")
-    except Exception as e:
-        logger.error(f"Failed to download spaCy model 'en_core_web_sm': {e}")
-        nlp_en = None
+# Define model loading functions for lazy loading
+def load_english_model():
+    """Lazy load English spaCy model"""
+    if DISABLE_SPACY:
+        logger.info("spaCy is disabled, using fallback methods")
+        return None
 
-# Try to load Turkish model if available
-try:
-    nlp_tr = spacy.load("tr_core_news_sm")
-    logger.info("Loaded spaCy model: tr_core_news_sm")
-except OSError:
-    logger.warning("Could not load spaCy model 'tr_core_news_sm'. Turkish processing will use fallback methods.")
-    nlp_tr = None
+    try:
+        model = spacy.load("en_core_web_sm")
+        logger.info("Loaded spaCy model: en_core_web_sm")
+        return model
+    except OSError:
+        logger.warning("Could not load spaCy model 'en_core_web_sm'. Attempting to download...")
+        try:
+            os.system("python -m spacy download en_core_web_sm")
+            model = spacy.load("en_core_web_sm")
+            logger.info("Successfully downloaded and loaded spaCy model: en_core_web_sm")
+            return model
+        except Exception as e:
+            logger.error(f"Failed to download spaCy model 'en_core_web_sm': {e}")
+            return None
+
+def load_turkish_model():
+    """Lazy load Turkish spaCy model"""
+    if DISABLE_SPACY:
+        logger.info("spaCy is disabled, using fallback methods")
+        return None
+
+    try:
+        model = spacy.load("tr_core_news_sm")
+        logger.info("Loaded spaCy model: tr_core_news_sm")
+        return model
+    except OSError:
+        logger.warning("Could not load spaCy model 'tr_core_news_sm'. Turkish processing will use fallback methods.")
+        return None
+
+# Initialize model placeholders - models will be loaded on demand
+nlp_en = None
+nlp_tr = None
 
 # Define stopwords for supported languages
 stopwords_dict = {}
@@ -68,17 +110,17 @@ try:
     stopwords_dict["en"] = set(stopwords.words("english"))
 except:
     logger.warning("NLTK English stopwords not found, using a basic list.")
-    stopwords_dict["en"] = {"i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", 
-                          "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", 
-                          "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", 
-                          "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", 
-                          "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", 
-                          "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", 
-                          "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", 
-                          "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", 
-                          "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", 
-                          "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", 
-                          "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", 
+    stopwords_dict["en"] = {"i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours",
+                          "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers",
+                          "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves",
+                          "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are",
+                          "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does",
+                          "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until",
+                          "while", "of", "at", "by", "for", "with", "about", "against", "between", "into",
+                          "through", "during", "before", "after", "above", "below", "to", "from", "up", "down",
+                          "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here",
+                          "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more",
+                          "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so",
                           "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now"}
 
 try:
@@ -93,62 +135,86 @@ except:
     }
 
 # Create a custom tokenizer for Turkish if no spaCy model is available
-@Language.factory("turkish_tokenizer")
-def create_turkish_tokenizer(nlp, name):
-    return TurkishTokenizer(nlp)
+if not DISABLE_SPACY:
+    @Language.factory("turkish_tokenizer")
+    def create_turkish_tokenizer(nlp, name):  # name parameter is required by spaCy
+        return TurkishTokenizer(nlp)
 
-class TurkishTokenizer:
-    """Custom tokenizer for Turkish language when spaCy model is not available."""
-    
-    def __init__(self, nlp):
-        self.vocab = nlp.vocab
-    
-    def __call__(self, text):
-        # Simple tokenization by whitespace and punctuation
-        words = []
-        for token in re.findall(r'\w+|[^\w\s]', text):
-            words.append(token)
-        
-        # Create a Doc object
-        spaces = [True] * len(words)
-        if spaces:
-            spaces[-1] = False
-        return Doc(self.vocab, words=words, spaces=spaces)
+    class TurkishTokenizer:
+        """Custom tokenizer for Turkish language when spaCy model is not available."""
 
-# Create a basic Turkish NLP pipeline if no model is available
-if nlp_tr is None:
-    nlp_tr = spacy.blank("tr")
-    nlp_tr.add_pipe("turkish_tokenizer")
-    logger.info("Created basic Turkish NLP pipeline with custom tokenizer")
+        def __init__(self, nlp):
+            self.vocab = nlp.vocab
+
+        def __call__(self, text):
+            # Simple tokenization by whitespace and punctuation
+            words = []
+            for token in re.findall(r'\w+|[^\w\s]', text):
+                words.append(token)
+
+            # Create a Doc object
+            spaces = [True] * len(words)
+            if spaces:
+                spaces[-1] = False
+            return Doc(self.vocab, words=words, spaces=spaces)
+
+    # Create a basic Turkish NLP pipeline if no model is available and spaCy is enabled
+    if nlp_tr is None:
+        nlp_tr = spacy.blank("tr")
+        nlp_tr.add_pipe("turkish_tokenizer")
+        logger.info("Created basic Turkish NLP pipeline with custom tokenizer")
+else:
+    # Dummy tokenizer class when spaCy is disabled
+    class TurkishTokenizer:
+        """Dummy tokenizer for when spaCy is disabled."""
+
+        def __init__(self, nlp=None):  # nlp parameter for compatibility
+            pass
+
+        def __call__(self, text):
+            return word_tokenize(text)
 
 
 class EnhancedLanguageProcessor:
     """Class for enhanced language detection and multilanguage processing using spaCy."""
 
-    def __init__(self):
-        """Initialize the language processor."""
-        # Load NLP models
-        self.nlp_models = {
-            "en": nlp_en,
-            "tr": nlp_tr,
+    def __init__(self, max_cache_size=100):
+        """
+        Initialize the language processor.
+
+        Args:
+            max_cache_size: Maximum number of documents to cache
+        """
+        # Model loading functions
+        self.model_loaders = {
+            "en": load_english_model,
+            "tr": load_turkish_model,
             # Add other language models as they become available
         }
-        
+
+        # Model instances - will be loaded on demand
+        self.nlp_models = {}
+
         # Stopwords
         self.stopwords = stopwords_dict
-        
+
         # Load keyword lists for fallback methods
         self._load_keyword_lists()
-        
+
         # Define supported languages
         self.supported_languages = ["en", "tr", "de", "fr", "es", "ru"]
-        
+
         # Cache for processed documents to avoid reprocessing
         self.doc_cache = {}
-        
+        self.cache_keys = []  # For LRU tracking
+        self.max_cache_size = max_cache_size
+
         # Variable pattern - matches {variable_name} or <variable_name>
         self.variable_pattern = re.compile(r'[{<]([a-zA-Z0-9_]+)[}>]')
-        
+
+        # Track memory usage
+        self.memory_usage_history = []
+
         # Reference words by language (pronouns, etc.)
         self.reference_words = {
             'en': {
@@ -195,7 +261,7 @@ class EnhancedLanguageProcessor:
                 r'\b(один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)\b'
             ]
         }
-        
+
         # Task type keywords by language
         self.task_keywords = {
             'en': {
@@ -219,7 +285,7 @@ class EnhancedLanguageProcessor:
                 'schedule': ['planla', 'programla', 'ayarla', 'rezerve et', 'organize et', 'düzenle', 'koordine et']
             }
         }
-        
+
         # Dependency indicators by language
         self.dependency_indicators = {
             'en': [
@@ -251,7 +317,7 @@ class EnhancedLanguageProcessor:
                 'первый', 'второй', 'третий', 'последний'
             ]
         }
-        
+
         # Conjunction indicators by language
         self.conjunction_indicators = {
             'en': [
@@ -279,7 +345,7 @@ class EnhancedLanguageProcessor:
                 'так же как', 'вместе с', 'в дополнение к', 'помимо'
             ]
         }
-        
+
         # Alternative indicators by language
         self.alternative_indicators = {
             'en': [
@@ -301,7 +367,7 @@ class EnhancedLanguageProcessor:
                 'или', 'альтернативно', 'либо', 'иначе', 'вместо', 'скорее чем', 'в качестве альтернативы'
             ]
         }
-        
+
         # Context keywords by language
         self.context_keywords = {
             'en': {
@@ -331,55 +397,55 @@ class EnhancedLanguageProcessor:
                             'departman', 'organizasyon', 'şirket', 'grup', 'birey', 'kişisel', 'paylaşılan', 'işbirlikçi']
             }
         }
-        
+
         # Relationship indicators by language
         self.relationship_indicators = {
             'en': {
-                'sequential': ['first', 'then', 'after', 'before', 'next', 'finally', 'lastly', 'initially', 'subsequently', 
+                'sequential': ['first', 'then', 'after', 'before', 'next', 'finally', 'lastly', 'initially', 'subsequently',
                               'previously', 'following', 'preceding', 'meanwhile', 'simultaneously', 'concurrently'],
-                'causal': ['because', 'since', 'as', 'therefore', 'thus', 'consequently', 'hence', 'so', 'due to', 
+                'causal': ['because', 'since', 'as', 'therefore', 'thus', 'consequently', 'hence', 'so', 'due to',
                           'owing to', 'as a result', 'for this reason', 'accordingly', 'thereby'],
-                'conditional': ['if', 'unless', 'when', 'while', 'until', 'provided that', 'assuming that', 'in case', 
+                'conditional': ['if', 'unless', 'when', 'while', 'until', 'provided that', 'assuming that', 'in case',
                                'on condition that', 'as long as', 'supposing', 'given that', 'only if']
             },
             'tr': {
-                'sequential': ['önce', 'sonra', 'ardından', 'daha sonra', 'son olarak', 'nihayetinde', 'başlangıçta', 
+                'sequential': ['önce', 'sonra', 'ardından', 'daha sonra', 'son olarak', 'nihayetinde', 'başlangıçta',
                               'akabinde', 'önceden', 'takiben', 'öncesinde', 'bu arada', 'aynı zamanda', 'eş zamanlı olarak'],
-                'causal': ['çünkü', 'zira', 'dolayısıyla', 'bu nedenle', 'bu yüzden', 'bundan dolayı', 'böylece', 
+                'causal': ['çünkü', 'zira', 'dolayısıyla', 'bu nedenle', 'bu yüzden', 'bundan dolayı', 'böylece',
                           'sonuç olarak', '-den dolayı', 'sebebiyle', 'bu sebeple', 'buna bağlı olarak'],
-                'conditional': ['eğer', 'şayet', '-sa/-se', 'durumunda', 'takdirde', 'sürece', 'varsayarak ki', 
+                'conditional': ['eğer', 'şayet', '-sa/-se', 'durumunda', 'takdirde', 'sürece', 'varsayarak ki',
                                'olması halinde', 'koşuluyla', 'olduğu sürece', 'farz edelim ki', 'verildiğinde', 'ancak ve ancak']
             },
             'de': {
-                'sequential': ['zuerst', 'dann', 'danach', 'schließlich', 'endlich', 'zuletzt', 'anfänglich', 
+                'sequential': ['zuerst', 'dann', 'danach', 'schließlich', 'endlich', 'zuletzt', 'anfänglich',
                               'anschließend', 'vorher', 'folgend', 'vorausgehend', 'inzwischen', 'gleichzeitig'],
-                'causal': ['weil', 'da', 'denn', 'deshalb', 'daher', 'folglich', 'somit', 'also', 'aufgrund', 
+                'causal': ['weil', 'da', 'denn', 'deshalb', 'daher', 'folglich', 'somit', 'also', 'aufgrund',
                           'infolgedessen', 'aus diesem Grund', 'dementsprechend', 'dadurch'],
-                'conditional': ['wenn', 'falls', 'sofern', 'solange', 'bis', 'vorausgesetzt', 'angenommen', 
+                'conditional': ['wenn', 'falls', 'sofern', 'solange', 'bis', 'vorausgesetzt', 'angenommen',
                                'im Falle', 'unter der Bedingung', 'solange wie', 'gesetzt den Fall', 'gegeben dass', 'nur wenn']
             },
             'fr': {
-                'sequential': ['d\'abord', 'puis', 'ensuite', 'après', 'enfin', 'finalement', 'initialement', 
+                'sequential': ['d\'abord', 'puis', 'ensuite', 'après', 'enfin', 'finalement', 'initialement',
                               'subséquemment', 'précédemment', 'suivant', 'précédant', 'pendant ce temps', 'simultanément'],
-                'causal': ['parce que', 'car', 'puisque', 'donc', 'ainsi', 'par conséquent', 'en conséquence', 
+                'causal': ['parce que', 'car', 'puisque', 'donc', 'ainsi', 'par conséquent', 'en conséquence',
                           'alors', 'en raison de', 'grâce à', 'à cause de', 'pour cette raison', 'par là'],
-                'conditional': ['si', 'à moins que', 'quand', 'lorsque', 'jusqu\'à', 'pourvu que', 'en supposant que', 
+                'conditional': ['si', 'à moins que', 'quand', 'lorsque', 'jusqu\'à', 'pourvu que', 'en supposant que',
                                'au cas où', 'à condition que', 'tant que', 'supposons que', 'étant donné que', 'seulement si']
             },
             'es': {
-                'sequential': ['primero', 'luego', 'después', 'entonces', 'finalmente', 'por último', 'inicialmente', 
+                'sequential': ['primero', 'luego', 'después', 'entonces', 'finalmente', 'por último', 'inicialmente',
                               'subsiguientemente', 'previamente', 'siguiente', 'precedente', 'mientras tanto', 'simultáneamente'],
-                'causal': ['porque', 'ya que', 'pues', 'por lo tanto', 'así que', 'en consecuencia', 'por consiguiente', 
+                'causal': ['porque', 'ya que', 'pues', 'por lo tanto', 'así que', 'en consecuencia', 'por consiguiente',
                           'así', 'debido a', 'gracias a', 'como resultado', 'por esta razón', 'por ello'],
-                'conditional': ['si', 'a menos que', 'cuando', 'mientras', 'hasta que', 'con tal que', 'suponiendo que', 
+                'conditional': ['si', 'a menos que', 'cuando', 'mientras', 'hasta que', 'con tal que', 'suponiendo que',
                                'en caso de que', 'a condición de que', 'siempre que', 'supongamos que', 'dado que', 'solo si']
             },
             'ru': {
-                'sequential': ['сначала', 'затем', 'потом', 'после', 'наконец', 'в конце концов', 'изначально', 
+                'sequential': ['сначала', 'затем', 'потом', 'после', 'наконец', 'в конце концов', 'изначально',
                               'впоследствии', 'ранее', 'следующий', 'предшествующий', 'тем временем', 'одновременно'],
-                'causal': ['потому что', 'так как', 'поскольку', 'следовательно', 'поэтому', 'в результате', 'таким образом', 
+                'causal': ['потому что', 'так как', 'поскольку', 'следовательно', 'поэтому', 'в результате', 'таким образом',
                           'итак', 'из-за', 'благодаря', 'в связи с этим', 'по этой причине', 'соответственно'],
-                'conditional': ['если', 'если не', 'когда', 'пока', 'до тех пор пока', 'при условии что', 'предполагая что', 
+                'conditional': ['если', 'если не', 'когда', 'пока', 'до тех пор пока', 'при условии что', 'предполагая что',
                                'в случае', 'при условии', 'пока', 'допустим', 'учитывая что', 'только если']
             }
         }
@@ -406,38 +472,51 @@ class EnhancedLanguageProcessor:
             return 'es'
         elif "Это тестовое предложение на русском языке." in text:
             return 'ru'
-        
+
         # Calculate scores for each language
         scores = {lang: 0 for lang in self.language_patterns.keys()}
-        
+
         for lang, patterns in self.language_patterns.items():
             for pattern in patterns:
                 matches = re.findall(pattern, text, re.IGNORECASE)
                 scores[lang] += len(matches)
-        
+
         # Get language with highest score
         max_score = 0
         detected_lang = 'en'  # Default to English
-        
+
         for lang, score in scores.items():
             if score > max_score:
                 max_score = score
                 detected_lang = lang
-        
+
         logger.info(f"Detected language: {detected_lang} (score: {max_score})")
         return detected_lang
 
     def get_nlp_model(self, language: str):
         """
         Get the spaCy NLP model for the specified language.
-        
+        Lazy loads the model if it's not already loaded.
+
         Args:
             language: Language code ('en', 'tr', etc.)
-            
+
         Returns:
             A spaCy Language object, or None if not available
         """
-        return self.nlp_models.get(language)
+        # Check if model is already loaded
+        if language in self.nlp_models and self.nlp_models[language] is not None:
+            return self.nlp_models[language]
+
+        # Check if we have a loader for this language
+        if language in self.model_loaders:
+            # Load the model
+            logger.info(f"Lazy loading spaCy model for language: {language}")
+            model = self.model_loaders[language]()
+            self.nlp_models[language] = model
+            return model
+
+        return None
 
     def process_text(self, text: str, language: str = None) -> Optional[Doc]:
         """
@@ -455,31 +534,50 @@ class EnhancedLanguageProcessor:
         # Check cache first
         cache_key = f"{text}_{language}"
         if cache_key in self.doc_cache:
+            # Move this key to the end of the LRU list (most recently used)
+            if cache_key in self.cache_keys:
+                self.cache_keys.remove(cache_key)
+            self.cache_keys.append(cache_key)
             return self.doc_cache[cache_key]
-        
+
         # Detect language if not provided
         if language is None:
             language = self.detect_language(text)
-        
+
         # Get appropriate NLP model
         nlp = self.get_nlp_model(language)
         if nlp:
             doc = nlp(text)
+
+            # Manage cache size (LRU eviction)
+            if len(self.cache_keys) >= self.max_cache_size:
+                # Remove least recently used item
+                oldest_key = self.cache_keys.pop(0)
+                if oldest_key in self.doc_cache:
+                    del self.doc_cache[oldest_key]
+                    logger.debug(f"Evicted document from cache: {oldest_key[:30]}...")
+
             # Cache the result
             self.doc_cache[cache_key] = doc
+            self.cache_keys.append(cache_key)
+
+            # Track memory usage periodically
+            if len(self.cache_keys) % 10 == 0:
+                self._track_memory_usage()
+
             return doc
-        
+
         logger.warning(f"spaCy model for language '{language}' not available.")
         return None
 
     def get_sentences(self, text_or_doc: Union[str, Doc], language: str = None) -> List[Span]:
         """
         Extract sentences from text or a spaCy Doc.
-        
+
         Args:
             text_or_doc: Input text or spaCy Doc.
             language: Language code (if text is provided).
-            
+
         Returns:
             List of sentence spans.
         """
@@ -499,11 +597,11 @@ class EnhancedLanguageProcessor:
     def get_tokens(self, text_or_doc_or_span: Union[str, Doc, Span], language: str = None) -> List[Union[Token, str]]:
         """
         Extract tokens from text, a spaCy Doc, or a Span.
-        
+
         Args:
             text_or_doc_or_span: Input text, spaCy Doc, or Span.
             language: Language code (if text is provided).
-            
+
         Returns:
             List of tokens (spaCy Token objects or strings if fallback is used).
         """
@@ -523,11 +621,11 @@ class EnhancedLanguageProcessor:
     def get_named_entities(self, text_or_doc: Union[str, Doc], language: str = None) -> List[Tuple[str, str, int, int]]:
         """
         Extract named entities from text or a spaCy Doc.
-        
+
         Args:
             text_or_doc: Input text or spaCy Doc.
             language: Language code (if text is provided).
-            
+
         Returns:
             A list of tuples, each containing (entity_text, entity_label, start_char, end_char).
         """
@@ -539,17 +637,17 @@ class EnhancedLanguageProcessor:
             doc = text_or_doc
         else:
             raise TypeError("Input must be a string or spaCy Doc object")
-            
+
         return [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
 
     def get_dependency_parse(self, text_or_doc: Union[str, Doc], language: str = None) -> List[Dict[str, Any]]:
         """
         Get dependency parsing information for text or a spaCy Doc.
-        
+
         Args:
             text_or_doc: Input text or spaCy Doc.
             language: Language code (if text is provided).
-            
+
         Returns:
             A list of dictionaries, each containing info about a token's dependency relation.
         """
@@ -561,7 +659,7 @@ class EnhancedLanguageProcessor:
             doc = text_or_doc
         else:
             raise TypeError("Input must be a string or spaCy Doc object")
-            
+
         return [
             {
                 "text": token.text,
@@ -579,11 +677,11 @@ class EnhancedLanguageProcessor:
     def get_root_verb(self, text_or_doc_or_span: Union[str, Doc, Span], language: str = None) -> Optional[Union[Token, str]]:
         """
         Find the root verb in text, a spaCy Doc, or a Span.
-        
+
         Args:
             text_or_doc_or_span: Input text, spaCy Doc, or Span.
             language: Language code (if text is provided).
-            
+
         Returns:
             The root verb token, or None if not found.
         """
@@ -597,7 +695,7 @@ class EnhancedLanguageProcessor:
                 task_words = []
                 for task_type, keywords in self.task_keywords.get(language, self.task_keywords.get('en', {})).items():
                     task_words.extend(keywords)
-                
+
                 for token in tokens:
                     if token.lower() in task_words:
                         return token
@@ -606,26 +704,26 @@ class EnhancedLanguageProcessor:
             doc_or_span = text_or_doc_or_span
         else:
             raise TypeError("Input must be a string, spaCy Doc, or Span object")
-            
+
         # Find ROOT verb
         for token in doc_or_span:
             if token.dep_ == "ROOT" and token.pos_ == "VERB":
                 return token
-                
+
         # Fallback: find the first verb
         for token in doc_or_span:
             if token.pos_ == "VERB":
                 return token
-                
+
         return None
 
     def extract_variables(self, text: str) -> List[str]:
         """
         Extract potential variables from text (patterns like {variable_name} or <variable_name>).
-        
+
         Args:
             text: Input text.
-            
+
         Returns:
             List of extracted variable names.
         """
@@ -635,20 +733,20 @@ class EnhancedLanguageProcessor:
     def identify_references(self, text: str, language: str = None) -> List[Tuple[str, str]]:
         """
         Identify potential references (pronouns, etc.) in text.
-        
+
         Args:
             text: Input text.
             language: Language code. If None, language will be detected.
-            
+
         Returns:
             List of tuples (reference_text, reference_type).
         """
         if language is None:
             language = self.detect_language(text)
-            
+
         references = []
         ref_words = self.reference_words.get(language, self.reference_words.get('en', {}))
-        
+
         # Process with spaCy if available
         doc = self.process_text(text, language)
         if doc:
@@ -656,7 +754,7 @@ class EnhancedLanguageProcessor:
             for token in doc:
                 if token.pos_ == "PRON" or token.text.lower() in ref_words.get('pronouns', []):
                     references.append((token.text, "pronoun"))
-                    
+
             # Find reference phrases
             for phrase in ref_words.get('references', []):
                 if phrase in text.lower():
@@ -668,53 +766,53 @@ class EnhancedLanguageProcessor:
                 token_lower = token.lower()
                 if token_lower in ref_words.get('pronouns', []):
                     references.append((token, "pronoun"))
-            
+
             for phrase in ref_words.get('references', []):
                 if phrase in text.lower():
                     references.append((phrase, "reference_phrase"))
-                    
+
         return references
 
     def get_related_concepts(self, word: str, language: str = 'en', max_results: int = 5) -> List[str]:
         """
         Get related concepts for a word using WordNet.
-        
+
         Args:
             word: Input word.
             language: Language code.
             max_results: Maximum number of results to return.
-            
+
         Returns:
             List of related concepts.
         """
         # Currently only supported for English
         if language != 'en':
             return []
-            
+
         related = set()
-        
+
         # Get synsets
         synsets = wordnet.synsets(word)
-        
+
         # Add synonyms
         for synset in synsets:
             for lemma in synset.lemmas():
                 related.add(lemma.name().replace('_', ' '))
-                
+
             # Add hypernyms (more general concepts)
             for hypernym in synset.hypernyms():
                 for lemma in hypernym.lemmas():
                     related.add(lemma.name().replace('_', ' '))
-                    
+
             # Add hyponyms (more specific concepts)
             for hyponym in synset.hyponyms():
                 for lemma in hyponym.lemmas():
                     related.add(lemma.name().replace('_', ' '))
-        
+
         # Remove the original word and limit results
         if word in related:
             related.remove(word)
-            
+
         return list(related)[:max_results]
 
     # --- Methods for keyword lists (kept for compatibility/fallback) ---
@@ -747,6 +845,54 @@ class EnhancedLanguageProcessor:
         """Get context keywords for the specified language."""
         return self.context_keywords.get(language, self.context_keywords.get('en', {}))
 
+    def _track_memory_usage(self):
+        """Track current memory usage"""
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_mb = memory_info.rss / 1024 / 1024  # Convert to MB
+
+            # Add to history
+            timestamp = time.time()
+            self.memory_usage_history.append((timestamp, memory_mb))
+
+            # Keep only the last 100 measurements
+            if len(self.memory_usage_history) > 100:
+                self.memory_usage_history.pop(0)
+
+            logger.debug(f"Current memory usage: {memory_mb:.2f} MB, Cache size: {len(self.doc_cache)}")
+
+            # Check if memory usage is too high
+            if memory_mb > 500:  # 500 MB threshold
+                logger.warning(f"High memory usage detected: {memory_mb:.2f} MB. Clearing cache.")
+                self.clear_cache()
+        except ImportError:
+            logger.warning("psutil not available, memory tracking disabled")
+        except Exception as e:
+            logger.error(f"Error tracking memory usage: {e}")
+
+    def clear_cache(self):
+        """Clear document cache to free memory"""
+        cache_size = len(self.doc_cache)
+        self.doc_cache.clear()
+        self.cache_keys.clear()
+        logger.info(f"Cleared document cache ({cache_size} items)")
+
+    def unload_unused_models(self):
+        """Unload models that haven't been used recently to free memory"""
+        # In a real implementation, we would track model usage and unload models
+        # that haven't been used for a while
+        for lang in list(self.nlp_models.keys()):
+            if lang not in ["en", "tr"]:  # Keep common models
+                logger.info(f"Unloading model for language: {lang}")
+                del self.nlp_models[lang]
+
+        # Force garbage collection
+        import gc
+        collected = gc.collect()
+        logger.info(f"Garbage collection: collected {collected} objects")
+
 
 # Create a global instance
 enhanced_language_processor = EnhancedLanguageProcessor()
@@ -755,7 +901,7 @@ enhanced_language_processor = EnhancedLanguageProcessor()
 def get_enhanced_language_processor() -> EnhancedLanguageProcessor:
     """
     Get the enhanced language processor instance
-    
+
     Returns:
         Enhanced language processor instance
     """
@@ -766,7 +912,7 @@ def get_enhanced_language_processor() -> EnhancedLanguageProcessor:
 if __name__ == "__main__":
     # Test the language processor
     processor = EnhancedLanguageProcessor()
-    
+
     test_texts = [
         "Search for information about AI and create a report",
         "Ara yapay zeka hakkında bilgi ve bir rapor oluştur",
@@ -774,12 +920,12 @@ if __name__ == "__main__":
         "Önce veriyi analiz et, sonra bir görselleştirme oluştur",
         "This is a mixed text with some Turkish words like merhaba and teşekkürler"
     ]
-    
+
     for text in test_texts:
         lang = processor.detect_language(text)
         print(f"Text: {text}")
         print(f"Detected language: {lang}")
-        
+
         doc = processor.process_text(text, lang)
         if doc:
             print(f"Sentences: {[sent.text for sent in processor.get_sentences(doc)]}")
@@ -788,15 +934,15 @@ if __name__ == "__main__":
             print(f"Root verb: {processor.get_root_verb(doc)}")
         else:
             print(f"Tokens (fallback): {processor.get_tokens(text, lang)}")
-            
+
         print(f"Variables: {processor.extract_variables(text)}")
         print(f"References: {processor.identify_references(text, lang)}")
-        
+
         # Get related concepts for the first noun
         if doc:
             for token in doc:
                 if token.pos_ == "NOUN":
                     print(f"Related concepts for '{token.text}': {processor.get_related_concepts(token.text, lang)}")
                     break
-        
+
         print()

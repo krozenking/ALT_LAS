@@ -1,0 +1,281 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deployment-approval-config
+  namespace: alt-las
+data:
+  approval-strategy.yaml: |
+    # Dağıtım Onayı Stratejisi
+    
+    ## Onay Aşamaları
+    approvalStages:
+      # Geliştirme Ortamı
+      - name: development
+        description: "Geliştirme ortamına dağıtım"
+        autoApprove: true
+        approvers:
+          - role: developer
+            count: 1
+        checks:
+          - name: unit-tests
+            required: true
+          - name: code-quality
+            required: true
+          - name: security-scan
+            required: false
+      
+      # Test Ortamı
+      - name: testing
+        description: "Test ortamına dağıtım"
+        autoApprove: false
+        approvers:
+          - role: developer
+            count: 1
+          - role: qa
+            count: 1
+        checks:
+          - name: unit-tests
+            required: true
+          - name: integration-tests
+            required: true
+          - name: code-quality
+            required: true
+          - name: security-scan
+            required: true
+      
+      # Staging Ortamı
+      - name: staging
+        description: "Staging ortamına dağıtım"
+        autoApprove: false
+        approvers:
+          - role: developer
+            count: 1
+          - role: qa
+            count: 1
+          - role: devops
+            count: 1
+        checks:
+          - name: unit-tests
+            required: true
+          - name: integration-tests
+            required: true
+          - name: system-tests
+            required: true
+          - name: code-quality
+            required: true
+          - name: security-scan
+            required: true
+          - name: performance-tests
+            required: true
+      
+      # Production Ortamı
+      - name: production
+        description: "Production ortamına dağıtım"
+        autoApprove: false
+        approvers:
+          - role: developer
+            count: 1
+          - role: qa
+            count: 1
+          - role: devops
+            count: 1
+          - role: manager
+            count: 1
+        checks:
+          - name: unit-tests
+            required: true
+          - name: integration-tests
+            required: true
+          - name: system-tests
+            required: true
+          - name: code-quality
+            required: true
+          - name: security-scan
+            required: true
+          - name: performance-tests
+            required: true
+          - name: compliance-check
+            required: true
+    
+    ## Onay Kontrolleri
+    approvalChecks:
+      # Birim Testleri
+      - name: unit-tests
+        description: "Birim testleri"
+        command: "npm test"
+        successCriteria: "exit-code-0"
+      
+      # Entegrasyon Testleri
+      - name: integration-tests
+        description: "Entegrasyon testleri"
+        command: "npm run test:integration"
+        successCriteria: "exit-code-0"
+      
+      # Sistem Testleri
+      - name: system-tests
+        description: "Sistem testleri"
+        command: "npm run test:system"
+        successCriteria: "exit-code-0"
+      
+      # Kod Kalitesi
+      - name: code-quality
+        description: "Kod kalitesi"
+        command: "npm run lint && npm run sonar"
+        successCriteria: "exit-code-0"
+      
+      # Güvenlik Taraması
+      - name: security-scan
+        description: "Güvenlik taraması"
+        command: "npm run security-scan"
+        successCriteria: "exit-code-0"
+      
+      # Performans Testleri
+      - name: performance-tests
+        description: "Performans testleri"
+        command: "npm run test:performance"
+        successCriteria: "exit-code-0"
+      
+      # Uyumluluk Kontrolü
+      - name: compliance-check
+        description: "Uyumluluk kontrolü"
+        command: "npm run compliance-check"
+        successCriteria: "exit-code-0"
+    
+    ## Onay Rolleri
+    approvalRoles:
+      # Geliştirici
+      - name: developer
+        description: "Geliştirici"
+        users:
+          - "ahmet.celik@altlas.com"
+          - "mehmet.yilmaz@altlas.com"
+      
+      # QA
+      - name: qa
+        description: "Kalite Güvence"
+        users:
+          - "ayse.demir@altlas.com"
+          - "fatma.kaya@altlas.com"
+      
+      # DevOps
+      - name: devops
+        description: "DevOps Mühendisi"
+        users:
+          - "can.tekin@altlas.com"
+          - "ali.veli@altlas.com"
+      
+      # Yönetici
+      - name: manager
+        description: "Yönetici"
+        users:
+          - "zeynep.ozturk@altlas.com"
+          - "mustafa.sahin@altlas.com"
+  
+  approval-workflow.yaml: |
+    # Dağıtım Onayı İş Akışı
+    
+    ## Dağıtım Öncesi Kontroller
+    preDeploymentChecks:
+      # Kod Kalitesi Kontrolü
+      - name: code-quality-check
+        description: "Kod kalitesi kontrolü"
+        command: |
+          npm run lint
+          npm run sonar
+        successCriteria: "exit-code-0"
+      
+      # Güvenlik Taraması
+      - name: security-scan
+        description: "Güvenlik taraması"
+        command: |
+          npm run security-scan
+        successCriteria: "exit-code-0"
+      
+      # Test Kontrolü
+      - name: test-check
+        description: "Test kontrolü"
+        command: |
+          npm test
+          npm run test:integration
+        successCriteria: "exit-code-0"
+      
+      # Docker İmaj Kontrolü
+      - name: docker-image-check
+        description: "Docker imaj kontrolü"
+        command: |
+          trivy image ${IMAGE_NAME}:${IMAGE_TAG}
+        successCriteria: "exit-code-0"
+      
+      # Kubernetes Manifest Kontrolü
+      - name: kubernetes-manifest-check
+        description: "Kubernetes manifest kontrolü"
+        command: |
+          kubesec scan kubernetes-manifests/${SERVICE_NAME}/*.yaml
+        successCriteria: "exit-code-0"
+    
+    ## Dağıtım Aşamaları
+    deploymentStages:
+      # Geliştirme Ortamı
+      - name: development
+        description: "Geliştirme ortamına dağıtım"
+        command: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/development
+        successCriteria: "exit-code-0"
+        rollbackCommand: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/development-previous
+      
+      # Test Ortamı
+      - name: testing
+        description: "Test ortamına dağıtım"
+        command: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/testing
+        successCriteria: "exit-code-0"
+        rollbackCommand: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/testing-previous
+      
+      # Staging Ortamı
+      - name: staging
+        description: "Staging ortamına dağıtım"
+        command: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/staging
+        successCriteria: "exit-code-0"
+        rollbackCommand: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/staging-previous
+      
+      # Production Ortamı
+      - name: production
+        description: "Production ortamına dağıtım"
+        command: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/production
+        successCriteria: "exit-code-0"
+        rollbackCommand: |
+          kubectl apply -f kubernetes-manifests/${SERVICE_NAME}/production-previous
+    
+    ## Dağıtım Sonrası Kontroller
+    postDeploymentChecks:
+      # Servis Erişilebilirlik Kontrolü
+      - name: service-availability-check
+        description: "Servis erişilebilirlik kontrolü"
+        command: |
+          kubectl exec -n ${NAMESPACE} deploy/curl -- curl -s http://${SERVICE_NAME}:${SERVICE_PORT}/health | grep "ok"
+        successCriteria: "exit-code-0"
+      
+      # Hata Oranı Kontrolü
+      - name: error-rate-check
+        description: "Hata oranı kontrolü"
+        command: |
+          ERROR_RATE=$(kubectl exec -n ${NAMESPACE} deploy/prometheus -- curl -s http://localhost:9090/api/v1/query --data-urlencode 'query=sum(rate(http_requests_total{status=~"5..", app="'${SERVICE_NAME}'"}[5m])) / sum(rate(http_requests_total{app="'${SERVICE_NAME}'"}[5m]))' | jq -r '.data.result[0].value[1]')
+          if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+            exit 1
+          fi
+        successCriteria: "exit-code-0"
+      
+      # Gecikme Süresi Kontrolü
+      - name: latency-check
+        description: "Gecikme süresi kontrolü"
+        command: |
+          LATENCY=$(kubectl exec -n ${NAMESPACE} deploy/prometheus -- curl -s http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{app="'${SERVICE_NAME}'"}[5m])) by (le))' | jq -r '.data.result[0].value[1]')
+          if (( $(echo "$LATENCY > 0.5" | bc -l) )); then
+            exit 1
+          fi
+        successCriteria: "exit-code-0"

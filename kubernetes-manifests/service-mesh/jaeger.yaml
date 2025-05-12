@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jaeger
+  labels:
+    istio-injection: disabled
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jaeger
+  namespace: jaeger
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: jaeger
+  labels:
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      serviceAccountName: jaeger
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:1.30
+        ports:
+        - containerPort: 16686
+          name: query
+        - containerPort: 14268
+          name: collector
+        - containerPort: 14250
+          name: grpc
+        env:
+        - name: COLLECTOR_ZIPKIN_HOST_PORT
+          value: "9411"
+        - name: MEMORY_MAX_TRACES
+          value: "50000"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: jaeger
+  labels:
+    app: jaeger
+spec:
+  ports:
+  - name: query-http
+    port: 16686
+    protocol: TCP
+    targetPort: 16686
+  selector:
+    app: jaeger
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: jaeger
+  labels:
+    app: jaeger
+spec:
+  ports:
+  - name: jaeger-collector
+    port: 14268
+    protocol: TCP
+    targetPort: 14268
+  - name: jaeger-collector-grpc
+    port: 14250
+    protocol: TCP
+    targetPort: 14250
+  selector:
+    app: jaeger
+  type: ClusterIP
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: jaeger-gateway
+  namespace: jaeger
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http-jaeger
+      protocol: HTTP
+    hosts:
+    - "jaeger.alt-las.local"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: jaeger-vs
+  namespace: jaeger
+spec:
+  hosts:
+  - "jaeger.alt-las.local"
+  gateways:
+  - jaeger-gateway
+  http:
+  - route:
+    - destination:
+        host: jaeger-query
+        port:
+          number: 16686

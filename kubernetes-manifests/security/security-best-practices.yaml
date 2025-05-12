@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-best-practices
+  namespace: alt-las
+data:
+  pod-security-context.yaml: |
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+  
+  container-security-context.yaml: |
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: false
+      readOnlyRootFilesystem: true
+  
+  resource-limits.yaml: |
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  
+  network-policy-template.yaml: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: default-deny-all
+      namespace: alt-las
+    spec:
+      podSelector: {}
+      policyTypes:
+      - Ingress
+      - Egress
+  
+  pod-disruption-budget-template.yaml: |
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: app-pdb
+      namespace: alt-las
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          app: app-name
+  
+  security-checklist.md: |
+    # Kubernetes Security Checklist
+    
+    ## Pod Security
+    
+    - [ ] Run containers as non-root user
+    - [ ] Use read-only root filesystem
+    - [ ] Drop all capabilities and add only required ones
+    - [ ] Disable privilege escalation
+    - [ ] Use seccomp profiles
+    - [ ] Set resource limits for all containers
+    
+    ## Network Security
+    
+    - [ ] Use network policies to restrict pod-to-pod communication
+    - [ ] Implement ingress and egress rules
+    - [ ] Use TLS for all services
+    - [ ] Implement mutual TLS with service mesh
+    
+    ## Authentication and Authorization
+    
+    - [ ] Use RBAC for all service accounts
+    - [ ] Implement least privilege principle
+    - [ ] Regularly rotate service account tokens
+    - [ ] Use Pod Security Policies or Pod Security Standards
+    
+    ## Image Security
+    
+    - [ ] Use minimal base images
+    - [ ] Scan images for vulnerabilities
+    - [ ] Use image pull secrets
+    - [ ] Implement image signing and verification
+    
+    ## Secret Management
+    
+    - [ ] Use Kubernetes Secrets or external secret management
+    - [ ] Encrypt secrets at rest
+    - [ ] Implement secret rotation
+    - [ ] Limit secret access to specific pods
+    
+    ## Monitoring and Logging
+    
+    - [ ] Implement centralized logging
+    - [ ] Monitor for suspicious activities
+    - [ ] Set up alerts for security events
+    - [ ] Regularly audit Kubernetes API server logs
+    
+    ## Cluster Security
+    
+    - [ ] Keep Kubernetes version up to date
+    - [ ] Implement node security
+    - [ ] Secure etcd
+    - [ ] Use private registry
+    - [ ] Implement pod disruption budgets
+    
+    ## CI/CD Security
+    
+    - [ ] Implement security scanning in CI/CD pipeline
+    - [ ] Use GitOps for deployments
+    - [ ] Implement approval process for deployments
+    - [ ] Regularly audit CI/CD pipeline

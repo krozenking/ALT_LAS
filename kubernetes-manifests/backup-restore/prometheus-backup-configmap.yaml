@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-backup-scripts
+  namespace: alt-las
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Yedekleme zaman damgası
+    BACKUP_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    BACKUP_DIR="/backup"
+    PROMETHEUS_DATA_DIR="/prometheus"
+    
+    # Yedekleme dosya adı
+    BACKUP_FILE="${BACKUP_DIR}/prometheus_${BACKUP_TIMESTAMP}.tar.gz"
+    
+    echo "Prometheus yedeklemesi başlatılıyor: ${BACKUP_FILE}"
+    
+    # Prometheus verilerini sıkıştırarak yedekle
+    tar -czf ${BACKUP_FILE} -C ${PROMETHEUS_DATA_DIR} .
+    
+    # Yedekleme başarılı mı kontrol ediliyor
+    if [ $? -eq 0 ]; then
+      echo "Prometheus yedeklemesi başarıyla tamamlandı: ${BACKUP_FILE}"
+      
+      # Eski yedeklemeleri temizle (7 günden eski)
+      find ${BACKUP_DIR} -name "prometheus_*.tar.gz" -type f -mtime +7 -delete
+      echo "7 günden eski yedeklemeler temizlendi"
+    else
+      echo "Prometheus yedeklemesi başarısız oldu!"
+      exit 1
+    fi
+    
+  restore.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Geri yükleme parametreleri
+    BACKUP_DIR="/backup"
+    PROMETHEUS_DATA_DIR="/prometheus"
+    
+    # Geri yüklenecek dosya (en son yedekleme veya belirtilen dosya)
+    if [ -z "$1" ]; then
+      BACKUP_FILE=$(ls -t ${BACKUP_DIR}/prometheus_*.tar.gz | head -1)
+    else
+      BACKUP_FILE="${BACKUP_DIR}/$1"
+    fi
+    
+    if [ ! -f "${BACKUP_FILE}" ]; then
+      echo "Hata: Yedekleme dosyası bulunamadı: ${BACKUP_FILE}"
+      exit 1
+    fi
+    
+    echo "Prometheus geri yüklemesi başlatılıyor: ${BACKUP_FILE}"
+    
+    # Prometheus'u durdur
+    # Not: Kubernetes ortamında, pod'u yeniden başlatmak için
+    # kubectl delete pod komutu kullanılabilir.
+    echo "Prometheus durduruluyor..."
+    
+    # Mevcut verileri temizle
+    rm -rf ${PROMETHEUS_DATA_DIR}/*
+    
+    # Yedeği geri yükle
+    tar -xzf ${BACKUP_FILE} -C ${PROMETHEUS_DATA_DIR}
+    
+    # Prometheus'u yeniden başlat
+    echo "Prometheus yeniden başlatılıyor..."
+    
+    echo "Prometheus geri yüklemesi tamamlandı."
+    
+  list-backups.sh: |
+    #!/bin/bash
+    
+    BACKUP_DIR="/backup"
+    
+    echo "Mevcut Prometheus yedeklemeleri:"
+    ls -lh ${BACKUP_DIR}/prometheus_*.tar.gz 2>/dev/null || echo "Hiç yedekleme bulunamadı."

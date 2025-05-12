@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-config
+  namespace: atlas-beta
+data:
+  db_host: "atlas-postgres"
+  db_port: "5432"
+  archive_db_name: "atlas_archive"
+  log_level: "INFO"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: atlas-secrets
+  namespace: atlas-beta
+type: Opaque
+stringData:
+  db_user: "atlas_user"
+  db_password: "atlas_password"  # Bu değer gerçek ortamda değiştirilmelidir
+  jwt_secret: "beta_jwt_secret_key_change_in_production"  # Bu değer gerçek ortamda değiştirilmelidir
+  refresh_token_secret: "beta_refresh_token_secret_key_change_in_production"  # Bu değer gerçek ortamda değiştirilmelidir
+  ai_api_key: "beta_ai_api_key_change_in_production"  # Bu değer gerçek ortamda değiştirilmelidir

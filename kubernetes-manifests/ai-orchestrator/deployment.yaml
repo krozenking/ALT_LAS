@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-orchestrator
+  namespace: alt-las
+  labels:
+    app: ai-orchestrator
+    component: ai
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-orchestrator
+  template:
+    metadata:
+      labels:
+        app: ai-orchestrator
+        component: ai
+        version: v1
+    spec:
+      serviceAccountName: ai-orchestrator
+      containers:
+      - name: ai-orchestrator
+        image: alt-las/ai-orchestrator:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8001
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-orchestrator-config
+              key: PORT
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-orchestrator-secrets
+              key: OPENAI_API_KEY
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: segmentation-service
+  namespace: alt-las
+  labels:
+    app: segmentation-service
+    component: segmentation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: segmentation-service
+  template:
+    metadata:
+      labels:
+        app: segmentation-service
+        component: segmentation
+        version: v1
+    spec:
+      serviceAccountName: segmentation-service
+      containers:
+      - name: segmentation-service
+        image: alt-las/segmentation-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PORT
+          value: "8000"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: segmentation-service-secrets
+              key: DATABASE_URL
+        - name: AI_ORCHESTRATOR_URL
+          valueFrom:
+            configMapKeyRef:
+              name: segmentation-service-config
+              key: AI_ORCHESTRATOR_URL
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always

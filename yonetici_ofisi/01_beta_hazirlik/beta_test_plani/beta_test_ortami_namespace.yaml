@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alt-las
+  labels:
+    name: alt-las
+    environment: beta
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database
+  labels:
+    name: database
+    environment: beta
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: messaging
+  labels:
+    name: messaging
+    environment: beta
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    environment: beta
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+  labels:
+    name: logging
+    environment: beta
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tracing
+  labels:
+    name: tracing
+    environment: beta
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    name: ingress-nginx
+    environment: beta

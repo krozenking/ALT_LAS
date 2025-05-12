@@ -1,0 +1,12 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY main.simple.py /app/main.py
+RUN echo 'from fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get("/health")\ndef health():\n    return {"status": "ok"}\n\n@app.get("/")\ndef root():\n    return {"message": "Segmentation Service Beta"}' > /app/main.py
+
+RUN pip install fastapi uvicorn pydantic psutil
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

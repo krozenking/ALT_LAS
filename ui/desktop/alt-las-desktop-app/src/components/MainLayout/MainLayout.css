@@ -1,0 +1,186 @@
+.main-layout-container {
+  display: flex;
+  flex-direction: column; /* Stack panels-area and command-bar vertically */
+  height: 100vh; /* Full viewport height */
+  background-color: #282c34; /* Dark background for the app, can be themed */
+  color: white;
+  overflow: hidden; /* Prevent scrollbars on the main container */
+}
+
+.panels-area {
+  display: flex;
+  flex-grow: 1; /* Takes up available space above the command bar */
+  padding: 10px;
+  gap: 10px; /* Space between panels */
+  overflow: auto; /* Allow scrolling within the panels area if content overflows */
+}
+
+.panel {
+  background-color: rgba(50, 50, 50, 0.8); /* Darker, slightly transparent panels */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 15px;
+  overflow-y: auto; /* Allow vertical scrolling within individual panels */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+/* Basic panel layout - to be enhanced with drag-and-drop and resizing */
+.panel-sidebar-left {
+  flex: 0 0 250px; /* Fixed width for left sidebar */
+}
+
+.main-content-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-main {
+  flex-grow: 3; /* Main panel takes more space */
+}
+
+.panel-bottom-main {
+  flex-grow: 1;
+  min-height: 150px; /* Minimum height for the bottom panel */
+}
+
+.panel-sidebar-right {
+  flex: 0 0 280px; /* Fixed width for right sidebar */
+}
+
+/* Glassmorphism for panels - to be applied based on theme */
+.panel.glassmorphism {
+  background-color: rgba(255, 255, 255, 0.1); /* Lighter transparent for glass effect on dark bg */
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.2em;
+  color: #61dafb; /* Accent color for headings, can be themed */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+/* Styling for scrollbars to be less obtrusive (WebKit browsers) */
+.panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.panel::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.panel::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Ensure CommandBar is not overlapped by panels-area scroll content */
+/* CommandBar already has z-index: 1000 */
+
+
+/* MainLayout.css - Continued */
+
+.main-layout-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1e1e1e; /* Darker base for better glassmorphism contrast */
+  color: #e0e0e0; /* Light text for dark theme */
+  overflow: hidden;
+}
+
+.panels-area {
+  flex-grow: 1;
+  padding: 0; /* Let react-grid-layout handle inner spacing if needed */
+  overflow: hidden; /* react-grid-layout handles its own scrolling */
+  position: relative; /* For potential absolute positioned elements like drop zones */
+}
+
+/* Styling for react-grid-layout items */
+.grid-item {
+  /* background-color: rgba(50, 50, 50, 0.8); */ /* Panel component will handle its own background */
+  /* border: 1px solid rgba(255, 255, 255, 0.1); */
+  /* border-radius: 8px; */
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); */
+  overflow: hidden; /* Important for Panel component to control its scroll */
+}
+
+/* Glassmorphism Theme Styles */
+/* These variables can be used throughout the application for consistency (Task 2.1) */
+:root {
+  --glass-blur: 10px;
+  --glass-opacity-light: 0.15;
+  --glass-opacity-medium: 0.25;
+  --glass-opacity-dark: 0.35;
+  --glass-border-color-light: rgba(255, 255, 255, 0.2);
+  --glass-border-color-dark: rgba(0, 0, 0, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* Example shadow */
+  --panel-bg-color: rgba(40, 42, 54, 0.85); /* Default panel bg for dark theme */
+  --panel-border-color: rgba(255, 255, 255, 0.1);
+  --accent-color: #61dafb;
+}
+
+.main-layout-container.glassmorphism-theme-active {
+  /* This class can activate the global theme. Specific components will apply glass effect. */
+  /* Example: could change body background or apply a subtle texture */
+}
+
+/* Panel specific glassmorphism is handled in Panel.css and Panel.tsx */
+
+/* Enhanced visual feedback for drag-and-drop (Task 1.1) */
+.react-grid-placeholder {
+  background-color: rgba(97, 218, 251, 0.3) !important; /* --accent-color with opacity */
+  border: 2px dashed var(--accent-color) !important;
+  border-radius: 8px;
+  opacity: 0.7;
+  transition: all 0.2s ease-out;
+}
+
+/* Ensure CommandBar is not overlapped by panels-area scroll content */
+/* CommandBar already has z-index: 1000 */
+
+/* Ensure Panel headers are styled correctly within grid items */
+.grid-item .panel-header h3 {
+  color: var(--accent-color);
+}
+
+/* Ensure Panel content is styled correctly */
+.grid-item .panel-content {
+  color: #d4d4d4; /* Slightly lighter text for content within panels */
+}
+
+/* Styling for scrollbars to be less obtrusive (WebKit browsers) - already in Panel.css, ensure it works */
+.grid-item .panel-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.grid-item .panel-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.grid-item .panel-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.grid-item .panel-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+

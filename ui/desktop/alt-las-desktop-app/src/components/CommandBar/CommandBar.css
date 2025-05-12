@@ -1,0 +1,68 @@
+.command-bar-container {
+  display: flex;
+  padding: 10px;
+  background-color: #f0f0f0; /* Light grey background, can be themed later */
+  border-top: 1px solid #ccc;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Ensure it's above other content */
+}
+
+.command-input {
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 20px; /* Rounded corners */
+  margin-right: 10px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.command-input:focus {
+  border-color: #007bff; /* Highlight on focus, can be themed */
+}
+
+.submit-button {
+  padding: 10px 20px;
+  background-color: #007bff; /* Primary button color, can be themed */
+  color: white;
+  border: none;
+  border-radius: 20px; /* Rounded corners */
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #0056b3; /* Darker shade on hover */
+}
+
+.submit-button:disabled {
+  background-color: #aaa; /* Disabled state color */
+  cursor: not-allowed;
+}
+
+/* Glassmorphism placeholder - to be applied based on theme and panel system */
+/* This might involve a parent container with backdrop-filter */
+.command-bar-container.glassmorphism {
+  background-color: rgba(255, 255, 255, 0.2); /* Example transparent white */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+}
+
+.command-input.glassmorphism {
+  background-color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #333; /* Ensure text is readable */
+}
+
+.command-input.glassmorphism::placeholder {
+  color: #555;
+}
+

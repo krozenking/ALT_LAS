@@ -48,7 +48,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/parser": "^8.32.1",
     "cross-env": "^7.0.3",
     "css-loader": "^6.8.1",
     "electron": "^28.1.1",

@@ -21,8 +21,20 @@ export interface CommandResponseData {
   message?: string;
   alt_file?: string; // From Segmentation Service via API Gateway
   segments_count?: number;
-  // Potentially more fields from backend response
   result?: any; // Could be *.last file content or a summary
+}
+
+// Define Login credentials and response
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponseData {
+  token: string;
+  userId: string;
+  username: string;
+  // any other user details
 }
 
 interface ApiServiceContextProps {
@@ -34,9 +46,9 @@ interface ApiServiceContextProps {
   checkConnection: () => Promise<boolean>;
   authToken: string | null;
   setAuthToken: (token: string | null) => void;
-  // Placeholder for login/logout which would set/clear the token
-  // login: (credentials: any) => Promise<ApiResponse<any>>;
-  // logout: () => void;
+  login: (credentials: LoginCredentials) => Promise<ApiResponse<LoginResponseData>>;
+  logout: () => void;
+  currentUser: LoginResponseData | null; // Store current user details
 }
 
 const ApiServiceContext = createContext<ApiServiceContextProps | undefined>(undefined);
@@ -60,7 +72,8 @@ export const ApiServiceProvider: React.FC<ApiServiceProviderProps> = ({
 }) => {
   const [apiBaseUrl, setApiBaseUrlState] = useState<string>(defaultApiBaseUrl);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [authToken, setAuthTokenState] = useState<string | null>(null); // Store JWT token
+  const [authToken, setAuthTokenState] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<LoginResponseData | null>(null);
 
   const setApiBaseUrl = (url: string) => {
     setApiBaseUrlState(url);
@@ -73,6 +86,8 @@ export const ApiServiceProvider: React.FC<ApiServiceProviderProps> = ({
       localStorage.setItem("authToken", token);
     } else {
       localStorage.removeItem("authToken");
+      localStorage.removeItem("currentUser"); // Also clear user on logout
+      setCurrentUser(null); // Clear current user state
     }
   };
 
@@ -84,8 +99,17 @@ export const ApiServiceProvider: React.FC<ApiServiceProviderProps> = ({
     const storedAuthToken = localStorage.getItem("authToken");
     if (storedAuthToken) {
       setAuthTokenState(storedAuthToken);
+      // If token exists, try to load user data (or this could be done after a successful login)
+      const storedUser = localStorage.getItem("currentUser");
+      if (storedUser) {
+        try {
+            setCurrentUser(JSON.parse(storedUser));
+        } catch (e) {
+            localStorage.removeItem("currentUser"); // Clear if invalid JSON
+        }
+      }
     }
-    checkConnection(); // Check connection on initial load
+    checkConnection();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -108,60 +132,92 @@ export const ApiServiceProvider: React.FC<ApiServiceProviderProps> = ({
     }
   };
 
+  const login = async (credentials: LoginCredentials): Promise<ApiResponse<LoginResponseData>> => {
+    setIsConnected(false); // Reset connection status before login attempt
+    try {
+      // MOCK API CALL - Replace with actual API call to your backend /auth/login endpoint
+      // const response = await fetch(`${apiBaseUrl}/auth/login`, {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(credentials),
+      // });
+      // const data = await response.json();
+      // if (!response.ok) {
+      //   return { success: false, error: data.message || "Login failed", statusCode: response.status };
+      // }
+      // const userData: LoginResponseData = { token: data.token, userId: data.userId, username: data.username };
+      // setAuthToken(userData.token);
+      // setCurrentUser(userData);
+      // localStorage.setItem("currentUser", JSON.stringify(userData));
+      // setIsConnected(true); // Assume connection is fine after successful login
+      // return { success: true, data: userData, statusCode: response.status };
+
+      // Current Mock Implementation:
+      return new Promise<ApiResponse<LoginResponseData>>((resolve) => {
+        setTimeout(() => {
+          if (credentials.username === "admin" && credentials.password === "password") {
+            const mockUserData: LoginResponseData = {
+              token: "mock-jwt-token-" + Date.now(),
+              userId: "user-123",
+              username: "admin",
+            };
+            setAuthToken(mockUserData.token);
+            setCurrentUser(mockUserData);
+            localStorage.setItem("currentUser", JSON.stringify(mockUserData));
+            setIsConnected(true); // Simulate connection on successful mock login
+            resolve({ success: true, data: mockUserData, statusCode: 200 });
+          } else {
+            resolve({ success: false, error: "Invalid mock username or password", statusCode: 401 });
+          }
+        }, 1000);
+      });
+    } catch (error) {
+      console.error("Login API call failed:", error);
+      return { success: false, error: error instanceof Error ? error.message : "Unknown error during login", statusCode: 0 };
+    }
+  };
+
+  const logout = () => {
+    setAuthToken(null); // This already clears localStorage and currentUser
+    // Optionally, call a backend /auth/logout endpoint if it exists
+  };
+
   const sendCommand = async (payload: CommandRequest): Promise<ApiResponse<CommandResponseData>> => {
+    if (!authToken) return { success: false, error: "Not authenticated", statusCode: 401 };
     if (!isConnected && !(await checkConnection())) {
         return { success: false, error: "API not connected. Please check settings.", statusCode: 0 };
     }
     try {
-      // The API Gateway README (api-gateway/README.md) and its code (src/routes/commandRoutes.ts)
-      // suggest a POST to /api/command for submitting commands.
-      // The Segmentation Service (segmentation-service/README.md) expects mode, persona, metadata.
-      const response = await fetch(`${apiBaseUrl}/command`, { // Assuming API Gateway routes /api/command to segmentation
+      const response = await fetch(`${apiBaseUrl}/command`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(authToken && { "Authorization": `Bearer ${authToken}` }),
+          "Authorization": `Bearer ${authToken}`,
         },
         body: JSON.stringify(payload),
       });
-
       const responseData = await response.json();
-
       if (!response.ok) {
-        return {
-          success: false,
-          error: responseData.message || responseData.error || "Command submission failed",
-          statusCode: response.status,
-        };
+        return { success: false, error: responseData.message || responseData.error || "Command submission failed", statusCode: response.status };
       }
-      return {
-        success: true,
-        data: responseData, // Assuming the gateway forwards the segmentation service response
-        statusCode: response.status,
-      };
+      return { success: true, data: responseData, statusCode: response.status };
     } catch (error) {
       console.error("API sendCommand failed:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error during command submission",
-        statusCode: 0,
-      };
+      return { success: false, error: error instanceof Error ? error.message : "Unknown error during command submission", statusCode: 0 };
     }
   };
   
-  // Placeholder for fetching command status - API Gateway might need a new endpoint for this
-  // or it might proxy to a status endpoint on Runner or Archive service.
   const getCommandStatus = async (taskId: string): Promise<ApiResponse<CommandResponseData>> => {
+    if (!authToken) return { success: false, error: "Not authenticated", statusCode: 401 };
     if (!isConnected && !(await checkConnection())) {
         return { success: false, error: "API not connected.", statusCode: 0 };
     }
     try {
-        // Example: GET /api/command/{taskId}/status or /api/results/{taskId}
-        const response = await fetch(`${apiBaseUrl}/results/${taskId}`, { // This endpoint is a guess, needs verification from backend docs
+        const response = await fetch(`${apiBaseUrl}/results/${taskId}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                ...(authToken && { "Authorization": `Bearer ${authToken}` }),
+                "Authorization": `Bearer ${authToken}`,
             },
         });
         const responseData = await response.json();
@@ -175,7 +231,6 @@ export const ApiServiceProvider: React.FC<ApiServiceProviderProps> = ({
     }
   };
 
-
   const value = useMemo(() => ({
     apiBaseUrl,
     setApiBaseUrl,
@@ -185,7 +240,11 @@ export const ApiServiceProvider: React.FC<ApiServiceProviderProps> = ({
     checkConnection,
     authToken,
     setAuthToken,
-  }), [apiBaseUrl, isConnected, authToken]);
+    login,
+    logout,
+    currentUser,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [apiBaseUrl, isConnected, authToken, currentUser]);
 
   return (
     <ApiServiceContext.Provider value={value}>

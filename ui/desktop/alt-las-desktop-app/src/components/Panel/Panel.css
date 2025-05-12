@@ -1,0 +1,97 @@
+.panel-container {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(50, 50, 50, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden; /* Ensures content doesn't overflow rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: move; /* Indicates draggable */
+  user-select: none; /* Prevents text selection during drag */
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #61dafb; /* Accent color for headings, can be themed */
+}
+
+.panel-content {
+  flex-grow: 1;
+  padding: 15px;
+  overflow-y: auto; /* Allow scrolling within panel content */
+}
+
+/* Glassmorphism styles - to be applied conditionally based on theme */
+.panel-container.glassmorphism {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.panel-container.glassmorphism .panel-header {
+  background-color: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Resizable panel styles */
+.panel-container.resizable {
+  position: relative;
+}
+
+.panel-container.resizable::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  cursor: nwse-resize; /* Diagonal resize cursor */
+  background-image: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.3) 50%);
+  border-radius: 0 0 8px 0;
+}
+
+/* Styling for scrollbars to be less obtrusive (WebKit browsers) */
+.panel-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Focus styles for keyboard navigation */
+.panel-container:focus-within {
+  outline: 2px solid #61dafb;
+  box-shadow: 0 0 0 4px rgba(97, 218, 251, 0.3);
+}
+
+/* Accessibility - ensure focus is visible */
+.panel-container:focus-visible {
+  outline: 2px solid #61dafb;
+  box-shadow: 0 0 0 4px rgba(97, 218, 251, 0.3);
+}

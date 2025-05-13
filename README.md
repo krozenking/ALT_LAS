@@ -4,32 +4,36 @@ ALT_LAS, bilgisayar sistemlerini yapay zeka ile yönetmek için tasarlanmış, m
 
 ## Proje Genel Bakış
 
-ALT_LAS, UI-TARS-desktop'ın kullanıcı arayüzü yetenekleri ile alt_last'ın bilgisayar yönetim özelliklerini birleştirerek daha güçlü bir çözüm sunmayı hedeflemektedir. Sistem, komutları alt görevlere bölen, sonuçları işleyen ve başarılı sonuçları arşivleyen bir yapıya sahiptir.
+ALT_LAS, kullanıcı komutlarını alıp bunları işlenebilir görevlere dönüştüren, bu görevleri yürüten, sonuçları analiz eden ve öğrenme döngüleri için değerli verileri arşivleyen kapsamlı bir sistemdir. Platform, esnekliği ve genişletilebilirliği sağlamak için mikroservis mimarisine dayanmaktadır.
 
 ## Temel Özellikler
 
-- Modüler mikroservis mimarisi
-- Dosya tabanlı iş akışı (*.alt, *.last, *.atlas)
-- Çoklu çalışma modları (Normal, Dream, Explore, Chaos)
-- Persona sistemi ile kişiselleştirilmiş deneyim
-- Masaüstü, web ve mobil arayüzler
-- İşletim sistemi entegrasyonu
-- Yerel AI modelleri ile düşük gecikme süresi
-- Güvenli sandbox izolasyonu
-- Kapsamlı API Gateway (Kimlik doğrulama, yetkilendirme, yönlendirme, caching, rate limiting, loglama, vb.)
+- **Modüler Mikroservis Mimarisi**: Her biri belirli bir işlevselliğe odaklanmış bağımsız servisler (API Gateway, Segmentation, Workflow, Runner, Archive, OS Integration, AI Orchestrator).
+- **Dosya Tabanlı İş Akışı**: Görev tanımları için `*.alt`, yürütme sonuçları için `*.last` ve bilgi birikimi için `*.atlas` dosyalarını kullanır.
+- **Çoklu Çalışma Modları**: Komut yorumlama ve yürütme davranışını değiştirmek için "Normal", "Dream", "Explore" ve "Chaos" gibi modları destekler.
+- **Persona Sistemi**: Yapay zeka etkileşimlerini kişiselleştirmek için "technical_expert", "creative_writer" gibi farklı personalar sunar.
+- **Gelişmiş API Gateway**: Kapsamlı kimlik doğrulama (JWT, token yenileme, çıkış), rol tabanlı erişim kontrolü (RBAC), dinamik servis keşfi (sağlık kontrolleri ile), istek yönlendirme, rate limiting, performans izleme (OpenTelemetry entegrasyonu ile), detaylı loglama (Winston) ve yanıt önbellekleme (Redis) gibi özellikler sunar.
+- **Workflow Engine**: Kullanıcıların karmaşık iş akışları tanımlamasını, zamanlamasını ve izlemesini sağlayan bir iş akışı motoru içerir. Çeşitli tetikleyiciler (manuel, zamanlanmış, webhook) ve eylemler (kod yürütme, HTTP istekleri) sunar.
+- **Detaylı Görev Yürütme (Runner Service)**: `*.alt` dosyalarındaki görevleri asenkron olarak yürütür, bağımlılıkları yönetir, AI servisleriyle entegre olur ve yürütme sonuçlarını içeren `*.last` dosyaları (görselleştirilmiş görev grafikleri ve HTML raporları dahil) oluşturur.
+- **Kapsamlı İşletim Sistemi Entegrasyonu (OS Integration Service)**: Windows, macOS ve Linux üzerinde dosya sistemi işlemleri, süreç yönetimi, sistem bilgisi toplama ve CUDA hızlandırmalı ekran görüntüsü alma gibi yetenekler sunar.
+- **Merkezi Arşivleme (Archive Service)**: `*.last` dosyalarını kabul eder, doğrular, PostgreSQL veritabanında saklar, NATS üzerinden mesajlaşma ile entegre olur ve `*.atlas` dosyaları oluşturarak bilgi birikimini sağlar.
+- **Yapay Zeka Orkestrasyonu (AI Orchestrator)**: Farklı yapay zeka modellerinin yönetimini, dağıtımını ve entegrasyonunu koordine eder.
+- **Güvenlik Katmanı**: Platform genelinde güvenlik ve izolasyon mekanizmaları sağlar.
+- **Çoklu Arayüz Desteği**: Masaüstü (Electron/React), web (React) ve mobil (React Native) arayüzler için altyapı sunar.
 
 ## Mimari Yapı
 
 ALT_LAS, aşağıdaki ana bileşenlerden oluşmaktadır:
 
-- **API Gateway**: Tüm istekleri karşılar, kimlik doğrulama/yetkilendirme (JWT, RBAC) yapar, servis keşfi ve yönlendirme sağlar, performansı izler (OpenTelemetry), loglama (Winston, log rotasyonu), caching (Redis) ve daha fazlasını yönetir.
-- **Segmentation Service**: Komutları alt görevlere böler
-- **Runner Service**: Alt görevleri işler ve sonuçları üretir
-- **Archive Service**: Başarılı sonuçları arşivler
-- **UI Bileşenleri**: Masaüstü, web ve mobil arayüzler
-- **OS Integration**: İşletim sistemi entegrasyonu
-- **AI Orchestrator**: Yapay zeka modellerini koordine eder
-- **Security Layer**: Güvenlik ve izolasyon sağlar
+- **API Gateway**: Tüm dış istekler için merkezi giriş noktası. Kimlik doğrulama, yetkilendirme, yönlendirme, yük dengeleme, önbellekleme ve güvenlik politikalarını uygular. (Node.js/Express tabanlı)
+- **Workflow Engine**: Kullanıcıların iş akışlarını tanımlamasını, zamanlamasını ve yürütmesini sağlar. Çeşitli "parçaları" (tetikleyiciler, eylemler, entegrasyonlar) bir araya getirerek karmaşık otomasyonlar oluşturur. (Python/FastAPI tabanlı)
+- **Segmentation Service**: Kullanıcıdan gelen doğal dil komutlarını alır, analiz eder ve Workflow Engine veya Runner Service tarafından işlenebilecek yapılandırılmış görev segmentlerine (`*.alt` dosyaları) dönüştürür. Mod ve Persona sistemlerini destekler. (Python/FastAPI tabanlı)
+- **Runner Service**: `*.alt` dosyalarında tanımlanan görevleri yürütür, AI servisleriyle etkileşime girer ve sonuçları (`*.last` dosyaları, HTML raporları, görev grafikleri) üretir. (Rust tabanlı)
+- **Archive Service**: Yürütme sonuçlarını (`*.last` dosyaları) ve bunlardan türetilen bilgi birikimlerini (`*.atlas` dosyaları) kalıcı olarak saklar, aranabilir ve analiz edilebilir hale getirir. (Go tabanlı)
+- **OS Integration Service**: Farklı işletim sistemleriyle (Windows, macOS, Linux) düşük seviyeli etkileşimler sağlar; dosya yönetimi, süreç kontrolü, ekran görüntüsü alma gibi. (Rust tabanlı)
+- **AI Orchestrator**: Çeşitli yerel ve bulut tabanlı yapay zeka modellerinin yönetimini, dağıtımını ve kullanımını koordine eder. (Python tabanlı)
+- **UI Bileşenleri**: Kullanıcıların platformla etkileşime girmesi için masaüstü, web ve mobil arayüzler sunar.
+- **Security Layer**: Platformun genel güvenliğini sağlamak için çeşitli mekanizmalar içerir.
 
 ## Başlarken
 
@@ -37,88 +41,81 @@ ALT_LAS, aşağıdaki ana bileşenlerden oluşmaktadır:
 
 - Git
 - Docker ve Docker Compose
-- Node.js 18+
-- Python 3.10+
-- Rust 1.70+
-- Go 1.20+
+- Node.js (API Gateway için, sürüm için `api-gateway/README.md` kontrol edin)
+- Python (Segmentation Service, Workflow Engine, AI Orchestrator için, sürüm için ilgili servislerin README dosyalarını kontrol edin)
+- Rust (Runner Service, OS Integration Service için, sürüm için ilgili servislerin README dosyalarını kontrol edin)
+- Go (Archive Service için, sürüm için `archive-service/README.md` kontrol edin)
 
 ### Kurulum
+
+Projenin hızlı bir şekilde ayağa kaldırılması için Docker Compose kullanılması önerilir:
 
 ```bash
 # Repoyu klonlayın
 git clone https://github.com/krozenking/ALT_LAS.git
 cd ALT_LAS
 
-# Ortam değişkenlerini ayarlayın
-# api-gateway dizinindeki .env.example dosyasını .env olarak kopyalayın
-# ve gerekli değerleri (özellikle JWT_SECRET, REDIS_URL vb.) kendi değerlerinizle güncelleyin.
-# Örneğin:
+# Ortam değişkenlerini ayarlayın:
+# Her servisin kendi dizininde `.env.example` dosyası bulunabilir.
+# Bu dosyaları `.env` olarak kopyalayın ve kendi yapılandırmanıza göre düzenleyin.
+# Özellikle API Gateway için JWT_SECRET, REDIS_URL gibi kritik değişkenler ayarlanmalıdır.
+# Örneğin API Gateway için:
 # cd api-gateway
 # cp .env.example .env
 # nano .env # .env dosyasını düzenleyin
 # cd ..
 
-# Geliştirme ortamını kurun (Eğer varsa ve güncelse bu adımı atlayabilirsiniz)
-# ./scripts/setup.sh 
-
-# Servisleri başlatın
-docker-compose up -d
+# Docker imajlarını oluşturun ve servisleri başlatın
+docker-compose up --build -d
 ```
+
+Servislerin manuel kurulumu ve çalıştırılması için lütfen her servisin kendi `README.md` dosyasına başvurun.
 
 ## Geliştirme
 
-Her bileşen kendi dizininde bulunur ve bağımsız olarak geliştirilebilir:
+Her bileşen kendi dizininde bulunur ve bağımsız olarak geliştirilebilir. Detaylı bilgi ve geliştirme süreçleri için ilgili servisin `README.md` dosyasına bakınız:
 
-- `api-gateway/`: API Gateway servisi (Node.js/Express/TypeScript). **Worker 1 tarafından geliştirildi ve güncellendi:** Kapsamlı kimlik doğrulama (JWT token yenileme, çıkış), rol tabanlı erişim kontrolü (RBAC), gelişmiş servis keşfi (sağlık kontrolleri ile), performans izleme (OpenTelemetry), detaylı loglama (Winston ile log rotasyonu), caching (Redis), Swagger dokümantasyonu ve daha birçok özellik eklendi/güncellendi. Detaylar için `api-gateway/CHANGELOG.md` ve `api-gateway/README.md` dosyalarına bakın.
-- `segmentation-service/`: Segmentation servisi (Python/FastAPI)
-- `runner-service/`: Runner servisi (Rust)
-- `archive-service/`: Archive servisi (Go)
-- `ui/desktop/`: Masaüstü uygulaması (Electron/React)
-- `ui/web/`: Web dashboard (React)
-- `ui/mobile/`: Mobil uygulama (React Native)
-- `os-integration/`: İşletim sistemi entegrasyonu (Rust/C++)
-- `ai-orchestrator/`: AI orkestrasyon servisi (Python)
-- `security/`: Güvenlik katmanı (Rust/Go)
-- `docs/`: Genel proje dokümantasyonu
+- `api-gateway/`: API Gateway servisi (Node.js/Express).
+- `workflow-engine/`: İş Akışı Motoru servisi (Python/FastAPI).
+- `segmentation-service/`: Segmentation servisi (Python/FastAPI).
+- `runner-service/`: Runner servisi (Rust).
+- `archive-service/`: Archive servisi (Go).
+- `os-integration-service/`: İşletim Sistemi Entegrasyon servisi (Rust).
+- `ai-orchestrator/`: AI Orkestrasyon servisi (Python).
+- `ui/desktop/`: Masaüstü uygulaması (Electron/React).
+- `ui/web/`: Web dashboard (React).
+- `ui/mobile/`: Mobil uygulama (React Native).
+- `security/`: Güvenlik katmanı.
+- `docs/`: Genel proje dokümantasyonu.
 
 ## Dokümantasyon
 
-**Önemli Not (Pre-Alpha Aşaması):** Proje şu anda Pre-Alpha geliştirme aşamasındadır. Tüm geliştirme çalışmaları, [Pre-Alpha Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) belgesinde tanımlanan mimari odaklı görevlere göre yürütülmelidir. Detaylı geliştirme kuralları ve yönetici beklentileri için lütfen [Geliştirici Kılavuzu](docs/developer-guide.md) belgesinin "Pre-Alpha Geliştirme Aşaması" bölümünü inceleyiniz.
+**Proje Durumu:** Proje aktif geliştirme aşamasındadır ve Beta sürümüne doğru ilerlemektedir. Geliştirme ve iyileştirmeler devam etmektedir.
 
 Detaylı dokümantasyon için aşağıdaki belgelere bakın:
 
-- [Mimari Tasarım](architecture.md) (Güncellendi)
-- [Geliştirme Yol Haritası](roadmap.md)
-- [Pre-Alpha Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) (**Aktif Görev Takibi İçin Birincil Kaynak**)
-- [İşçi Görev Dağılımı (Özet)](worker_tasks.md) (Genel referans, Pre-Alpha için [Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) önceliklidir)
-- [İşçi Detaylı Görevler](worker_tasks_detailed.md) (Genel referans, Pre-Alpha için [Mimarisi Görev Sırası](docs/pre_alpha_architecture_tasks.md) önceliklidir)
-- [API Referansı](api-gateway/swagger.yaml) (Güncellendi - Swagger UI üzerinden veya YAML dosyası olarak incelenebilir. API Gateway çalışırken `/api-docs` adresinden erişilebilir.)
-- [API Gateway README](api-gateway/README.md) (Güncellendi)
-- [Geliştirici Kılavuzu](docs/developer-guide.md) (**Pre-Alpha Kuralları ve Yönergeleri İçerir**)
-- [Kullanıcı Kılavuzu](docs/user-guide.md)
+- [Mimari Tasarım](architecture.md) (Güncellenmeli)
+- [Geliştirme Yol Haritası](roadmap.md) (Gözden geçirilmeli)
+- [API Referansı](api-gateway/swagger.yaml) (API Gateway çalışırken `/api-docs` adresinden erişilebilir.)
+- Her servisin kendi klasöründeki `README.md` dosyaları (örn: `api-gateway/README.md`, `runner-service/README.md`)
+- [Geliştirici Kılavuzu](docs/developer-guide.md) (Güncellenmeli)
+- [Kullanıcı Kılavuzu](docs/user-guide.md) (Güncellenmeli)
 
 ## Lisans
 
-Bu proje ticari kullanıma uygun ücretsiz lisanslar kullanılarak geliştirilmiştir:
-
-- MIT Lisansı (çoğu bileşen)
-- Apache 2.0 Lisansı (bazı kütüphaneler)
-- BSD-3-Clause Lisansı (Go bileşenleri)
-- PostgreSQL Lisansı (veritabanı)
+Bu proje, ticari kullanıma uygun çeşitli açık kaynak lisansları altında geliştirilmiştir. Ana lisanslar MIT ve Apache 2.0 olmakla birlikte, kullanılan kütüphanelere göre farklılıklar olabilir. Detaylar için her bileşenin kendi lisans bilgilerine ve projenin ana `LICENSE` dosyasına (eğer varsa) bakınız.
 
 ## Katkıda Bulunma
 
-Katkıda bulunmak için lütfen [İşçi Detaylı Görevler](worker_tasks_detailed.md) belgesini inceleyin ve size atanan görevlere odaklanın. Geliştirme sürecinde aşağıdaki adımları izleyin:
+Katkıda bulunmak istiyorsanız, lütfen GitHub Issues üzerinden açık görevleri inceleyin veya yeni önerilerde bulunun. Geliştirme sürecinde aşağıdaki genel adımları izleyebilirsiniz:
 
-1. Görevinizi GitHub Issues'dan alın
-2. Yeni bir branch oluşturun (`git checkout -b feature/your-feature-name`)
-3. Değişikliklerinizi yapın ve test edin
-4. Değişikliklerinizi commit'leyin (`git commit -m "Açıklayıcı commit mesajı"`)
-5. Branch'inizi push'layın (`git push origin feature/your-feature-name`)
-6. Pull request oluşturun
-7. Kod incelemesi sonrası birleştirme yapılacaktır
+1. İlgilendiğiniz konuyu (issue) belirleyin veya oluşturun.
+2. Projeyi fork'layın ve kendi branch'inizi oluşturun (`git checkout -b feature/your-feature-name`).
+3. Değişikliklerinizi yapın ve test edin.
+4. Değişikliklerinizi commit'leyin (`git commit -m "Açıklayıcı commit mesajı"`).
+5. Branch'inizi ana repoya push'layın (`git push origin feature/your-feature-name`).
+6. Pull request oluşturun ve kod incelemesi sürecini takip edin.
 
 ## İletişim
 
-Proje ile ilgili sorularınız için GitHub Issues kullanın veya ekip iletişim kanallarına başvurun.
-
+Proje ile ilgili sorularınız, önerileriniz veya tartışmalarınız için GitHub Issues platformunu kullanabilirsiniz.

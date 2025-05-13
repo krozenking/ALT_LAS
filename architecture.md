@@ -2,241 +2,159 @@
 
 ## 1. Genel Bakış
 
-ALT_LAS, bilgisayar sistemlerini yapay zeka ile yönetmek için tasarlanmış, modüler bir mikroservis mimarisi kullanan, açık kaynaklı ve ticari kullanıma uygun bir platformdur. Sistem, UI-TARS-desktop'ın kullanıcı arayüzü yetenekleri ile alt_last'ın bilgisayar yönetim özelliklerini birleştirerek daha güçlü bir çözüm sunmayı hedeflemektedir.
+ALT_LAS, bilgisayar sistemlerini yapay zeka ile yönetmek için tasarlanmış, modüler bir mikroservis mimarisi kullanan, açık kaynaklı ve ticari kullanıma uygun bir platformdur. Sistem, kullanıcı komutlarını alıp bunları işlenebilir görevlere dönüştüren, bu görevleri yürüten, sonuçları analiz eden ve öğrenme döngüleri için değerli verileri arşivleyen kapsamlı bir sistemdir.
 
 ## 2. Temel Prensipler
 
-- **Modülerlik**: Tüm bileşenler bağımsız mikroservisler olarak çalışır
-- **Ölçeklenebilirlik**: Yatay ve dikey ölçeklendirme desteği
-- **Lisans Uyumluluğu**: Tüm bileşenler ticari kullanıma uygun ücretsiz lisanslara sahiptir
-- **Sürekli Öğrenme**: Başarılı işlemler arşivlenerek sistem kendini geliştirir
-- **Güvenlik**: Sandbox izolasyonu ve güvenli FFI (Foreign Function Interface) katmanı
+- **Modülerlik**: Her biri belirli bir işlevselliğe odaklanmış bağımsız servisler.
+- **Ölçeklenebilirlik**: Yatay ve dikey ölçeklendirme için tasarlanmıştır.
+- **Lisans Uyumluluğu**: Ticari kullanıma uygun açık kaynak lisanslar hedeflenmiştir.
+- **Sürekli Öğrenme**: Başarılı ve başarısız işlemlerden öğrenerek sistemin kendini geliştirmesi amaçlanır.
+- **Güvenlik**: İzolasyon, güvenli iletişim ve erişim kontrolü temel önceliklerdendir.
 
 ## 3. Dosya Tabanlı İş Akışı
 
 ALT_LAS, üç temel dosya tipine dayalı bir iş akışı kullanır:
 
-1. **\*.alt**: Alt görev tanımları ve segmentasyon
-2. **\*.last**: Görev çıktıları ve sonuçlar
-3. **\*.atlas**: Başarılı sonuçların arşivi ve öğrenme veritabanı
+1.  **`*.alt`**: Görev tanımları, komut segmentleri ve yürütme parametrelerini içerir. Segmentation Service tarafından oluşturulur.
+2.  **`*.last`**: Görev yürütme sonuçlarını, çıktıları, hataları, performans metriklerini ve oluşturulan artefaktları içerir. Runner Service tarafından üretilir.
+3.  **`*.atlas`**: Başarılı `*.last` dosyalarından elde edilen bilgi birikimini, öğrenilmiş kalıpları ve analizleri içerir. Archive Service tarafından oluşturulur ve yönetilir.
 
-## 4. Mimari Katmanlar
+## 4. Mimari Bileşenler ve Katmanlar
 
-### 4.1. Çekirdek Katmanı (Core Layer)
+ALT_LAS, aşağıdaki ana servislerden ve katmanlardan oluşur:
 
-```
-[Kullanıcı/Harici AI] → API Gateway → [Segmentation Service → Runner Service → Archive Service]
-                                                ↓               ↓               ↓
-                                           *.alt dosyaları  *.last dosyaları  *.atlas DB
-                                                ↖───────────────↗
-                                           Feedback Loop & Fine-Tuning
-```
+### 4.1. Çekirdek Servisler (Core Services)
 
-#### API Gateway (Node.js/Express)
-- **Lisans**: MIT
-- **Sorumluluklar**: Kimlik doğrulama (JWT, token yenileme, çıkış), yetkilendirme (RBAC, izin tabanlı), yönlendirme (arka uç servislere ters proxy), API dokümantasyonu (Swagger/OpenAPI), rate-limiting, caching (Redis), gelişmiş oturum yönetimi, performans izleme (OpenTelemetry), loglama (Winston), istek/yanıt sıkıştırma, temel güvenlik (Helmet, CORS), servis keşfi ve sağlık kontrolü.
-- **Teknolojiler**: Express.js, TypeScript, Swagger/OpenAPI, JWT (jsonwebtoken), bcrypt, http-proxy-middleware, Redis (ioredis), Winston, OpenTelemetry SDK, Helmet, CORS, compression, Jest.
-
-#### Segmentation Service (Python/FastAPI)
-- **Lisans**: MIT
-- **Sorumluluklar**: Komut ayrıştırma, DSL → *.alt dönüşümü, metadata ekleme
-- **Teknolojiler**: FastAPI, Pydantic, PyParsing (MIT lisanslı)
-
-#### Runner Service (Rust)
-- **Lisans**: MIT/Apache 2.0
-- **Sorumluluklar**: *.alt dosyalarını işleme, AI çağrıları, *.last üretimi
-- **Teknolojiler**: Tokio, Actix-web, Serde
-
-#### Archive Service (Go)
-- **Lisans**: BSD-3-Clause
-- **Sorumluluklar**: *.last dinleme, başarı oranı kontrolü, *.atlas yazma
-- **Teknolojiler**: Go, NATS (Apache 2.0), PostgreSQL (PostgreSQL License)
-
-### 4.2. Kullanıcı Arayüzü Katmanı (UI Layer)
-
-#### Desktop UI (Electron/React)
-- **Lisans**: MIT
-- **Sorumluluklar**: Masaüstü uygulaması, sistem tepsisi entegrasyonu, kısayollar
-- **Teknolojiler**: Electron, React, TypeScript
-
-#### Web Dashboard (React)
-- **Lisans**: MIT
-- **Sorumluluklar**: Görev izleme, analitik, ayarlar
-- **Teknolojiler**: React, Redux, Chart.js
-
-#### Mobile Companion (React Native)
-- **Lisans**: MIT
-- **Sorumluluklar**: Mobil bildirimler, uzaktan kontrol
-- **Teknolojiler**: React Native, Expo
-
-### 4.3. Entegrasyon Katmanı (Integration Layer)
-
-#### OS Integration Service (Rust/C++)
-- **Lisans**: MIT/Apache 2.0
-- **Sorumluluklar**: İşletim sistemi entegrasyonu, dosya sistemi erişimi, uygulama kontrolü
-- **Teknolojiler**: Rust FFI, Windows API, X11/Wayland, macOS Cocoa
-
-#### Device Control Service (Python)
-- **Lisans**: MIT
-- **Sorumluluklar**: Donanım kontrolü, sensör verileri, çevre birimleri
-- **Teknolojiler**: PyUSB, BlueZ, HIDAPI
-- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır.
-
-#### Network Service (Go)
-- **Lisans**: BSD-3-Clause
-- **Sorumluluklar**: Ağ yönetimi, cihaz keşfi, güvenlik duvarı kontrolü
-- **Teknolojiler**: Go, libpcap, nftables
-- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır.
-
-### 4.4. Yapay Zeka Katmanı (AI Layer)
-
-#### Core AI Orchestrator (Python)
-- **Lisans**: MIT
-- **Sorumluluklar**: AI modellerini koordine etme, model seçimi, çıktı birleştirme
-- **Teknolojiler**: ONNX Runtime, PyTorch (BSD-3-Clause)
-
-#### Local LLM Service (C++/Python)
-- **Lisans**: MIT
-- **Sorumluluklar**: Yerel dil modelleri çalıştırma, metin üretimi
-- **Teknolojiler**: llama.cpp (MIT), GGML (MIT)
-
-#### Computer Vision Service (Python)
-- **Lisans**: MIT
-- **Sorumluluklar**: Görüntü analizi, OCR, nesne tanıma
-- **Teknolojiler**: OpenCV (Apache 2.0), Tesseract (Apache 2.0)
-
-#### Voice Processing Service (Python)
-- **Lisans**: MIT
-- **Sorumluluklar**: Ses tanıma, ses sentezi
-- **Teknolojiler**: Whisper (MIT), Coqui TTS (MPL 2.0 → MIT alternatifi bulunacak)
-- **Not**: Bu servis henüz bir işçiye atanmamıştır ve gelecek aşamalarda geliştirilmesi planlanmaktadır. Coqui TTS lisansı (MPL 2.0) ticari kullanım için uygun olmadığından, MIT lisanslı bir alternatif (örneğin Piper TTS) araştırılacaktır.
-
-### 4.5. Güvenlik Katmanı (Security Layer)
-
-#### Policy Enforcement (Rust)
-- **Lisans**: MIT/Apache 2.0
-- **Sorumluluklar**: Güvenlik politikaları, izin kontrolü
-- **Teknolojiler**: Rust, OPA (Apache 2.0)
-
-#### Sandbox Manager (Go)
-- **Lisans**: BSD-3-Clause
-- **Sorumluluklar**: İzolasyon, kaynak sınırlama
-- **Teknolojiler**: Go, cgroups, namespaces
-
-#### Audit Service (Go)
-- **Lisans**: BSD-3-Clause
-- **Sorumluluklar**: İşlem kaydı, güvenlik günlükleri
-- **Teknolojiler**: Go, SQLite (Public Domain)
-
-## 5. Çalışma Modları
-
-### 5.1. Normal Mod
-Standart görev işleme ve sistem yönetimi
-
-### 5.2. Dream Mod
-Test senaryoları, log analizi, otomatik optimizasyon
-
-### 5.3. Explore Mod
-Varyasyon analizi, alternatif çözüm keşfi
-
-### 5.4. Chaos Mod
-Yaratıcı düşünme, farklı bakış açıları, chaos_level (1-4) ile kontrol
-
-## 6. Persona Sistemi
-
-Sistem farklı kişilik özellikleriyle çalışabilir:
-
-- empathetic_assistant
-- technical_expert
-- creative_designer
-- security_focused
-- efficiency_optimizer
-- learning_tutor
-
-## 7. Teknoloji Yığını Özeti
-
-| Bileşen | Teknoloji | Lisans |
-|---------|-----------|--------|
-| Backend API | Node.js/Express, TypeScript, JWT, Redis, Winston, OpenTelemetry, Helmet | MIT |
-| Segmentation | Python/FastAPI | MIT |
-| Runner | Rust/Tokio | MIT/Apache 2.0 |
-| Archive | Go/NATS | BSD-3-Clause/Apache 2.0 |
-| Desktop UI | Electron/React | MIT |
-| Web Dashboard | React | MIT |
-| Mobile App | React Native | MIT |
-| OS Integration | Rust/C++ | MIT/Apache 2.0 |
-| Device Control | Python | MIT |
-| Network | Go | BSD-3-Clause |
-| AI Orchestrator | Python | MIT |
-| Local LLM | C++/Python | MIT |
-| Computer Vision | Python/OpenCV | MIT/Apache 2.0 |
-| Voice Processing | Python | MIT |
-| Database | PostgreSQL | PostgreSQL License |
-| Message Queue | NATS | Apache 2.0 |
-| Monitoring | Prometheus/Grafana | Apache 2.0/AGPL* |
-
-*Not: Grafana AGPL lisanslıdır, ancak yalnızca izleme amaçlı kullanılacak ve kodla doğrudan entegre edilmeyecektir. Alternatif olarak MIT lisanslı Chronograf kullanılabilir.
-
-## 8. Veri Akışı
-
-1. Kullanıcı veya harici sistem bir komut gönderir
-2. API Gateway komutu doğrular ve Segmentation Service'e yönlendirir
-3. Segmentation Service komutu analiz eder ve *.alt dosyası oluşturur
-4. Runner Service *.alt dosyasını alır ve gerekli AI servislerini çağırır
-5. Runner Service sonuçları birleştirir ve *.last dosyası oluşturur
-6. Archive Service başarılı *.last dosyalarını *.atlas veritabanına kaydeder
-7. Feedback Loop başarısız sonuçları analiz eder ve iyileştirmeler önerir
-
-## 9. Dağıtım Mimarisi
-
-```
-[Docker Containers]
-  ├── api-gateway
-  ├── segmentation-service
-  ├── runner-service
-  ├── archive-service
-  ├── os-integration-service
-  ├── device-control-service
-  ├── network-service
-  ├── ai-orchestrator
-  ├── local-llm-service
-  ├── computer-vision-service
-  ├── voice-processing-service
-  ├── policy-enforcement
-  ├── sandbox-manager
-  ├── audit-service
-  └── web-dashboard
-
-[Desktop Application]
-  └── Electron App (Windows/macOS/Linux)
-
-[Mobile Application]
-  └── React Native App (iOS/Android)
+```mermaid
+graph TD
+    A[Kullanıcı/Harici Sistem] --> B(API Gateway);
+    B --> C{Workflow Engine};
+    C --> D(Segmentation Service);
+    D -- *.alt dosyası --> E(Runner Service);
+    E -- *.last dosyası --> F(Archive Service);
+    F -- *.atlas DB & Öğrenme --> C;
+    E --> G(AI Orchestrator);
+    E --> H(OS Integration Service);
+    G --> I[AI Modelleri];
 ```
 
-## 10. Ölçeklenebilirlik ve Performans
+#### a. API Gateway (Node.js/Express)
+-   **Lisans**: MIT
+-   **Sorumluluklar**: Dış dünyadan gelen tüm istekler için merkezi giriş noktasıdır. Kimlik doğrulama (JWT tabanlı, token yenileme, güvenli çıkış), yetkilendirme (Rol Tabanlı Erişim Kontrolü - RBAC), istek yönlendirme (arka uç servislere ters proxy), API dokümantasyonu (Swagger/OpenAPI aracılığıyla `/api-docs`), rate limiting, yanıt önbellekleme (Redis ile), gelişmiş oturum yönetimi, performans izleme (OpenTelemetry entegrasyonu), detaylı loglama (Winston ile log rotasyonu), istek/yanıt sıkıştırma, temel güvenlik başlıkları (Helmet), CORS yönetimi ve dinamik servis keşfi (sağlık kontrolleri ile) gibi kritik görevleri yerine getirir.
+-   **Teknolojiler**: Express.js, TypeScript, Swagger/OpenAPI, jsonwebtoken, bcrypt, http-proxy-middleware, ioredis, Winston, OpenTelemetry SDK, Helmet, cors, compression, Jest.
 
-- Mikroservis mimarisi yatay ölçeklendirmeye olanak tanır
-- Yüksek performanslı diller (Rust, Go, C++) kritik bileşenlerde kullanılır
-- Yerel AI modelleri düşük gecikme süresi sağlar
-- Bulut AI servisleri opsiyonel olarak entegre edilebilir
+#### b. Workflow Engine (Python/FastAPI)
+-   **Lisans**: MIT
+-   **Sorumluluklar**: Kullanıcıların ve sistemin karmaşık iş akışları tanımlamasını, zamanlamasını, yürütmesini ve izlemesini sağlar. Farklı "parçaları" (pieces) bir araya getirerek otomasyonlar oluşturur: Tetikleyiciler (manuel, zamanlanmış, webhook), Eylemler (kod yürütme, HTTP isteği, gecikme) ve Entegrasyonlar (AI Orchestrator, OS Integration gibi diğer ALT_LAS servisleri).
+-   **Teknolojiler**: FastAPI, Pydantic, Loguru.
 
-## 11. Güvenlik Önlemleri
+#### c. Segmentation Service (Python/FastAPI)
+-   **Lisans**: MIT
+-   **Sorumluluklar**: Kullanıcıdan gelen doğal dil komutlarını veya yapılandırılmış istekleri alır, analiz eder, anlamsal olarak böler ve Runner Service veya Workflow Engine tarafından işlenebilecek görev segmentlerini içeren `*.alt` dosyalarına dönüştürür. Komut işleme davranışını özelleştirmek için **Mod** (Normal, Dream, Explore, Chaos) ve **Persona** (technical_expert, creative_writer vb.) sistemlerini destekler.
+-   **Teknolojiler**: FastAPI, Pydantic, NLTK, PyYAML.
 
-- Sandbox izolasyonu tüm AI işlemleri için
-- Güvenli FFI katmanı diller arası iletişim için
-- Detaylı denetim günlükleri
-- Rol tabanlı erişim kontrolü
-- Veri şifreleme (depolama ve iletim sırasında)
+#### d. Runner Service (Rust)
+-   **Lisans**: MIT/Apache 2.0
+-   **Sorumluluklar**: `*.alt` dosyalarında tanımlanan görevleri asenkron olarak yürütür. Görev bağımlılıklarını yönetir, AI Orchestrator ve OS Integration Service gibi diğer servislerle etkileşime girer, görev çıktılarını toplar ve yürütme sonuçlarını, metrikleri, artefaktları ve isteğe bağlı olarak görev bağımlılık grafiği görselleştirmesi ile HTML raporlarını içeren `*.last` dosyalarını üretir.
+-   **Teknolojiler**: Tokio, Actix-web, Serde, Reqwest.
 
-## 12. Lisans Stratejisi
+#### e. Archive Service (Go)
+-   **Lisans**: BSD-3-Clause
+-   **Sorumluluklar**: Runner Service tarafından üretilen `*.last` dosyalarını NATS mesajlaşma sistemi üzerinden veya doğrudan API çağrılarıyla kabul eder, doğrular, PostgreSQL veritabanında kalıcı olarak saklar. Başarı oranlarını izler, düşük başarılı görevler için uyarılar üretebilir ve başarılı sonuçlardan öğrenilmiş bilgileri içeren `*.atlas` dosyaları oluşturarak sistemin genel bilgi birikimine katkıda bulunur. Saklanan sonuçlar için arama ve analiz API'leri sunar.
+-   **Teknolojiler**: Go, Gin (veya Mux), NATS, PostgreSQL (GORM veya sqlx), Logrus.
 
-ALT_LAS, ticari kullanıma uygun ücretsiz lisanslar kullanarak geliştirilecektir:
+### 4.2. Entegrasyon Servisleri (Integration Services)
 
-- MIT Lisansı (çoğu bileşen)
-- Apache 2.0 Lisansı (bazı kütüphaneler)
-- BSD-3-Clause Lisansı (Go bileşenleri)
-- PostgreSQL Lisansı (veritabanı)
+#### a. OS Integration Service (Rust)
+-   **Lisans**: MIT/Apache 2.0
+-   **Sorumluluklar**: Farklı işletim sistemleriyle (Windows, macOS, Linux) düşük seviyeli etkileşimler sağlar. Dosya sistemi işlemleri (okuma, yazma, listeleme, silme), süreç yönetimi (başlatma, durdurma, izleme), sistem bilgisi toplama (CPU, RAM, disk kullanımı) ve isteğe bağlı olarak CUDA hızlandırmalı ekran görüntüsü alma gibi yetenekler sunar. Güvenli ve platform bağımsız bir arayüz sağlamayı hedefler.
+-   **Teknolojiler**: Rust FFI, Platform-spesifik API'ler (örn: winapi, libc), Actix-web.
 
-Bu lisanslar, projenin kapalı kaynak olarak ticari amaçla satılmasına olanak tanır.
+#### b. AI Orchestrator (Python/FastAPI)
+-   **Lisans**: MIT
+-   **Sorumluluklar**: Çeşitli yerel ve bulut tabanlı yapay zeka modellerinin (LLM'ler, görüntü işleme modelleri, ses işleme modelleri vb.) yönetimini, dağıtımını, yük dengelemesini ve kullanımını koordine eder. Runner Service ve Segmentation Service gibi diğer servislerden gelen AI görev isteklerini alır, uygun modeli seçer, görevi yürütür ve sonuçları geri döndürür.
+-   **Teknolojiler**: FastAPI, Pydantic, ONNX Runtime, PyTorch, TensorFlow, Hugging Face Transformers, Docker.
 
+### 4.3. Kullanıcı Arayüzü Katmanı (UI Layer)
+
+-   **Desktop UI (Electron/React)**: Zengin özellikli masaüstü uygulaması.
+-   **Web Dashboard (React)**: Görev izleme, analitik ve yönetim için web tabanlı arayüz.
+-   **Mobile Companion (React Native)**: Mobil bildirimler ve temel kontrol için yardımcı uygulama.
+
+### 4.4. Güvenlik Katmanı (Security Layer)
+
+-   **Policy Enforcement**: Güvenlik politikalarını ve erişim izinlerini yönetir.
+-   **Sandbox Manager**: Görevlerin ve AI modellerinin güvenli ve izole ortamlarda çalıştırılmasını sağlar.
+-   **Audit Service**: Sistemdeki önemli olayları ve güvenlik günlüklerini kaydeder.
+
+## 5. Çalışma Modları ve Persona Sistemi
+
+Segmentation Service, komut yorumlama ve görev oluşturma sürecini etkileyen farklı çalışma modları ve personalar sunar:
+
+### 5.1. Çalışma Modları
+-   **Normal**: Standart, deterministik görev işleme.
+-   **Dream**: Daha yaratıcı, varsayımsal senaryolar üretebilen mod.
+-   **Explore**: Komutun kapsamını genişleten, alternatifleri araştıran mod.
+-   **Chaos**: Rastgelelik ve öngörülemezlik ekleyerek sistemin sınırlarını test eden mod (`chaos_level` ile kontrol edilir).
+
+### 5.2. Persona Sistemi
+AI etkileşimlerinin tonunu ve odağını belirler:
+-   `technical_expert` (Varsayılan): Teknik detaylara ve hassasiyete odaklanır.
+-   `creative_writer`: Anlatı ve stilistik ifadelere odaklanır.
+-   `researcher`: Bilgi toplama ve analize odaklanır.
+-   `project_manager`: Görev yönetimi ve planlamaya odaklanır.
+
+## 6. Teknoloji Yığını Özeti
+
+| Bileşen                | Ana Teknoloji           | Lisans (Ana)     |
+| ----------------------- | ----------------------- | ---------------- |
+| API Gateway             | Node.js/Express, TS     | MIT              |
+| Workflow Engine         | Python/FastAPI          | MIT              |
+| Segmentation Service    | Python/FastAPI          | MIT              |
+| Runner Service          | Rust/Tokio, Actix-web   | MIT/Apache 2.0   |
+| Archive Service         | Go/Gin, NATS, PostgreSQL| BSD-3-Clause     |
+| OS Integration Service  | Rust/Actix-web          | MIT/Apache 2.0   |
+| AI Orchestrator         | Python/FastAPI          | MIT              |
+| Desktop UI              | Electron/React          | MIT              |
+| Web Dashboard           | React                   | MIT              |
+| Mobile App              | React Native            | MIT              |
+| Veritabanı (Archive)    | PostgreSQL              | PostgreSQL       |
+| Mesajlaşma (Archive)    | NATS                    | Apache 2.0       |
+| Önbellek (API Gateway)  | Redis                   | BSD              |
+
+## 7. Veri Akışı (Örnek Senaryo)
+
+1.  Kullanıcı, Desktop UI üzerinden "Belgelerimdeki tüm metin dosyalarını özetle ve en önemlilerini e-posta ile gönder" komutunu verir.
+2.  Desktop UI, komutu API Gateway'e iletir.
+3.  API Gateway, isteği doğrular ve Workflow Engine'e veya doğrudan Segmentation Service'e yönlendirir.
+4.  **Segmentation Service**: Komutu alır, "Belgelerimdeki metin dosyalarını bul", "Her birini özetle (AI Orchestrator kullanarak)", "En önemlilerini belirle (AI Orchestrator kullanarak)", "E-posta oluştur" ve "E-posta gönder (OS Integration veya başka bir servis aracılığıyla)" gibi alt görevlere ayırır. Bu görevleri ve bağımlılıklarını bir `*.alt` dosyasına yazar.
+5.  **Runner Service**: `*.alt` dosyasını alır.
+    *   OS Integration Service'i kullanarak "Belgelerim" dizinindeki metin dosyalarını listeler.
+    *   Her dosya için AI Orchestrator'dan özetleme ister.
+    *   Özetlerden en önemlilerini belirlemek için tekrar AI Orchestrator'ı kullanır.
+    *   E-posta içeriğini oluşturur.
+    *   E-postayı göndermek için ilgili servisi (örn: OS Integration ile yerel e-posta istemcisi veya bir e-posta API servisi) çağırır.
+    *   Tüm adımların sonuçlarını, başarı durumlarını ve loglarını bir `*.last` dosyasına kaydeder.
+6.  **Archive Service**: Başarılı `*.last` dosyasını alır, veritabanına kaydeder ve gelecekteki analizler için `*.atlas` verilerine işler.
+7.  Kullanıcıya işlem durumu ve sonucu UI üzerinden bildirilir.
+
+## 8. Dağıtım
+
+Tüm servisler Docker konteynerleri olarak paketlenip Docker Compose veya Kubernetes gibi bir orkestrasyon aracı ile dağıtılması hedeflenmektedir. Bu, geliştirme, test ve üretim ortamlarında tutarlılık ve kolay yönetim sağlar.
+
+## 9. Ölçeklenebilirlik ve Performans
+
+-   Her mikroservis bağımsız olarak ölçeklendirilebilir.
+-   Kritik performans gerektiren servislerde (Runner, OS Integration) Rust ve Go gibi yüksek performanslı diller kullanılmıştır.
+-   Asenkron işlemler ve mesaj kuyrukları (NATS) ile sistemin yanıt verme yeteneği artırılmıştır.
+
+## 10. Güvenlik
+
+-   API Gateway üzerinden merkezi kimlik doğrulama ve yetkilendirme.
+-   Servisler arası iletişimde güvenli protokoller (HTTPS, mTLS) hedeflenir.
+-   Hassas verilerin şifrelenmesi (hem aktarımda hem de saklamada).
+-   Görevlerin ve AI modellerinin çalıştırılması için sandbox ortamları.
+-   Kapsamlı denetim günlükleri.
+
+Bu mimari, ALT_LAS platformunun esnek, ölçeklenebilir, performanslı ve güvenli bir şekilde geliştirilmesini ve çalışmasını sağlamak üzere tasarlanmıştır. Geliştirme süreci ilerledikçe detaylar daha da netleşecektir.

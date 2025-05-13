@@ -1,406 +1,140 @@
-# ALT_LAS Kullanıcı Kılavuzu
+# ALT_LAS Kullanıcı Kılavuzu (Güncellenmiş)
 
-Bu belge, ALT_LAS sisteminin kullanımı hakkında detaylı bilgiler içermektedir. Kurulum, yapılandırma ve temel kullanım senaryoları hakkında rehberlik sağlar.
+Bu belge, ALT_LAS sisteminin kullanımı hakkında güncel bilgiler içermektedir. Platformun temel işlevlerine nasıl erişileceği ve sistemle nasıl etkileşim kurulacağı açıklanmaktadır. Mevcut durumda, kullanıcı etkileşimi öncelikli olarak API Gateway üzerinden programatik olarak veya API test araçları (Postman, curl vb.) aracılığıyla gerçekleştirilmektedir.
 
 ## İçindekiler
 
-1. [Giriş](#giriş)
-2. [Kurulum](#kurulum)
-3. [Başlarken](#başlarken)
-4. [Temel Kullanım](#temel-kullanım)
-5. [Çalışma Modları](#çalışma-modları)
-6. [Persona Sistemi](#persona-sistemi)
-7. [Arayüzler](#arayüzler)
-8. [Gelişmiş Özellikler](#gelişmiş-özellikler)
-9. [Sorun Giderme](#sorun-giderme)
-10. [SSS](#sss)
+1.  [Giriş](#giriş)
+2.  [Sistem Mimarisine Genel Bakış](#sistem-mimarisine-genel-bakış)
+3.  [Başlarken: API Gateway ile Etkileşim](#başlarken-api-gateway-ile-etkileşim)
+    *   [API Gateway Adresi](#api-gateway-adresi)
+    *   [Kimlik Doğrulama](#kimlik-doğrulama)
+    *   [API Dokümantasyonu (Swagger UI)](#api-dokümantasyonu-swagger-ui)
+4.  [Temel Kullanım Senaryoları (API Üzerinden)](#temel-kullanım-senaryoları-api-üzerinden)
+    *   [Yeni Bir Görev Oluşturma (Segmentation Service)](#yeni-bir-görev-oluşturma-segmentation-service)
+    *   [Bir Görevi Yürütme (Runner Service)](#bir-görevi-yürütme-runner-service)
+    *   [Yürütme Sonuçlarını Arşivleme ve Sorgulama (Archive Service)](#yürütme-sonuçlarını-arşivleme-ve-sorgulama-archive-service)
+    *   [İş Akışlarını Yönetme (Workflow Engine)](#i̇ş-akışlarını-yönetme-workflow-engine)
+5.  [Çalışma Modları ve Persona Sistemi](#çalışma-modları-ve-persona-sistemi)
+6.  [Sorun Giderme ve Destek](#sorun-giderme-ve-destek)
+
+## 1. Giriş
 
-## Giriş
+ALT_LAS, bilgisayar sistemlerini ve dijital görevleri yapay zeka ile yönetmek için tasarlanmış modüler bir platformdur. Kullanıcıların karmaşık görevleri otomatikleştirmesini, verileri analiz etmesini ve sistemlerle akıllı bir şekilde etkileşim kurmasını sağlar.
 
-ALT_LAS, bilgisayar sistemlerini yapay zeka ile yönetmek için tasarlanmış, modüler bir mikroservis mimarisi kullanan, açık kaynaklı ve ticari kullanıma uygun bir platformdur. Sistem, UI-TARS-desktop'ın kullanıcı arayüzü yetenekleri ile alt_last'ın bilgisayar yönetim özelliklerini birleştirerek daha güçlü bir çözüm sunmaktadır.
+### Temel Özellikler (API Odaklı)
 
-### Temel Özellikler
+-   **Modüler Mikroservis Mimarisi**: Her biri belirli bir işlevi yerine getiren bağımsız servisler (API Gateway, Segmentation, Workflow, Runner, Archive, OS Integration, AI Orchestrator).
+-   **API Odaklı Etkileşim**: Tüm servislere API Gateway üzerinden erişim.
+-   **Dosya Tabanlı İş Akışı**: Görev tanımları için `*.alt`, yürütme sonuçları için `*.last` ve bilgi birikimi için `*.atlas` dosyaları (bu dosyalar genellikle servisler arası iletilir ve doğrudan kullanıcı etkileşimi gerektirmeyebilir).
+-   **Esnek Görev Tanımlama**: Segmentation Service aracılığıyla doğal dil veya yapılandırılmış girdilerden görev oluşturma.
+-   **Çalışma Modları ve Persona Desteği**: Görev işleme davranışını ve AI etkileşimlerini özelleştirme.
 
-- Modüler mikroservis mimarisi
-- Dosya tabanlı iş akışı (*.alt, *.last, *.atlas)
-- Çoklu çalışma modları (Normal, Dream, Explore, Chaos)
-- Persona sistemi ile kişiselleştirilmiş deneyim
-- Masaüstü, web ve mobil arayüzler
-- İşletim sistemi entegrasyonu
-- Yerel AI modelleri ile düşük gecikme süresi
-- Güvenli sandbox izolasyonu
+## 2. Sistem Mimarisine Genel Bakış
 
-## Kurulum
+ALT_LAS, bir dizi mikroservisten oluşur. Bu servislerle etkileşim kurmanın ana yolu API Gateway'dir. Detaylı mimari için lütfen [`architecture.md`](../architecture.md) belgesine başvurun.
 
-### Sistem Gereksinimleri
+## 3. Başlarken: API Gateway ile Etkileşim
 
-- **İşletim Sistemi**: Windows 10/11, macOS 10.15+, Ubuntu 20.04+
-- **İşlemci**: 4 çekirdekli, 2.5 GHz+
-- **RAM**: En az 8 GB (16 GB önerilir)
-- **Disk**: En az 10 GB boş alan
-- **GPU**: AI modelleri için NVIDIA/AMD GPU (opsiyonel)
-- **İnternet**: Yüksek hızlı internet bağlantısı
+### API Gateway Adresi
 
-### Kurulum Adımları
+API Gateway genellikle yerel geliştirme ortamında `http://localhost:3000` adresinde çalışır. Üretim ortamında bu adres farklılık gösterecektir.
 
-#### Windows
+### Kimlik Doğrulama
 
-1. [ALT_LAS Windows Installer](https://example.com/alt_las_windows.exe) indirin
-2. İndirilen dosyayı çalıştırın ve kurulum sihirbazını takip edin
-3. Kurulum tamamlandığında, ALT_LAS masaüstü uygulamasını başlatın
+API Gateway üzerinden korumalı endpoint'lere erişim için JWT (JSON Web Token) tabanlı kimlik doğrulama kullanılır.
 
-#### macOS
+1.  **Kayıt Olma**: `/api/auth/register` endpoint'ine `POST` isteği ile kullanıcı adı ve şifre göndererek kayıt olun.
+2.  **Giriş Yapma**: `/api/auth/login` endpoint'ine `POST` isteği ile kullanıcı adı ve şifre göndererek giriş yapın. Yanıtta bir `accessToken` ve `refreshToken` alacaksınız.
+3.  **Token Kullanımı**: Korumalı endpoint'lere yapılan isteklerde `Authorization` başlığına `Bearer <accessToken>` şeklinde token'ı ekleyin.
+4.  **Token Yenileme**: `accessToken` süresi dolduğunda, `/api/auth/refresh` endpoint'ine `refreshToken` göndererek yeni bir `accessToken` alabilirsiniz.
+5.  **Çıkış Yapma**: `/api/auth/logout` endpoint'ine `refreshToken` göndererek oturumu sonlandırabilirsiniz.
 
-1. [ALT_LAS macOS Installer](https://example.com/alt_las_macos.dmg) indirin
-2. DMG dosyasını açın ve ALT_LAS uygulamasını Applications klasörüne sürükleyin
-3. Uygulamalar klasöründen ALT_LAS'ı başlatın
+### API Dokümantasyonu (Swagger UI)
 
-#### Linux
+API Gateway, mevcut tüm endpoint'leri, istek parametrelerini ve yanıt formatlarını detaylandıran interaktif bir Swagger UI dokümantasyonu sunar. Bu dokümantasyona genellikle API Gateway adresinin `/api-docs` yolundan (örn: `http://localhost:3000/api-docs`) erişebilirsiniz.
 
-1. Terminal açın ve aşağıdaki komutları çalıştırın:
+## 4. Temel Kullanım Senaryoları (API Üzerinden)
 
-```bash
-# Repository ekleyin
-curl -s https://example.com/alt_las_repo.gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://example.com/apt stable main"
+Aşağıda, ALT_LAS platformunun temel işlevlerini API Gateway üzerinden nasıl kullanabileceğinize dair örnek senaryolar bulunmaktadır.
 
-# Paketi yükleyin
-sudo apt update
-sudo apt install alt-las
+### Yeni Bir Görev Oluşturma (Segmentation Service)
 
-# Uygulamayı başlatın
-alt-las
-```
+Kullanıcıdan gelen bir komutu (doğal dil veya yapılandırılmış) işlenebilir bir görev tanımına (`*.alt` dosyasına referans) dönüştürmek için Segmentation Service kullanılır.
 
-### Docker ile Kurulum
+-   **Endpoint**: `POST /api/v1/segmentation`
+-   **İstek Gövdesi (Örnek)**:
+    ```json
+    {
+      "command": "Belgelerimdeki tüm .txt dosyalarını bul ve içeriklerini özetle.",
+      "mode": "Normal", // Opsiyonel: Normal, Dream, Explore, Chaos
+      "persona": "technical_expert" // Opsiyonel
+    }
+    ```
+-   **Yanıt (Örnek)**:
+    ```json
+    {
+      "id": "seg_xxxxxx",
+      "status": "success",
+      "altFile": "task_yyyyyy.alt", // Oluşturulan görev tanım dosyasının referansı
+      "metadata": { ... }
+    }
+    ```
 
-Geliştiriciler için Docker ile kurulum:
+### Bir Görevi Yürütme (Runner Service)
 
-```bash
-# Repoyu klonlayın
-git clone https://github.com/krozenking/ALT_LAS.git
-cd ALT_LAS
+Segmentation Service tarafından oluşturulan bir görevi (`*.alt` dosyası) yürütmek için Runner Service kullanılır.
 
-# Docker Compose ile başlatın
-docker-compose up -d
-```
+-   **Endpoint**: `POST /api/v1/runner/execute` (veya benzeri, Swagger'dan kontrol edin)
+-   **İstek Gövdesi (Örnek)**:
+    ```json
+    {
+      "altFileReference": "task_yyyyyy.alt", // Segmentation'dan dönen referans
+      "parameters": { ... } // Görev için ek parametreler (opsiyonel)
+    }
+    ```
+-   **Yanıt (Örnek)**:
+    ```json
+    {
+      "taskId": "run_zzzzzz",
+      "status": "pending" // veya "running"
+    }
+    ```
+-   Görev durumunu sorgulamak için `GET /api/v1/runner/{taskId}` gibi bir endpoint kullanılabilir.
 
-## Başlarken
+### Yürütme Sonuçlarını Arşivleme ve Sorgulama (Archive Service)
 
-### İlk Çalıştırma
+Runner Service tarafından tamamlanan görevlerin sonuçları (`*.last` dosyaları) Archive Service tarafından saklanır ve analiz için `*.atlas` verileri oluşturulur.
 
-ALT_LAS'ı ilk kez çalıştırdığınızda, kurulum sihirbazı sizi karşılayacaktır:
+-   Archive Service genellikle Runner Service ile otomatik olarak entegre çalışır.
+-   Arşivlenmiş görev sonuçlarını sorgulamak için Archive Service'in API endpoint'leri (örn: `GET /api/v1/archive/{archiveId}` veya arama endpoint'leri) kullanılabilir. Detaylar için Swagger dokümantasyonuna bakın.
 
-1. Dil seçimi yapın
-2. Kullanıcı hesabı oluşturun
-3. Çalışma modunu seçin (Normal, Dream, Explore, Chaos)
-4. Persona seçimi yapın
-5. Sistem izinlerini onaylayın
-6. Başlangıç eğitimini tamamlayın
+### İş Akışlarını Yönetme (Workflow Engine)
 
-### Ana Ekran
+Birden fazla adımı ve servisi içeren karmaşık otomasyonlar oluşturmak ve yönetmek için Workflow Engine kullanılır.
 
-Ana ekran aşağıdaki bölümlerden oluşur:
+-   **Yeni İş Akışı Oluşturma**: `POST /workflows`
+-   **İş Akışlarını Listeleme**: `GET /workflows`
+-   **Bir İş Akışını Çalıştırma**: `POST /workflows/{workflowId}/run`
+-   **Çalışma Durumlarını İzleme**: `GET /runs/{runId}`
+-   **Kullanılabilir Parçaları (Pieces) Listeleme**: `GET /pieces`
 
-- **Komut Çubuğu**: Komutlarınızı yazabileceğiniz alan
-- **Görev Paneli**: Aktif ve tamamlanmış görevlerin listesi
-- **Sonuç Alanı**: Komut çıktılarının gösterildiği alan
-- **Durum Çubuğu**: Sistem durumu ve bildirimler
-- **Ayarlar**: Sistem ayarlarına erişim
+Detaylı endpoint bilgileri ve istek/yanıt formatları için Workflow Engine'in Swagger dokümantasyonuna (API Gateway üzerinden erişilebilir) başvurun.
 
-## Temel Kullanım
+## 5. Çalışma Modları ve Persona Sistemi
 
-### Komut Gönderme
+Segmentation Service'e istek gönderirken `mode` ve `persona` parametrelerini kullanarak AI'nin davranışını ve görev yorumlama şeklini etkileyebilirsiniz.
 
-Komut çubuğuna istediğiniz görevi yazın ve Enter tuşuna basın:
+-   **Modlar**: `Normal`, `Dream` (yaratıcı/varsayımsal), `Explore` (kapsam genişletici), `Chaos` (rastgele/öngörülemez).
+-   **Personalar**: `technical_expert`, `creative_writer`, `researcher`, `project_manager` vb. (Desteklenen personalar için AI Orchestrator veya Segmentation Service dokümantasyonuna bakın).
 
-```
-Masaüstündeki dosyaları düzenle ve önemli belgeleri bir klasöre taşı
-```
+Bu parametreler, özellikle doğal dil komutlarının işlenmesinde ve AI tabanlı görevlerin yürütülmesinde sonuçları önemli ölçüde değiştirebilir.
 
-### Görev İzleme
+## 6. Sorun Giderme ve Destek
 
-Gönderdiğiniz komutlar Görev Panelinde listelenir. Her görevin durumunu ve ilerlemesini buradan takip edebilirsiniz.
+-   **API Hataları**: API Gateway'den dönen hata mesajlarını ve HTTP durum kodlarını kontrol edin. Swagger UI, olası hata yanıtlarını da listeler.
+-   **Servis Durumları**: API Gateway üzerinden `/api/status` (admin erişimi) endpoint'i ile backend servislerinin sağlık durumlarını kontrol edebilirsiniz.
+-   **Loglar**: Her servisin kendi logları bulunmaktadır. Geliştirme ortamında bu loglar genellikle konsola yazdırılır veya dosyalara kaydedilir. Detaylar için [`developer-guide.md`](../docs/developer-guide.md) belgesine bakın.
+-   **Destek**: Proje ile ilgili sorularınız veya sorunlarınız için GitHub Issues sayfasını kullanabilirsiniz.
 
-### Sonuçları Görüntüleme
-
-Tamamlanan görevlerin sonuçları Sonuç Alanında gösterilir. Sonuçları kaydedebilir veya paylaşabilirsiniz.
-
-### Temel Komut Örnekleri
-
-```
-Dosyalarımı türlerine göre düzenle
-```
-
-```
-Son 1 haftada oluşturduğum belgeleri bul ve özetini çıkar
-```
-
-```
-Bilgisayarımı optimize et ve gereksiz dosyaları temizle
-```
-
-```
-Tarayıcımdaki açık sekmeleri organize et ve benzer içerikleri grupla
-```
-
-## Çalışma Modları
-
-ALT_LAS, dört farklı çalışma moduna sahiptir:
-
-### Normal Mod
-
-Standart görev işleme ve sistem yönetimi modu. Günlük kullanım için idealdir.
-
-**Örnek Komut**:
-```
-E-postalarımı kontrol et ve önemli olanları işaretle
-```
-
-### Dream Mod
-
-Test senaryoları, log analizi ve otomatik optimizasyon için kullanılır. Sistem performansını iyileştirmek istediğinizde kullanabilirsiniz.
-
-**Örnek Komut**:
-```
-Bilgisayarımın performansını analiz et ve iyileştirme önerileri sun
-```
-
-### Explore Mod
-
-Varyasyon analizi ve alternatif çözüm keşfi için kullanılır. Yaratıcı çözümler aradığınızda faydalıdır.
-
-**Örnek Komut**:
-```
-Sunum dosyamı farklı tasarım alternatifleriyle yeniden düzenle
-```
-
-### Chaos Mod
-
-Yaratıcı düşünme ve farklı bakış açıları için kullanılır. Chaos Level (1-4) ile kontrol edilebilir.
-
-**Örnek Komut**:
-```
-Chaos level 3 ile yeni bir logo tasarımı için fikirler üret
-```
-
-## Persona Sistemi
-
-ALT_LAS, farklı kişilik özellikleriyle çalışabilir:
-
-### empathetic_assistant
-
-Empatik ve yardımsever bir asistan personası. Kullanıcı deneyimini ön planda tutar.
-
-**Örnek Komut**:
-```
-empathetic_assistant personası ile günlük planımı oluştur
-```
-
-### technical_expert
-
-Teknik detaylara odaklanan uzman personası. Karmaşık teknik görevler için idealdir.
-
-**Örnek Komut**:
-```
-technical_expert personası ile ağ ayarlarımı optimize et
-```
-
-### creative_designer
-
-Yaratıcı ve estetik odaklı tasarımcı personası. Görsel içerik oluşturma için uygundur.
-
-**Örnek Komut**:
-```
-creative_designer personası ile sosyal medya gönderisi hazırla
-```
-
-### security_focused
-
-Güvenlik odaklı personası. Sistem güvenliği ve veri koruma için idealdir.
-
-**Örnek Komut**:
-```
-security_focused personası ile bilgisayarımda güvenlik taraması yap
-```
-
-### efficiency_optimizer
-
-Verimlilik odaklı personası. Süreçleri optimize etmek için kullanılır.
-
-**Örnek Komut**:
-```
-efficiency_optimizer personası ile çalışma akışımı iyileştir
-```
-
-### learning_tutor
-
-Öğretici personası. Yeni konuları öğrenmek için idealdir.
-
-**Örnek Komut**:
-```
-learning_tutor personası ile Python programlama dilini öğrenmeme yardımcı ol
-```
-
-## Arayüzler
-
-ALT_LAS, üç farklı arayüz sunar:
-
-### Masaüstü Uygulaması
-
-Tam özellikli masaüstü uygulaması, sistem tepsisi entegrasyonu ve kısayol desteği ile.
-
-**Özellikler**:
-- Tam sistem entegrasyonu
-- Kısayol tuşları (Alt+Space ile hızlı erişim)
-- Sistem tepsisi bildirimleri
-- Offline çalışma modu
-
-### Web Dashboard
-
-Web tarayıcısı üzerinden erişilebilen dashboard.
-
-**Özellikler**:
-- Görev izleme ve yönetim
-- Analitik ve raporlar
-- Ayarlar ve yapılandırma
-- Uzaktan erişim
-
-### Mobil Uygulama
-
-iOS ve Android için mobil uygulama.
-
-**Özellikler**:
-- Bildirimler ve uzaktan kontrol
-- Sesli komut desteği
-- Kamera ve sensör entegrasyonu
-- Senkronizasyon
-
-## Gelişmiş Özellikler
-
-### Zamanlanmış Görevler
-
-Görevleri belirli zamanlarda otomatik olarak çalıştırabilirsiniz:
-
-```
-Her gün saat 18:00'de e-postalarımı kontrol et ve özetini hazırla
-```
-
-### Koşullu Görevler
-
-Belirli koşullara bağlı görevler oluşturabilirsiniz:
-
-```
-Disk alanı %90'ın üzerine çıkarsa gereksiz dosyaları temizle
-```
-
-### Makrolar ve Otomasyon
-
-Sık kullanılan görev dizilerini makro olarak kaydedebilirsiniz:
-
-```
-"Gün sonu özeti" makrosunu çalıştır
-```
-
-### Çoklu Cihaz Senkronizasyonu
-
-Ayarlarınızı ve görevlerinizi cihazlar arasında senkronize edebilirsiniz.
-
-### Veri Analizi ve Raporlama
-
-Sistem kullanımı ve görev performansı hakkında detaylı raporlar alabilirsiniz.
-
-## Sorun Giderme
-
-### Yaygın Sorunlar ve Çözümleri
-
-#### Uygulama Başlatma Sorunu
-
-**Sorun**: Uygulama başlatılamıyor veya hemen kapanıyor.
-
-**Çözüm**:
-1. Uygulamayı yönetici olarak çalıştırın
-2. Güncel sürümü kullandığınızdan emin olun
-3. Sistem gereksinimlerini kontrol edin
-4. Log dosyalarını inceleyin: `~/.alt_las/logs/`
-
-#### Komut İşleme Hatası
-
-**Sorun**: Komutlar işlenmiyor veya hata veriyor.
-
-**Çözüm**:
-1. İnternet bağlantınızı kontrol edin
-2. Servis durumunu kontrol edin: Ayarlar > Sistem > Servis Durumu
-3. Uygulamayı yeniden başlatın
-4. Geçici dosyaları temizleyin: Ayarlar > Sistem > Temizlik
-
-#### Performans Sorunları
-
-**Sorun**: Uygulama yavaş çalışıyor veya donuyor.
-
-**Çözüm**:
-1. Sistem kaynaklarını kontrol edin
-2. Arka plan görevlerini kapatın
-3. AI model boyutunu küçültün: Ayarlar > AI > Model Boyutu
-4. Önbelleği temizleyin: Ayarlar > Sistem > Önbellek Temizleme
-
-### Log Dosyaları
-
-Log dosyaları aşağıdaki konumlarda bulunur:
-
-- **Windows**: `C:\Users\<username>\AppData\Roaming\ALT_LAS\logs\`
-- **macOS**: `~/Library/Application Support/ALT_LAS/logs/`
-- **Linux**: `~/.alt_las/logs/`
-
-### Destek Alma
-
-Sorun yaşadığınızda aşağıdaki kanallardan destek alabilirsiniz:
-
-- **Dokümantasyon**: [docs.alt-las.com](https://docs.alt-las.com)
-- **Forum**: [community.alt-las.com](https://community.alt-las.com)
-- **E-posta**: support@alt-las.com
-- **Uygulama İçi Destek**: Ayarlar > Yardım > Destek Talebi
-
-## SSS
-
-### Genel Sorular
-
-**S: ALT_LAS internet olmadan çalışır mı?**
-
-C: Evet, temel özellikler internet olmadan da çalışır, ancak bazı gelişmiş AI özellikleri internet bağlantısı gerektirebilir.
-
-**S: ALT_LAS verilerimi nerede saklar?**
-
-C: Verileriniz yerel olarak cihazınızda saklanır. Senkronizasyon özelliğini etkinleştirirseniz, şifrelenmiş veriler bulut depolama alanında da saklanabilir.
-
-**S: ALT_LAS hangi dilleri destekler?**
-
-C: ALT_LAS şu anda Türkçe, İngilizce, Almanca, Fransızca, İspanyolca ve Japonca dillerini desteklemektedir.
-
-### Teknik Sorular
-
-**S: Sistem kaynaklarını nasıl optimize edebilirim?**
-
-C: Ayarlar > Sistem > Performans menüsünden AI model boyutunu, önbellek kullanımını ve paralel işlem sayısını ayarlayabilirsiniz.
-
-**S: Özel AI modelleri ekleyebilir miyim?**
-
-C: Evet, Ayarlar > AI > Modeller menüsünden özel AI modelleri ekleyebilirsiniz.
-
-**S: Verilerimi nasıl yedekleyebilirim?**
-
-C: Ayarlar > Sistem > Yedekleme menüsünden manuel yedekleme yapabilir veya otomatik yedeklemeyi etkinleştirebilirsiniz.
-
-### Lisans ve Gizlilik
-
-**S: ALT_LAS ticari kullanım için ücretsiz mi?**
-
-C: ALT_LAS'ın temel sürümü ücretsizdir, ancak gelişmiş özellikler için ticari lisans gerekebilir.
-
-**S: ALT_LAS verilerimi topluyor mu?**
-
-C: ALT_LAS, yalnızca sistem performansını iyileştirmek için anonim kullanım istatistikleri toplar. Bu özelliği Ayarlar > Gizlilik menüsünden devre dışı bırakabilirsiniz.
-
-**S: ALT_LAS'ı kendi uygulamama entegre edebilir miyim?**
-
-C: Evet, ALT_LAS API'si aracılığıyla kendi uygulamanıza entegre edebilirsiniz. Detaylı bilgi için API dokümantasyonuna bakın.
+Bu kullanıcı kılavuzu, ALT_LAS platformuyla API üzerinden etkileşim kurmaya başlamanıza yardımcı olmayı amaçlamaktadır. Platform geliştikçe ve kullanıcı arayüzleri (Desktop, Web) tam olarak entegre edildikçe bu kılavuz güncellenecektir.

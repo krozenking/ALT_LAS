@@ -41,7 +41,7 @@
 
 | Görev | Sorumlu | Durum | Başlangıç | Bitiş | Notlar |
 |-------|---------|-------|-----------|-------|--------|
-| Birim testleri | İşçi 4 | Beklemede | - | - | |
+| Birim testleri | İşçi 1 | Tamamlandı | 15.05.2025 | 15.05.2025 | Jest test ortamı kuruldu. Temel bileşenler (Button, Input, Card, Modal) için birim testleri yazıldı. Bildirim sistemi, ayarlar sistemi ve klavye kısayolları sistemi için birim testleri yazıldı. Yardımcı fonksiyonlar (formatters, validators) için birim testleri yazıldı. |
 | Entegrasyon testleri | İşçi 1 | Beklemede | - | - | |
 | Performans optimizasyonu | İşçi 4 | Beklemede | - | - | |
 | Erişilebilirlik iyileştirmeleri | İşçi 5 | Beklemede | - | - | |
@@ -65,7 +65,7 @@
 | Aşama 1: Temel Altyapı | 6 | 6 | %100 |
 | Aşama 2: Temel Özellikler | 7 | 7 | %100 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 9 | %100 |
-| Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **22** | **%75.9** |
+| Aşama 4: Test ve Optimizasyon | 7 | 1 | %14.3 |
+| **Toplam** | **29** | **23** | **%79.3** |
 
-## Son Güncelleme: 15.05.2025 03:00
+## Son Güncelleme: 15.05.2025 04:00

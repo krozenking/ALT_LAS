@@ -35,7 +35,7 @@
 | Dosya yönetimi bileşenlerinin oluşturulması | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | FileUploader, FileViewer, FileList ve FileDownloader bileşenleri oluşturuldu. Dosya yükleme, görüntüleme, listeleme ve indirme işlemleri için kapsamlı bir sistem geliştirildi. Örnek FileManagementDemo bileşeni eklendi. |
 | Bildirim sisteminin entegrasyonu | İşçi 3 | Tamamlandı | 15.05.2025 | 15.05.2025 | NotificationProvider, NotificationList, NotificationItem, NotificationCenter bileşenleri oluşturuldu. Bildirim sistemi uygulamaya entegre edildi. Farklı bildirim türleri, özelleştirilebilir bildirimler ve bildirim merkezi eklendi. Örnek NotificationDemo bileşeni oluşturuldu. |
 | Kullanıcı ayarları yönetiminin uygulanması | İşçi 3 | Tamamlandı | 15.05.2025 | 15.05.2025 | SettingsProvider, SettingsStorage, SettingField, SettingsPanel bileşenleri oluşturuldu. Ayarlar sistemi uygulamaya entegre edildi. Farklı ayar türleri, ayar grupları, ayar bağımlılıkları ve ayar doğrulama özellikleri eklendi. Örnek SettingsDemo bileşeni oluşturuldu. |
-| Klavye kısayolları sisteminin uygulanması | İşçi 4 | Beklemede | - | - | |
+| Klavye kısayolları sisteminin uygulanması | İşçi 4 | Tamamlandı | 15.05.2025 | 15.05.2025 | KeyboardShortcutProvider, KeyboardShortcutService, KeyboardShortcutRecorder, KeyboardShortcutList bileşenleri oluşturuldu. Klavye kısayolları sistemi uygulamaya entegre edildi. Kısayol kaydetme, özelleştirme, sıfırlama, içe/dışa aktarma özellikleri eklendi. Örnek KeyboardShortcutDemo bileşeni oluşturuldu. |
 
 ## Aşama 4: Test ve Optimizasyon (05.07.2025'e kadar)
 
@@ -64,8 +64,8 @@
 |-------|--------------|------------|------------------|
 | Aşama 1: Temel Altyapı | 6 | 6 | %100 |
 | Aşama 2: Temel Özellikler | 7 | 7 | %100 |
-| Aşama 3: İleri Düzey Özellikler | 9 | 8 | %88.9 |
+| Aşama 3: İleri Düzey Özellikler | 9 | 9 | %100 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **21** | **%72.4** |
+| **Toplam** | **29** | **22** | **%75.9** |
 
-## Son Güncelleme: 15.05.2025 02:00
+## Son Güncelleme: 15.05.2025 03:00

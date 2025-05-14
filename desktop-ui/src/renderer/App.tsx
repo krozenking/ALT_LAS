@@ -7,6 +7,7 @@ import { highContrastTheme } from '@/styles/highContrastTheme'; // Import the ne
 import AnimationTest from '@/components/test/AnimationTest'; // Import the animation test component
 import { NotificationProvider, NotificationList, NotificationCenter as NotificationCenterComponent } from '@/components/notifications';
 import { SettingsProvider, SettingsPanel as SettingsPanelComponent } from '@/components/settings';
+import { KeyboardShortcutProvider } from '@/components/keyboard-shortcuts';
 
 // Lazy load feature components to improve initial load time
 const FeatureNotificationCenter = lazy(() => import('@/components/feature/NotificationCenter'));
@@ -94,17 +95,18 @@ const App: React.FC = () => {
   return (
     // Apply the selected theme to ChakraProvider
     <ChakraProvider theme={currentTheme}>
-      <SettingsProvider>
-        <NotificationProvider>
-          {/* Notification list for toast notifications */}
-          <NotificationList />
-          {/* Notification center for managing notifications */}
-          <NotificationCenterComponent />
-          {/* Settings panel for managing settings */}
-          <SettingsPanelComponent
-            isOpen={false}
-            onSettingChange={handleSettingChange}
-          />
+      <KeyboardShortcutProvider>
+        <SettingsProvider>
+          <NotificationProvider>
+            {/* Notification list for toast notifications */}
+            <NotificationList />
+            {/* Notification center for managing notifications */}
+            <NotificationCenterComponent />
+            {/* Settings panel for managing settings */}
+            <SettingsPanelComponent
+              isOpen={false}
+              onSettingChange={handleSettingChange}
+            />
 
         {/* Use a Box that respects the theme's background and text color */}
         <Box
@@ -204,8 +206,9 @@ const App: React.FC = () => {
           </Box>
         )}
       </Box>
-        </NotificationProvider>
-      </SettingsProvider>
+          </NotificationProvider>
+        </SettingsProvider>
+      </KeyboardShortcutProvider>
     </ChakraProvider>
   );
 };

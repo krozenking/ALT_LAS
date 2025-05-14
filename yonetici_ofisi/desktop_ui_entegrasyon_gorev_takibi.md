@@ -7,7 +7,7 @@
 | Proje yapısının kurulumu | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | `ui-desktop` implementasyonu ana dizine taşındı, package.json ve README.md güncellendi |
 | Temel bileşen kütüphanesinin oluşturulması | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | Temel bileşenler (Button, Card, Input, vb.) ve kompozisyon bileşenleri (Panel, SplitView, vb.) zaten mevcut ve iyi tasarlanmış durumda |
 | Tema sisteminin entegrasyonu | İşçi 5 | Tamamlandı | 14.05.2025 | 14.05.2025 | Tema sistemi zaten entegre edilmiş, glassmorphism efektleri ve yüksek kontrast modu içeriyor. Git çakışmaları çözüldü. |
-| API Gateway bağlantı katmanının oluşturulması | İşçi 1 | Beklemede | - | - | |
+| API Gateway bağlantı katmanının oluşturulması | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | ApiService.ts dosyası geliştirildi, hata yönetimi ve kimlik doğrulama özellikleri eklendi. useApi.ts dosyası güncellendi ve yeni hook'lar eklendi. |
 | Electron Forge yapılandırması | İşçi 3 | Beklemede | - | - | |
 | CI/CD pipeline kurulumu | İşçi 3 | Beklemede | - | - | |
 
@@ -62,10 +62,10 @@
 
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
-| Aşama 1: Temel Altyapı | 6 | 3 | %50.0 |
+| Aşama 1: Temel Altyapı | 6 | 4 | %66.7 |
 | Aşama 2: Temel Özellikler | 7 | 0 | %0 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **3** | **%10.3** |
+| **Toplam** | **29** | **4** | **%13.8** |
 
-## Son Güncelleme: 14.05.2025 16:00
+## Son Güncelleme: 14.05.2025 16:30

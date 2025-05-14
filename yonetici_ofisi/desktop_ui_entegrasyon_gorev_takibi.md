@@ -27,15 +27,15 @@
 
 | Görev | Sorumlu | Durum | Başlangıç | Bitiş | Notlar |
 |-------|---------|-------|-----------|-------|--------|
-| TaskManager bileşeninin geliştirilmesi | İşçi 4 | Beklemede | - | - | |
-| FileManager bileşeninin geliştirilmesi | İşçi 4 | Beklemede | - | - | |
-| NotificationCenter bileşeninin geliştirilmesi | İşçi 4 | Beklemede | - | - | |
-| FocusMode bileşeninin geliştirilmesi | İşçi 5 | Beklemede | - | - | |
-| Model seçimi arayüzünün geliştirilmesi | İşçi 2 | Beklemede | - | - | |
-| Segmentasyon sonuçları görselleştirme | İşçi 2 | Beklemede | - | - | |
-| Veri analiz ve karşılaştırma bileşenleri | İşçi 2 | Beklemede | - | - | |
-| Kullanıcı onboarding akışı | İşçi 5 | Beklemede | - | - | |
-| Mikro etkileşimler ve animasyonlar | İşçi 5 | Beklemede | - | - | |
+| Çoklu dil desteğinin eklenmesi | İşçi 2 | Tamamlandı | 14.05.2025 | 14.05.2025 | i18next ve react-i18next entegrasyonu yapıldı. İngilizce ve Türkçe dil desteği eklendi. LanguageSwitcher, LanguageSettings, TranslatedText bileşenleri ve useLanguage hook'u oluşturuldu. Örnek I18nDemo bileşeni eklendi. |
+| Tema özelleştirme sisteminin geliştirilmesi | İşçi 2 | Beklemede | - | - | |
+| Gelişmiş form bileşenlerinin oluşturulması | İşçi 4 | Beklemede | - | - | |
+| Veri görselleştirme bileşenlerinin oluşturulması | İşçi 5 | Beklemede | - | - | |
+| Gelişmiş tablo bileşeninin oluşturulması | İşçi 5 | Beklemede | - | - | |
+| Dosya yönetimi bileşenlerinin oluşturulması | İşçi 1 | Beklemede | - | - | |
+| Bildirim sisteminin entegrasyonu | İşçi 3 | Beklemede | - | - | |
+| Kullanıcı ayarları yönetiminin uygulanması | İşçi 3 | Beklemede | - | - | |
+| Klavye kısayolları sisteminin uygulanması | İşçi 4 | Beklemede | - | - | |
 
 ## Aşama 4: Test ve Optimizasyon (05.07.2025'e kadar)
 
@@ -64,8 +64,8 @@
 |-------|--------------|------------|------------------|
 | Aşama 1: Temel Altyapı | 6 | 6 | %100 |
 | Aşama 2: Temel Özellikler | 7 | 7 | %100 |
-| Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
+| Aşama 3: İleri Düzey Özellikler | 9 | 1 | %11.1 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **13** | **%44.8** |
+| **Toplam** | **29** | **14** | **%48.3** |
 
-## Son Güncelleme: 14.05.2025 21:00
+## Son Güncelleme: 14.05.2025 21:30

@@ -5,13 +5,13 @@ Bu belge, ALT_LAS projesi Yönetici Ofisi'nin anlık durumunu ve önemli proje m
 ## 1. Ofis Doluluk Durumu ve Aktif Görev
 
 *   **Toplam Koltuk Sayısı:** 1
-*   **Dolu Koltuk Sayısı:** 0 (Proje Yöneticisi tarafından güncellenir)
-*   **Boş Koltuk Sayısı:** 1 (Proje Yöneticisi tarafından güncellenir)
-*   **Mevcut Çalışan Persona:** Yok (Proje Yöneticisi tarafından güncellenir)
-*   **Aktif Ana/Alt Görev ID:** Henüz bir görev aktif değil.
-*   **Aktif Görev Adı:** -
-*   **Sorumlu Persona (Aktif Görev):** Yok
-*   **Aktif Görev Başlangıç Tarihi:** -
+*   **Dolu Koltuk Sayısı:** 1 (Proje Yöneticisi tarafından güncellenir)
+*   **Boş Koltuk Sayısı:** 0 (Proje Yöneticisi tarafından güncellenir)
+*   **Mevcut Çalışan Persona:** Proje Yöneticisi (AI)
+*   **Aktif Ana/Alt Görev ID:** ÖRN-001
+*   **Aktif Görev Adı:** Yönetici Ofisi Geliştirme
+*   **Sorumlu Persona (Aktif Görev):** Proje Yöneticisi (AI)
+*   **Aktif Görev Başlangıç Tarihi:** 2025-05-14
 *   **Aktif Görev Tahmini Bitiş Tarihi:** -
 
 ## 2. Merkezi Görev Panosu Özeti

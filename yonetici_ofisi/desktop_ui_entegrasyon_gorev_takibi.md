@@ -18,7 +18,7 @@
 | Panel sisteminin geliştirilmesi | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | dnd-kit kütüphanesi kullanılarak DraggablePanel, DraggablePanelContainer ve PanelSystem bileşenleri oluşturuldu. Panel sürükleme, yeniden boyutlandırma, maksimize/minimize etme özellikleri eklendi. |
 | Layout yöneticisinin geliştirilmesi | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | LayoutManager, LayoutControls ve SplitViewDemo bileşenleri oluşturuldu. Grid, flex, split ve free layout tipleri destekleniyor. |
 | Sürükle-bırak deneyiminin iyileştirilmesi | İşçi 5 | Tamamlandı | 14.05.2025 | 14.05.2025 | DragDropProvider, Draggable, Droppable, DragOverlay, Sortable ve SortableItem bileşenleri oluşturuldu. Kanban board örneği ile sürükle-bırak deneyimi geliştirildi. |
-| WebSocket entegrasyonu | İşçi 1 | Beklemede | - | - | |
+| WebSocket entegrasyonu | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | WebSocketService, useWebSocket hook, WebSocketContext ve WebSocketProvider bileşenleri oluşturuldu. WebSocket bağlantısı için demo bileşeni eklendi. |
 | Veri önbelleğe alma stratejisinin uygulanması | İşçi 1 | Beklemede | - | - | |
 | Otomatik güncelleme mekanizmasının entegrasyonu | İşçi 3 | Beklemede | - | - | |
 | Hata izleme sisteminin entegrasyonu | İşçi 3 | Beklemede | - | - | |
@@ -63,9 +63,9 @@
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
 | Aşama 1: Temel Altyapı | 6 | 6 | %100 |
-| Aşama 2: Temel Özellikler | 7 | 3 | %42.9 |
+| Aşama 2: Temel Özellikler | 7 | 4 | %57.1 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **9** | **%31.0** |
+| **Toplam** | **29** | **10** | **%34.5** |
 
-## Son Güncelleme: 14.05.2025 19:00
+## Son Güncelleme: 14.05.2025 19:30

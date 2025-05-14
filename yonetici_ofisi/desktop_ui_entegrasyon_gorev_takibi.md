@@ -8,7 +8,7 @@
 | Temel bileşen kütüphanesinin oluşturulması | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | Temel bileşenler (Button, Card, Input, vb.) ve kompozisyon bileşenleri (Panel, SplitView, vb.) zaten mevcut ve iyi tasarlanmış durumda |
 | Tema sisteminin entegrasyonu | İşçi 5 | Tamamlandı | 14.05.2025 | 14.05.2025 | Tema sistemi zaten entegre edilmiş, glassmorphism efektleri ve yüksek kontrast modu içeriyor. Git çakışmaları çözüldü. |
 | API Gateway bağlantı katmanının oluşturulması | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | ApiService.ts dosyası geliştirildi, hata yönetimi ve kimlik doğrulama özellikleri eklendi. useApi.ts dosyası güncellendi ve yeni hook'lar eklendi. |
-| Electron Forge yapılandırması | İşçi 3 | Beklemede | - | - | |
+| Electron Forge yapılandırması | İşçi 3 | Tamamlandı | 14.05.2025 | 14.05.2025 | forge.config.js, webpack.main.config.js ve webpack.renderer.config.js dosyaları güncellendi. Gerekli bağımlılıklar package.json'a eklendi. |
 | CI/CD pipeline kurulumu | İşçi 3 | Beklemede | - | - | |
 
 ## Aşama 2: Temel Özellikler (31.05.2025'e kadar)
@@ -62,10 +62,10 @@
 
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
-| Aşama 1: Temel Altyapı | 6 | 4 | %66.7 |
+| Aşama 1: Temel Altyapı | 6 | 5 | %83.3 |
 | Aşama 2: Temel Özellikler | 7 | 0 | %0 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **4** | **%13.8** |
+| **Toplam** | **29** | **5** | **%17.2** |
 
-## Son Güncelleme: 14.05.2025 16:30
+## Son Güncelleme: 14.05.2025 17:00

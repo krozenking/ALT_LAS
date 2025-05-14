@@ -1,0 +1,10 @@
+nohup: ignoring input
+[2025-05-14T01:48:02Z INFO  policy_enforcement_service] Starting Policy Enforcement Service...
+[2025-05-14T01:48:02Z INFO  actix_server::builder] starting 4 workers
+[2025-05-14T01:48:02Z INFO  actix_server::server] Actix runtime found; starting in Actix runtime
+[2025-05-14T01:48:02Z INFO  actix_server::server] starting service: "actix-web-service-0.0.0.0:8003", workers: 4, listening on: 0.0.0.0:8003
+[2025-05-14T01:48:12Z INFO  policy_enforcement_service] Create policy endpoint called with: "Test Policy 1"
+[2025-05-14T01:48:12Z INFO  policy_enforcement_service] Policy created successfully: da34ef25-de52-475b-bdee-65dde5760b44
+[2025-05-14T01:48:20Z INFO  policy_enforcement_service] Get all policies endpoint called
+[2025-05-14T01:48:30Z INFO  policy_enforcement_service] Get policy by ID endpoint called for: da34ef25-de52-475b-bdee-65dde5760b44
+[2025-05-14T01:48:59Z INFO  policy_enforcement_service] Evaluate policy endpoint called with: "user_action:delete_file"

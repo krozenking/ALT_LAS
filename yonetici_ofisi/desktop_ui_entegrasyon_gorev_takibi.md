@@ -15,7 +15,7 @@
 
 | Görev | Sorumlu | Durum | Başlangıç | Bitiş | Notlar |
 |-------|---------|-------|-----------|-------|--------|
-| Panel sisteminin geliştirilmesi | İşçi 4 | Beklemede | - | - | |
+| Panel sisteminin geliştirilmesi | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | dnd-kit kütüphanesi kullanılarak DraggablePanel, DraggablePanelContainer ve PanelSystem bileşenleri oluşturuldu. Panel sürükleme, yeniden boyutlandırma, maksimize/minimize etme özellikleri eklendi. |
 | Layout yöneticisinin geliştirilmesi | İşçi 4 | Beklemede | - | - | |
 | Sürükle-bırak deneyiminin iyileştirilmesi | İşçi 5 | Beklemede | - | - | |
 | WebSocket entegrasyonu | İşçi 1 | Beklemede | - | - | |
@@ -63,9 +63,9 @@
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
 | Aşama 1: Temel Altyapı | 6 | 6 | %100 |
-| Aşama 2: Temel Özellikler | 7 | 0 | %0 |
+| Aşama 2: Temel Özellikler | 7 | 1 | %14.3 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **6** | **%20.7** |
+| **Toplam** | **29** | **7** | **%24.1** |
 
-## Son Güncelleme: 14.05.2025 17:30
+## Son Güncelleme: 14.05.2025 18:00

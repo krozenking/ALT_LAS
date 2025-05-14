@@ -9,7 +9,7 @@
 | Tema sisteminin entegrasyonu | İşçi 5 | Tamamlandı | 14.05.2025 | 14.05.2025 | Tema sistemi zaten entegre edilmiş, glassmorphism efektleri ve yüksek kontrast modu içeriyor. Git çakışmaları çözüldü. |
 | API Gateway bağlantı katmanının oluşturulması | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | ApiService.ts dosyası geliştirildi, hata yönetimi ve kimlik doğrulama özellikleri eklendi. useApi.ts dosyası güncellendi ve yeni hook'lar eklendi. |
 | Electron Forge yapılandırması | İşçi 3 | Tamamlandı | 14.05.2025 | 14.05.2025 | forge.config.js, webpack.main.config.js ve webpack.renderer.config.js dosyaları güncellendi. Gerekli bağımlılıklar package.json'a eklendi. |
-| CI/CD pipeline kurulumu | İşçi 3 | Beklemede | - | - | |
+| CI/CD pipeline kurulumu | İşçi 3 | Tamamlandı | 14.05.2025 | 14.05.2025 | GitHub Actions workflow dosyası oluşturuldu, CI/CD README dosyası hazırlandı ve package.json'a CI script'leri eklendi. |
 
 ## Aşama 2: Temel Özellikler (31.05.2025'e kadar)
 
@@ -62,10 +62,10 @@
 
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
-| Aşama 1: Temel Altyapı | 6 | 5 | %83.3 |
+| Aşama 1: Temel Altyapı | 6 | 6 | %100 |
 | Aşama 2: Temel Özellikler | 7 | 0 | %0 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **5** | **%17.2** |
+| **Toplam** | **29** | **6** | **%20.7** |
 
-## Son Güncelleme: 14.05.2025 17:00
+## Son Güncelleme: 14.05.2025 17:30

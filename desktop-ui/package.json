@@ -9,11 +9,16 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
+    "lint:fix": "eslint --ext .ts,.tsx . --fix",
     "dev": "cross-env NODE_ENV=development electron-forge start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "ci:test": "vitest run --reporter=junit --outputFile=./test-results/junit.xml",
+    "ci:build": "cross-env NODE_ENV=production electron-forge make",
+    "ci:publish": "electron-forge publish"
   },
   "keywords": [
     "electron",

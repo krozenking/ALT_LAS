@@ -4,9 +4,9 @@
 
 | Görev | Sorumlu | Durum | Başlangıç | Bitiş | Notlar |
 |-------|---------|-------|-----------|-------|--------|
-| Proje yapısının kurulumu | İşçi 4 | Beklemede | - | - | |
-| Temel bileşen kütüphanesinin oluşturulması | İşçi 4 | Beklemede | - | - | |
-| Tema sisteminin entegrasyonu | İşçi 5 | Beklemede | - | - | |
+| Proje yapısının kurulumu | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | `ui-desktop` implementasyonu ana dizine taşındı, package.json ve README.md güncellendi |
+| Temel bileşen kütüphanesinin oluşturulması | İşçi 4 | Tamamlandı | 14.05.2025 | 14.05.2025 | Temel bileşenler (Button, Card, Input, vb.) ve kompozisyon bileşenleri (Panel, SplitView, vb.) zaten mevcut ve iyi tasarlanmış durumda |
+| Tema sisteminin entegrasyonu | İşçi 5 | Tamamlandı | 14.05.2025 | 14.05.2025 | Tema sistemi zaten entegre edilmiş, glassmorphism efektleri ve yüksek kontrast modu içeriyor. Git çakışmaları çözüldü. |
 | API Gateway bağlantı katmanının oluşturulması | İşçi 1 | Beklemede | - | - | |
 | Electron Forge yapılandırması | İşçi 3 | Beklemede | - | - | |
 | CI/CD pipeline kurulumu | İşçi 3 | Beklemede | - | - | |
@@ -62,10 +62,10 @@
 
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
-| Aşama 1: Temel Altyapı | 6 | 0 | %0 |
+| Aşama 1: Temel Altyapı | 6 | 3 | %50.0 |
 | Aşama 2: Temel Özellikler | 7 | 0 | %0 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **0** | **%0** |
+| **Toplam** | **29** | **3** | **%10.3** |
 
-## Son Güncelleme: 14.05.2025
+## Son Güncelleme: 14.05.2025 16:00

@@ -36,41 +36,47 @@ Bu belge, ALT_LAS projesinin "Yönetici Ofisi Geliştirme" (ÖRN-001) görevi ka
 *   **Bağımlılık B4:** (Faz 2) GPU İstek Yönlendirme Katmanı (KM 2.1) geliştirilmeden, diğer servislerin CUDA entegrasyonları standart bir yapıya oturtulamayabilir.
 *   **Bağımlılık B5:** (Faz 2) Uyumluluk test matrisi (KM 2.2) oluşturulmadan, farklı ortamlarda kararlılık sorunları yaşanabilir.
 
-## 3. Potansiyel Kritik Yol (İlk Değerlendirme)
+## 3. Potansiyel Kritik Yol (Güncellenmiş Değerlendirme - Detaylı Bağımlılıklara Göre)
 
-Kritik yol, projenin genel süresini en çok etkileyen, birbiriyle sıkı sıkıya bağlı görevler dizisidir. İlk değerlendirmeye göre potansiyel kritik yol adayları şunlardır:
+Kritik yol, projenin genel süresini en çok etkileyen, birbiriyle sıkı sıkıya bağlı görevler dizisidir. `/home/ubuntu/ALT_LAS_Organized/Yonetici_Ofisi/Calisma_Dosyalari/detailed_dependency_map.md` dosyasında detaylandırılan görev ve kilometre taşı bağımlılıkları ışığında, potansiyel kritik yollar aşağıdaki gibi daha net bir şekilde değerlendirilmektedir:
 
-1.  **Yol A (AI Orchestrator Odaklı):**
-    *   KM 1.2 (Detaylı Faz 1 Planı)
-    *   KM 1.5 (GPU Ön Isıtma PoC)
-    *   KM 1.8 (Personal Görevleri - AI Orchestrator ile ilgili olanlar)
-    *   Faz 2 - `ai-orchestrator` için TensorRT optimizasyonu (KM 2.3 ile ilişkili)
-    *   Faz 2 - Kapsamlı Testler
-    *   KM 3.3 (Üretime Hazırlık)
+1.  **Yol A (AI Orchestrator ve Temel Altyapı Odaklı Kritik Yol):
+    *   **KM-1.1 (Bilgi Paylaşım Mekanizması):** Proje Yöneticisi (AI) tarafından yönetilen, tüm iletişimin temelini oluşturur.
+    *   **KM-1.2 (Detaylı Faz 1 Planı ve Risk Matrisi):** Proje Yöneticisi (AI) tarafından, tüm personaların ilk analizleri ve KM-1.1 tamamlandıktan sonra oluşturulur. Bu, Faz 1'deki tüm geliştirme ve PoC görevlerini doğrudan etkiler.
+    *   **KM-1.3 (API Meta Veri Tasarımı):** Yazılım Mimarı ve K. Backend Geliştirici tarafından KM-1.2'ye bağlı olarak yürütülür. Performans testleri (KM-1.4) ve GPU ön ısıtma PoC (KM-1.5) için kritiktir.
+    *   **KM-1.4 (Performans Test Planı Güncelleme):** QA ve DevOps tarafından KM-1.3'e bağlı olarak yürütülür. GPU ön ısıtma PoC'sinin (KM-1.5) doğru değerlendirilmesi için gereklidir.
+    *   **KM-1.5 (GPU Ön Isıtma PoC - ai-orchestrator):** K. Backend Geliştirici ve Veri Bilimcisi tarafından KM-1.4'e bağlı olarak yürütülür. Nsight izleme (KM-1.7) ve Faz 2 `ai-orchestrator` geliştirmeleri için temel teşkil eder.
+    *   **KM-1.7 (Nsight İzleme Altyapısı):** DevOps ve K. Backend Geliştirici tarafından KM-1.5'e bağlı olarak yürütülür. Faz 2 optimizasyonları için kritik öneme sahiptir.
+    *   **KM-1.8 (Faz 1 Persona Görevleri Tamamlanması):** Tüm personaların yukarıdaki kilometre taşlarına bağlı ilk görevlerinin tamamlanmasını ifade eder ve Faz 2'nin başlangıcı için zorunludur.
+    *   **KM-2.1 (GPU İstek Yönlendirme Katmanı):** Yazılım Mimarı ve K. Backend Geliştirici tarafından KM-1.8'e bağlı olarak geliştirilir. Diğer servislerin standart entegrasyonu için önemlidir.
+    *   **KM-2.3 (TensorRT Optimizasyonu - ai-orchestrator):** Veri Bilimcisi ve K. Backend Geliştirici tarafından, `ai-orchestrator` geliştirmeleri ve KM-1.7 (Nsight) tamamlandıktan sonra yapılır.
+    *   **Faz 2 - Kapsamlı Testler (ai-orchestrator için):** QA Mühendisi tarafından, KM-2.3 ve ilgili geliştirmeler tamamlandıktan sonra yürütülür.
+    *   **KM-3.3 (Üretime Hazırlık):** Tüm ana geliştirmeler ve testler tamamlandıktan sonra.
 
-2.  **Yol B (Segmentation Service Odaklı):**
-    *   KM 1.2 (Detaylı Faz 1 Planı)
-    *   KM 1.8 (Personal Görevleri - Segmentation Service ile ilgili olanlar)
-    *   Faz 2 - `segmentation-service` için PoC ve CUDA entegrasyonu (KM 2.4, KM 2.5)
-    *   Faz 2 - Kapsamlı Testler
-    *   KM 3.3 (Üretime Hazırlık)
+2.  **Yol B (Segmentation Service ve NLP Odaklı Kritik Yol):
+    *   KM-1.1, KM-1.2 (Yukarıdaki gibi)
+    *   KM-1.8 (Faz 1 Persona Görevleri Tamamlanması - özellikle `segmentation-service` ile ilgili analiz ve PoC hazırlıkları)
+    *   KM-2.4 (`segmentation-service` C++ CUDA PoC - eğer önceliklendirilirse): K. Backend Geliştirici ve Veri Bilimcisi tarafından, KM-1.8'e bağlı olarak.
+    *   KM-2.5 (`segmentation-service` cuDF Entegrasyonu): Veri Bilimcisi ve K. Backend Geliştirici tarafından, KM-1.8'e ve ilgili analizlere bağlı olarak.
+    *   Faz 2 - Kapsamlı Testler (`segmentation-service` için): QA Mühendisi tarafından, KM-2.4/KM-2.5 tamamlandıktan sonra.
+    *   KM-3.3 (Üretime Hazırlık).
 
-3.  **Yol C (Altyapı ve Genel Entegrasyon Odaklı):**
-    *   KM 1.2 (Detaylı Faz 1 Planı)
-    *   KM 1.7 (Nsight İzleme Altyapısı)
-    *   KM 2.1 (GPU İstek Yönlendirme Katmanı)
-    *   KM 2.2 (Uyumluluk Test Matrisi)
-    *   KM 3.1 (Kubernetes CRD)
-    *   KM 3.3 (Üretime Hazırlık)
+3.  **Yol C (Genel Altyapı, Test ve Dağıtım Odaklı Kritik Yol):
+    *   KM-1.1, KM-1.2 (Yukarıdaki gibi)
+    *   KM-1.8 (Faz 1 Persona Görevleri Tamamlanması)
+    *   KM-2.1 (GPU İstek Yönlendirme Katmanı)
+    *   KM-2.2 (Uyumluluk Test Matrisi ve Otomasyonu): QA ve DevOps tarafından KM-2.1'e bağlı olarak.
+    *   KM-3.1 (Kubernetes için Özel CUDA Kaynak Profili CRD): DevOps Mühendisi tarafından, Faz 2 geliştirmeleri ve testleri sonrası.
+    *   KM-3.3 (Üretime Hazırlık).
 
-**Not:** Bu kritik yol analizi bir taslaktır. Görevlerin detaylı efor tahminleri yapıldıkça ve bağımlılıklar netleştikçe güncellenecektir. Gantt şeması veya benzeri bir proje yönetim aracı ile bu analiz daha kesin hale getirilecektir.
+**Not:** Bu güncellenmiş değerlendirme, görevlerin tahmini eforları ve kaynak atamaları (`ana_gorev_panosu.md` içinde belirtilmiştir) dikkate alınarak yapılmıştır. Proje ilerledikçe ve görevlerin fiili süreleri netleştikçe, kritik yol dinamik olarak değişebilir. Bu analiz, Proje Yöneticisi (AI) tarafından periyodik olarak gözden geçirilecektir.
 
-## 4. Sonraki Adımlar
+## 4. Sonraki Adımlar ve Sürekli Yönetim
 
-*   Her bir kilometre taşı için sorumlu personaların ve tahmini tamamlanma tarihlerinin `ana_gorev_panosu.md` ile senkronize edilmesi.
-*   Bağımlılıkların daha detaylı bir şekilde haritalandırılması.
-*   Kritik yol analizinin periyodik olarak gözden geçirilmesi ve güncellenmesi.
-*   Bu bilgilerin görsel bir proje planına (örn. Gantt şeması taslağı) aktarılması.
+*   **Kritik Yolun Periyodik Gözden Geçirilmesi:** Proje ilerlemesi, tamamlanan görevler ve olası gecikmeler dikkate alınarak kritik yol analizi düzenli olarak (örn. haftalık) güncellenecektir.
+*   **Proje Takviminin Güncellenmesi:** `ana_gorev_panosu.md` dosyasındaki başlangıç ve bitiş tarihleri, kritik yol analizindeki değişikliklere ve fiili ilerlemeye göre periyodik olarak güncellenecektir.
+*   **Risklerin Yeniden Değerlendirilmesi:** Kritik yoldaki değişiklikler veya yeni ortaya çıkan bağımlılıklar, `project_risk_matrix.md` dosyasındaki risklerin yeniden değerlendirilmesini gerektirebilir.
+*   **Görsel Proje Planı (Gantt Şeması Taslağı):** Kritik yol ve görev takvimi netleştikçe, bu bilgilerin görsel bir proje planına (örn. Mermaid.js ile Gantt şeması taslağı oluşturularak bir `.md` dosyasına eklenmesi) aktarılması planlanmaktadır.
+*   **Düzenli İlerleme Raporları:** Proje ilerlemesi, kritik görevlerin durumu ve riskler hakkında düzenli raporlar oluşturularak kullanıcıya sunulacaktır.
 
-Bu belge, Yönetici Ofisi çalışmaları kapsamında düzenli olarak güncellenecektir.
-
+Bu belge, Yönetici Ofisi çalışmaları kapsamında sürekli olarak güncellenecek ve proje yönetiminin temel bir aracı olarak kullanılacaktır.

@@ -6,12 +6,13 @@ import { theme } from '@/styles/theme'; // Import the base theme
 import { highContrastTheme } from '@/styles/highContrastTheme'; // Import the new high contrast theme
 import AnimationTest from '@/components/test/AnimationTest'; // Import the animation test component
 import { NotificationProvider, NotificationList, NotificationCenter as NotificationCenterComponent } from '@/components/notifications';
+import { SettingsProvider, SettingsPanel as SettingsPanelComponent } from '@/components/settings';
 
 // Lazy load feature components to improve initial load time
 const FeatureNotificationCenter = lazy(() => import('@/components/feature/NotificationCenter'));
 const FileManager = lazy(() => import('@/components/feature/FileManager'));
 const PerformanceMonitor = lazy(() => import('@/components/feature/PerformanceMonitor'));
-const SettingsPanel = lazy(() => import('@/components/feature/SettingsPanel'));
+const FeatureSettingsPanel = lazy(() => import('@/components/feature/SettingsPanel'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -93,11 +94,17 @@ const App: React.FC = () => {
   return (
     // Apply the selected theme to ChakraProvider
     <ChakraProvider theme={currentTheme}>
-      <NotificationProvider>
-        {/* Notification list for toast notifications */}
-        <NotificationList />
-        {/* Notification center for managing notifications */}
-        <NotificationCenterComponent />
+      <SettingsProvider>
+        <NotificationProvider>
+          {/* Notification list for toast notifications */}
+          <NotificationList />
+          {/* Notification center for managing notifications */}
+          <NotificationCenterComponent />
+          {/* Settings panel for managing settings */}
+          <SettingsPanelComponent
+            isOpen={false}
+            onSettingChange={handleSettingChange}
+          />
 
         {/* Use a Box that respects the theme's background and text color */}
         <Box
@@ -136,7 +143,7 @@ const App: React.FC = () => {
           </Suspense>
 
           <Suspense fallback={<LoadingFallback />}>
-            <SettingsPanel onSettingChange={handleSettingChange} />
+            <FeatureSettingsPanel onSettingChange={handleSettingChange} />
           </Suspense>
         </HStack>
 
@@ -197,7 +204,8 @@ const App: React.FC = () => {
           </Box>
         )}
       </Box>
-      </NotificationProvider>
+        </NotificationProvider>
+      </SettingsProvider>
     </ChakraProvider>
   );
 };

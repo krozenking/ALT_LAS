@@ -20,7 +20,7 @@
 | Sürükle-bırak deneyiminin iyileştirilmesi | İşçi 5 | Tamamlandı | 14.05.2025 | 14.05.2025 | DragDropProvider, Draggable, Droppable, DragOverlay, Sortable ve SortableItem bileşenleri oluşturuldu. Kanban board örneği ile sürükle-bırak deneyimi geliştirildi. |
 | WebSocket entegrasyonu | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | WebSocketService, useWebSocket hook, WebSocketContext ve WebSocketProvider bileşenleri oluşturuldu. WebSocket bağlantısı için demo bileşeni eklendi. |
 | Veri önbelleğe alma stratejisinin uygulanması | İşçi 1 | Tamamlandı | 14.05.2025 | 14.05.2025 | CacheService, QueryCacheManager, OfflineDataManager servisleri ve useOfflineData hook'u oluşturuldu. React Query entegrasyonu yapıldı. Örnek CacheDemo bileşeni eklendi. |
-| Otomatik güncelleme mekanizmasının entegrasyonu | İşçi 3 | Beklemede | - | - | |
+| Otomatik güncelleme mekanizmasının entegrasyonu | İşçi 3 | Tamamlandı | 14.05.2025 | 14.05.2025 | UpdaterService, useUpdater hook ve UpdaterStatus bileşeni oluşturuldu. Electron-updater entegrasyonu yapıldı. Örnek UpdaterDemo bileşeni eklendi. |
 | Hata izleme sisteminin entegrasyonu | İşçi 3 | Beklemede | - | - | |
 
 ## Aşama 3: İleri Düzey Özellikler (21.06.2025'e kadar)
@@ -63,9 +63,9 @@
 | Aşama | Toplam Görev | Tamamlanan | İlerleme Yüzdesi |
 |-------|--------------|------------|------------------|
 | Aşama 1: Temel Altyapı | 6 | 6 | %100 |
-| Aşama 2: Temel Özellikler | 7 | 5 | %71.4 |
+| Aşama 2: Temel Özellikler | 7 | 6 | %85.7 |
 | Aşama 3: İleri Düzey Özellikler | 9 | 0 | %0 |
 | Aşama 4: Test ve Optimizasyon | 7 | 0 | %0 |
-| **Toplam** | **29** | **11** | **%37.9** |
+| **Toplam** | **29** | **12** | **%41.4** |
 
-## Son Güncelleme: 14.05.2025 20:00
+## Son Güncelleme: 14.05.2025 20:30

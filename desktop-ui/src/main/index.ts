@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { join } from 'path';
 import log from 'electron-log';
 import UpdaterService from './services/UpdaterService';
+import ErrorTrackingService from './services/ErrorTrackingService';
 
 // Configure logger
 log.transports.file.level = 'info';
@@ -81,6 +82,9 @@ async function createWindow() {
 
   // Initialize updater service
   updaterService.initialize(mainWindow);
+
+  // Initialize error tracking service
+  ErrorTrackingService.initialize(mainWindow);
 
   // Log app start
   log.info('Application started');

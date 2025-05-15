@@ -1,0 +1,39 @@
+# Test Dockerfile for Archive Service
+# Based on secure template
+# Created by Worker 8 (Security and DevOps Specialist)
+
+# Build stage
+FROM golang:1.19-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git build-base
+
+# Copy Go module files
+COPY archive-service/go.mod archive-service/go.sum ./
+
+# Download dependencies (including test dependencies if any)
+RUN go mod download
+RUN go get -t ./...
+
+# Copy application code
+COPY archive-service /app/
+
+# Build the test binary (optional, depends on test strategy)
+# RUN CGO_ENABLED=0 GOOS=linux go test -c -o /app/archive-service_test ./...
+
+# Runtime stage (can use builder directly if only running tests)
+FROM builder AS tester
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user (optional for test stage if not needed)
+# RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# USER appuser
+
+# Command to run tests
+CMD ["go", "test", "-v", "./..."]
+

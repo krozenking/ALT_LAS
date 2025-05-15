@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: loki-backup
+  namespace: alt-las
+spec:
+  schedule: "0 4 * * *"  # Her gün gece 04:00'de çalışır
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: loki-backup
+            image: alpine:3.18
+            command:
+            - /bin/sh
+            - /scripts/backup.sh
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+            - name: loki-data
+              mountPath: /data
+              readOnly: true
+            - name: scripts-volume
+              mountPath: /scripts
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: loki-backup-pvc
+          - name: loki-data
+            persistentVolumeClaim:
+              claimName: loki-pvc
+          - name: scripts-volume
+            configMap:
+              name: loki-backup-scripts
+              defaultMode: 0755

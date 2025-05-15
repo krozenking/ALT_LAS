@@ -1,0 +1,122 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: alt-las
+
+resources:
+  # Namespace
+  - namespace.yaml
+  # Infrastructure
+  - infrastructure/postgres.yaml
+  - infrastructure/redis.yaml
+  - infrastructure/nats.yaml
+
+  # Services
+  - api-gateway/deployment.yaml
+  - api-gateway/service.yaml
+  - api-gateway/configmap.yaml
+  - api-gateway/secret.yaml
+
+  - segmentation-service/deployment.yaml
+  - segmentation-service/service.yaml
+  - segmentation-service/configmap.yaml
+  - segmentation-service/secret.yaml
+
+  # Runner Service
+  - runner-service/deployment.yaml
+  - runner-service/service.yaml
+  - runner-service/configmap.yaml
+
+  # Archive Service
+  - archive-service/deployment.yaml
+  - archive-service/service.yaml
+  - archive-service/configmap.yaml
+  - archive-service/secret.yaml
+
+  # AI Orchestrator
+  - ai-orchestrator/deployment.yaml
+  - ai-orchestrator/service.yaml
+  - ai-orchestrator/configmap.yaml
+  - ai-orchestrator/secret.yaml
+
+  # Monitoring
+  - monitoring/prometheus.yaml
+  - monitoring/grafana.yaml
+  - monitoring/loki.yaml
+  - monitoring/promtail.yaml
+
+  # Ingress
+  - ingress.yaml
+
+  # Network Policies
+  - network-policies/default-deny.yaml
+  - network-policies/api-gateway.yaml
+  - network-policies/segmentation-service.yaml
+  - network-policies/runner-service.yaml
+  - network-policies/archive-service.yaml
+  - network-policies/ai-orchestrator.yaml
+  - network-policies/postgres.yaml
+  - network-policies/redis.yaml
+  - network-policies/nats.yaml
+  - network-policies/monitoring.yaml
+
+  # Autoscaling
+  - autoscaling/api-gateway-hpa.yaml
+  - autoscaling/segmentation-service-hpa.yaml
+  - autoscaling/runner-service-hpa.yaml
+  - autoscaling/archive-service-hpa.yaml
+  - autoscaling/ai-orchestrator-hpa.yaml
+  - autoscaling/prometheus-hpa.yaml
+  - autoscaling/grafana-hpa.yaml
+  - autoscaling/loki-hpa.yaml
+
+  # Backup and Restore
+  - backup-restore/postgres-backup-pvc.yaml
+  - backup-restore/postgres-backup-configmap.yaml
+  - backup-restore/postgres-backup-cronjob.yaml
+  - backup-restore/postgres-backup-job.yaml
+  - backup-restore/postgres-restore-job.yaml
+  - backup-restore/redis-backup-pvc.yaml
+  - backup-restore/redis-backup-configmap.yaml
+  - backup-restore/redis-backup-cronjob.yaml
+  - backup-restore/redis-backup-job.yaml
+  - backup-restore/prometheus-backup-pvc.yaml
+  - backup-restore/prometheus-backup-configmap.yaml
+  - backup-restore/prometheus-backup-cronjob.yaml
+  - backup-restore/loki-backup-pvc.yaml
+  - backup-restore/loki-backup-configmap.yaml
+  - backup-restore/loki-backup-cronjob.yaml
+  - backup-restore/backup-rbac.yaml
+  - backup-restore/backup-status-configmap.yaml
+  - backup-restore/backup-status-job.yaml
+
+  # Service Mesh
+  - service-mesh/service-accounts.yaml
+
+  # Security
+  - security/security-best-practices.yaml
+
+  # Canary Deployment
+  - canary/canary-config.yaml
+
+  # Rollback Strategy
+  - rollback/rollback-config.yaml
+
+  # Deployment Approval
+  - deployment-approval/approval-config.yaml
+
+  # Metrics
+  - metrics/metrics-config.yaml
+  - metrics/prometheus-config.yaml
+  - metrics/grafana-config.yaml
+  - metrics/cicd-metrics-config.yaml
+  - metrics/cicd-metrics-exporter.yaml
+  - metrics/cicd-metrics-secrets.yaml
+  - metrics/metrics-cronjob.yaml
+
+  # Final Tests and Alpha Transition
+  - final-tests/integration-tests.yaml
+  - final-tests/load-tests.yaml
+  - final-tests/security-tests.yaml
+  - final-tests/acceptance-tests.yaml
+  - final-tests/alpha-transition.yaml

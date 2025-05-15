@@ -1,0 +1,124 @@
+.gpu-performance-chart {
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 16px 0;
+  color: #333;
+  text-align: center;
+}
+
+.chart-svg {
+  background-color: white;
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.x-axis path,
+.y-axis path {
+  stroke: #ccc;
+}
+
+.x-axis line,
+.y-axis line {
+  stroke: #eee;
+}
+
+.x-axis text,
+.y-axis text {
+  font-size: 12px;
+  fill: #666;
+}
+
+.line-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.threshold-line {
+  stroke: #ff5252;
+  stroke-width: 1.5;
+  stroke-dasharray: 5, 5;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 8px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 6px;
+}
+
+.threshold-color {
+  background-color: #ff5252;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .gpu-performance-chart {
+    padding: 12px;
+  }
+  
+  .chart-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .x-axis text,
+  .y-axis text {
+    font-size: 10px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .gpu-performance-chart {
+    background-color: #2d2d2d;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .chart-title {
+    color: #e0e0e0;
+  }
+  
+  .chart-svg {
+    background-color: #3d3d3d;
+  }
+  
+  .x-axis path,
+  .y-axis path {
+    stroke: #555;
+  }
+  
+  .x-axis line,
+  .y-axis line {
+    stroke: #444;
+  }
+  
+  .x-axis text,
+  .y-axis text {
+    fill: #bbb;
+  }
+}

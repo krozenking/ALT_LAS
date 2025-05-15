@@ -1,0 +1,138 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: security-tests
+  namespace: alt-las
+  labels:
+    app: security-tests
+    component: testing
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: security-tests
+        component: testing
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: security-tests
+        image: alt-las/security-tests:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_GATEWAY_URL
+          value: "http://api-gateway:3000"
+        - name: SEGMENTATION_SERVICE_URL
+          value: "http://segmentation-service:8000"
+        - name: RUNNER_SERVICE_URL
+          value: "http://runner-service:8080"
+        - name: ARCHIVE_SERVICE_URL
+          value: "http://archive-service:9000"
+        - name: AI_ORCHESTRATOR_URL
+          value: "http://ai-orchestrator:8001"
+        - name: LOG_LEVEL
+          value: "info"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Starting Security Tests..."
+          
+          # Wait for all services to be ready
+          echo "Waiting for API Gateway..."
+          until curl -s http://api-gateway:3000/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "All services are ready. Running security tests..."
+          
+          # Run OWASP ZAP security tests
+          echo "Running OWASP ZAP security tests..."
+          zap-cli quick-scan --self-contained --start-options "-config api.disablekey=true" http://api-gateway:3000
+          API_GATEWAY_ZAP_RESULT=$?
+          
+          zap-cli quick-scan --self-contained --start-options "-config api.disablekey=true" http://segmentation-service:8000
+          SEGMENTATION_SERVICE_ZAP_RESULT=$?
+          
+          zap-cli quick-scan --self-contained --start-options "-config api.disablekey=true" http://runner-service:8080
+          RUNNER_SERVICE_ZAP_RESULT=$?
+          
+          zap-cli quick-scan --self-contained --start-options "-config api.disablekey=true" http://archive-service:9000
+          ARCHIVE_SERVICE_ZAP_RESULT=$?
+          
+          zap-cli quick-scan --self-contained --start-options "-config api.disablekey=true" http://ai-orchestrator:8001
+          AI_ORCHESTRATOR_ZAP_RESULT=$?
+          
+          # Run Trivy security tests
+          echo "Running Trivy security tests..."
+          trivy image alt-las/api-gateway:latest
+          API_GATEWAY_TRIVY_RESULT=$?
+          
+          trivy image alt-las/segmentation-service:latest
+          SEGMENTATION_SERVICE_TRIVY_RESULT=$?
+          
+          trivy image alt-las/runner-service:latest
+          RUNNER_SERVICE_TRIVY_RESULT=$?
+          
+          trivy image alt-las/archive-service:latest
+          ARCHIVE_SERVICE_TRIVY_RESULT=$?
+          
+          trivy image alt-las/ai-orchestrator:latest
+          AI_ORCHESTRATOR_TRIVY_RESULT=$?
+          
+          # Run Kubesec security tests
+          echo "Running Kubesec security tests..."
+          kubesec scan /app/kubernetes-manifests/api-gateway/deployment.yaml
+          API_GATEWAY_KUBESEC_RESULT=$?
+          
+          kubesec scan /app/kubernetes-manifests/segmentation-service/deployment.yaml
+          SEGMENTATION_SERVICE_KUBESEC_RESULT=$?
+          
+          kubesec scan /app/kubernetes-manifests/runner-service/deployment.yaml
+          RUNNER_SERVICE_KUBESEC_RESULT=$?
+          
+          kubesec scan /app/kubernetes-manifests/archive-service/deployment.yaml
+          ARCHIVE_SERVICE_KUBESEC_RESULT=$?
+          
+          kubesec scan /app/kubernetes-manifests/ai-orchestrator/deployment.yaml
+          AI_ORCHESTRATOR_KUBESEC_RESULT=$?
+          
+          # Check test results
+          if [ $API_GATEWAY_ZAP_RESULT -eq 0 ] && [ $SEGMENTATION_SERVICE_ZAP_RESULT -eq 0 ] && [ $RUNNER_SERVICE_ZAP_RESULT -eq 0 ] && [ $ARCHIVE_SERVICE_ZAP_RESULT -eq 0 ] && [ $AI_ORCHESTRATOR_ZAP_RESULT -eq 0 ] && \
+             [ $API_GATEWAY_TRIVY_RESULT -eq 0 ] && [ $SEGMENTATION_SERVICE_TRIVY_RESULT -eq 0 ] && [ $RUNNER_SERVICE_TRIVY_RESULT -eq 0 ] && [ $ARCHIVE_SERVICE_TRIVY_RESULT -eq 0 ] && [ $AI_ORCHESTRATOR_TRIVY_RESULT -eq 0 ] && \
+             [ $API_GATEWAY_KUBESEC_RESULT -eq 0 ] && [ $SEGMENTATION_SERVICE_KUBESEC_RESULT -eq 0 ] && [ $RUNNER_SERVICE_KUBESEC_RESULT -eq 0 ] && [ $ARCHIVE_SERVICE_KUBESEC_RESULT -eq 0 ] && [ $AI_ORCHESTRATOR_KUBESEC_RESULT -eq 0 ]; then
+            echo "Security tests passed!"
+            exit 0
+          else
+            echo "Security tests failed!"
+            exit 1
+          fi
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: test-results
+          mountPath: /app/test-results
+        - name: kubernetes-manifests
+          mountPath: /app/kubernetes-manifests
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: test-results
+        emptyDir: {}
+      - name: kubernetes-manifests
+        configMap:
+          name: kubernetes-manifests
+      - name: tmp-volume
+        emptyDir: {}

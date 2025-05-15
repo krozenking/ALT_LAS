@@ -1,0 +1,34 @@
+id: 82aa0a41-509f-4818-a029-69219d1b3ae9
+version: '1.0'
+timestamp: '2025-04-28T00:28:21.924613'
+command: "E-postalar\u0131m\u0131 kontrol et ve \xF6nemli olanlar\u0131 i\u015Faretle"
+language: tr
+mode: Normal
+persona: technical_expert
+chaos_level: null
+segments:
+- id: 97ce9e8b-b98e-4148-b203-251a78eeb987
+  task_type: execute
+  content: "E-postalar\u0131m\u0131 kontrol et"
+  parameters:
+  - name: content
+    value: "E-postalar\u0131m\u0131 kontrol et"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+- id: db794062-1065-4208-9f1d-14da8dc464d3
+  task_type: execute
+  content: "\xF6nemli olanlar\u0131 i\u015Faretle"
+  parameters:
+  - name: content
+    value: "\xF6nemli olanlar\u0131 i\u015Faretle"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+metadata: {}

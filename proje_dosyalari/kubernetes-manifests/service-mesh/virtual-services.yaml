@@ -1,0 +1,69 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: api-gateway
+  namespace: alt-las
+spec:
+  hosts:
+  - api-gateway
+  http:
+  - route:
+    - destination:
+        host: api-gateway
+        subset: v1
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: segmentation-service
+  namespace: alt-las
+spec:
+  hosts:
+  - segmentation-service
+  http:
+  - route:
+    - destination:
+        host: segmentation-service
+        subset: v1
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: runner-service
+  namespace: alt-las
+spec:
+  hosts:
+  - runner-service
+  http:
+  - route:
+    - destination:
+        host: runner-service
+        subset: v1
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: archive-service
+  namespace: alt-las
+spec:
+  hosts:
+  - archive-service
+  http:
+  - route:
+    - destination:
+        host: archive-service
+        subset: v1
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ai-orchestrator
+  namespace: alt-las
+spec:
+  hosts:
+  - ai-orchestrator
+  http:
+  - route:
+    - destination:
+        host: ai-orchestrator
+        subset: v1

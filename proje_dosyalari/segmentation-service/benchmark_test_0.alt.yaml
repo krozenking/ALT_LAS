@@ -1,0 +1,34 @@
+id: a6deb67c-255d-442c-be10-baf2fee257ec
+version: '1.0'
+timestamp: '2025-04-28T00:28:21.922739'
+command: "Dosyalar\u0131 s\u0131rala ve en b\xFCy\xFCk 10 tanesini g\xF6ster"
+language: tr
+mode: Dream
+persona: technical_expert
+chaos_level: null
+segments:
+- id: 7727f885-67ad-4625-bec8-256cedbe6bc5
+  task_type: execute
+  content: "Dosyalar\u0131 s\u0131rala"
+  parameters:
+  - name: content
+    value: "Dosyalar\u0131 s\u0131rala"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+- id: a8f2b0be-3757-46b6-a7d6-459a936f4601
+  task_type: execute
+  content: "en b\xFCy\xFCk 10 tanesini g\xF6ster"
+  parameters:
+  - name: content
+    value: "en b\xFCy\xFCk 10 tanesini g\xF6ster"
+    type: string
+    required: true
+    description: Task content
+  dependencies: []
+  metadata:
+    confidence: 0.5
+metadata: {}

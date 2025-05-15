@@ -1,0 +1,231 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollback-config
+  namespace: alt-las
+data:
+  rollback-strategy.yaml: |
+    # Rollback Stratejisi
+    
+    ## Otomatik Rollback Koşulları
+    autoRollbackConditions:
+      # Hata oranı
+      - metric: error-rate
+        threshold: 2%
+        duration: 5m
+        action: rollback
+      
+      # Gecikme süresi
+      - metric: latency-p95
+        threshold: 1000ms
+        duration: 5m
+        action: rollback
+      
+      # CPU kullanımı
+      - metric: cpu-usage
+        threshold: 90%
+        duration: 5m
+        action: rollback
+      
+      # Bellek kullanımı
+      - metric: memory-usage
+        threshold: 90%
+        duration: 5m
+        action: rollback
+    
+    ## Manuel Rollback Koşulları
+    manualRollbackConditions:
+      # Kullanıcı geri bildirimleri
+      - metric: user-feedback
+        threshold: negative
+        action: notify-and-wait
+      
+      # İş metrikleri
+      - metric: business-metrics
+        threshold: decrease
+        action: notify-and-wait
+    
+    ## Rollback Prosedürü
+    rollbackProcedure:
+      # Otomatik Rollback
+      automatic:
+        - step: pause-deployment
+          description: "Yeni sürüm dağıtımını durdur"
+        
+        - step: redirect-traffic
+          description: "Tüm trafiği eski sürüme yönlendir"
+          action: |
+            kubectl apply -f - <<EOF
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
+            metadata:
+              name: ${SERVICE_NAME}
+              namespace: ${NAMESPACE}
+            spec:
+              hosts:
+              - ${SERVICE_NAME}
+              http:
+              - route:
+                - destination:
+                    host: ${SERVICE_NAME}
+                    subset: v1
+                  weight: 100
+                - destination:
+                    host: ${SERVICE_NAME}
+                    subset: v2
+                  weight: 0
+            EOF
+        
+        - step: scale-down-new-version
+          description: "Yeni sürüm pod'larını sıfıra indir"
+          action: |
+            kubectl scale deployment ${SERVICE_NAME}-v2 -n ${NAMESPACE} --replicas=0
+        
+        - step: notify
+          description: "Geri alma durumunu bildir"
+          action: |
+            echo "Otomatik rollback gerçekleştirildi: ${SERVICE_NAME}"
+            # E-posta veya Slack bildirimi gönder
+      
+      # Manuel Rollback
+      manual:
+        - step: confirm-rollback
+          description: "Geri alma işlemini onayla"
+          action: |
+            read -p "Geri alma işlemini onaylıyor musunuz? (e/h): " CONFIRM
+            if [ "$CONFIRM" != "e" ]; then
+              echo "Geri alma işlemi iptal edildi."
+              exit 1
+            fi
+        
+        - step: pause-deployment
+          description: "Yeni sürüm dağıtımını durdur"
+          action: |
+            kubectl rollout pause deployment/${SERVICE_NAME}-v2 -n ${NAMESPACE}
+        
+        - step: redirect-traffic
+          description: "Kademeli olarak trafiği eski sürüme yönlendir"
+          action: |
+            # Önce %50 trafiği eski sürüme yönlendir
+            kubectl apply -f - <<EOF
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
+            metadata:
+              name: ${SERVICE_NAME}
+              namespace: ${NAMESPACE}
+            spec:
+              hosts:
+              - ${SERVICE_NAME}
+              http:
+              - route:
+                - destination:
+                    host: ${SERVICE_NAME}
+                    subset: v1
+                  weight: 50
+                - destination:
+                    host: ${SERVICE_NAME}
+                    subset: v2
+                  weight: 50
+            EOF
+            
+            # 5 dakika bekle
+            sleep 5m
+            
+            # Tüm trafiği eski sürüme yönlendir
+            kubectl apply -f - <<EOF
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
+            metadata:
+              name: ${SERVICE_NAME}
+              namespace: ${NAMESPACE}
+            spec:
+              hosts:
+              - ${SERVICE_NAME}
+              http:
+              - route:
+                - destination:
+                    host: ${SERVICE_NAME}
+                    subset: v1
+                  weight: 100
+                - destination:
+                    host: ${SERVICE_NAME}
+                    subset: v2
+                  weight: 0
+            EOF
+        
+        - step: scale-down-new-version
+          description: "Yeni sürüm pod'larını sıfıra indir"
+          action: |
+            kubectl scale deployment ${SERVICE_NAME}-v2 -n ${NAMESPACE} --replicas=0
+        
+        - step: notify
+          description: "Geri alma durumunu bildir"
+          action: |
+            echo "Manuel rollback gerçekleştirildi: ${SERVICE_NAME}"
+            # E-posta veya Slack bildirimi gönder
+    
+    ## Rollback Doğrulama
+    rollbackVerification:
+      - check: service-availability
+        description: "Servis erişilebilirliğini kontrol et"
+        action: |
+          kubectl exec -n ${NAMESPACE} deploy/curl -- curl -s http://${SERVICE_NAME}:${SERVICE_PORT}/health | grep "ok"
+      
+      - check: error-rate
+        description: "Hata oranını kontrol et"
+        action: |
+          ERROR_RATE=$(kubectl exec -n ${NAMESPACE} deploy/prometheus -- curl -s http://localhost:9090/api/v1/query --data-urlencode 'query=sum(rate(http_requests_total{status=~"5..", app="'${SERVICE_NAME}'"}[5m])) / sum(rate(http_requests_total{app="'${SERVICE_NAME}'"}[5m]))' | jq -r '.data.result[0].value[1]')
+          if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+            echo "Hata oranı hala yüksek: $ERROR_RATE"
+            exit 1
+          fi
+      
+      - check: latency
+        description: "Gecikme süresini kontrol et"
+        action: |
+          LATENCY=$(kubectl exec -n ${NAMESPACE} deploy/prometheus -- curl -s http://localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{app="'${SERVICE_NAME}'"}[5m])) by (le))' | jq -r '.data.result[0].value[1]')
+          if (( $(echo "$LATENCY > 0.5" | bc -l) )); then
+            echo "Gecikme süresi hala yüksek: $LATENCY s"
+            exit 1
+          fi
+  
+  rollback-metrics.yaml: |
+    # Rollback Metrikleri
+    
+    ## Temel Metrikler
+    - name: error-rate
+      description: "HTTP 5xx hata oranı"
+      query: 'sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))'
+      threshold: 1%
+    
+    - name: latency-p95
+      description: "HTTP isteklerinin %95 yüzdelik dilim gecikme süresi"
+      query: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))'
+      threshold: 500ms
+    
+    - name: success-rate
+      description: "HTTP 2xx başarı oranı"
+      query: 'sum(rate(http_requests_total{status=~"2.."}[5m])) / sum(rate(http_requests_total[5m]))'
+      threshold: 99%
+    
+    ## Kaynak Kullanım Metrikleri
+    - name: cpu-usage
+      description: "CPU kullanımı"
+      query: 'sum(rate(container_cpu_usage_seconds_total{container_name!="POD"}[5m])) by (pod)'
+      threshold: 80%
+    
+    - name: memory-usage
+      description: "Bellek kullanımı"
+      query: 'sum(container_memory_usage_bytes{container_name!="POD"}) by (pod) / sum(container_spec_memory_limit_bytes{container_name!="POD"}) by (pod)'
+      threshold: 80%
+    
+    ## İş Metrikleri
+    - name: processed-documents
+      description: "İşlenen belge sayısı"
+      query: 'sum(rate(documents_processed_total[5m]))'
+      threshold: 10
+    
+    - name: processing-time
+      description: "Belge işleme süresi"
+      query: 'histogram_quantile(0.95, sum(rate(document_processing_duration_seconds_bucket[5m])) by (le))'
+      threshold: 2s

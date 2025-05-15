@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # UI Desktop npm bağımlılıkları
+  - package-ecosystem: "npm"
+    directory: "/ui-desktop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    versioning-strategy: auto
+    labels:
+      - "dependencies"
+      - "ui-desktop"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  
+  # API Gateway npm bağımlılıkları
+  - package-ecosystem: "npm"
+    directory: "/api-gateway"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "api-gateway"
+    
+  # GitHub Actions bağımlılıkları
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    
+  # Docker bağımlılıkları
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"

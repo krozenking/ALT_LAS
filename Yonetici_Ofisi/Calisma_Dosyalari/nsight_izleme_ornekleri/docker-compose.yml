@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  # Nsight izleme altyapısı için temel imaj
+  nsight-base:
+    build:
+      context: .
+      dockerfile: Dockerfile.nsight
+    image: altlas/nsight-base:latest
+    volumes:
+      - ./nsight-data:/nsight-data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # AI Orchestrator servisi (profil oluşturma için)
+  ai-orchestrator:
+    image: altlas/ai-orchestrator:latest
+    depends_on:
+      - nsight-base
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - NSYS_NVTX_PROFILER_REGISTER_ONLY=0
+    volumes:
+      - ./nsight-data:/nsight-data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Nsight Systems profil oluşturucu
+  nsight-systems-profiler:
+    image: altlas/nsight-base:latest
+    depends_on:
+      - ai-orchestrator
+    command: >
+      nsys profile --stats=true
+      --output=/nsight-data/system_profile
+      --duration=60
+      --sample=cpu
+      --trace=cuda,nvtx,osrt,cudnn,cublas
+      --force-overwrite=true
+      --wait=none
+      http://ai-orchestrator:8000/api/v1/predict
+    volumes:
+      - ./nsight-data:/nsight-data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Nsight Compute profil oluşturucu
+  nsight-compute-profiler:
+    image: altlas/nsight-base:latest
+    depends_on:
+      - ai-orchestrator
+    command: >
+      ncu --export=/nsight-data/kernel_profile
+      --force-overwrite
+      --target-processes all
+      --replay-mode application
+      --kernel-regex ".*"
+      --launch-skip 0
+      --launch-count 10
+      --profile-from-start 0
+      http://ai-orchestrator:8000/api/v1/predict
+    volumes:
+      - ./nsight-data:/nsight-data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Profil analiz servisi
+  profile-analyzer:
+    image: altlas/nsight-base:latest
+    depends_on:
+      - nsight-systems-profiler
+      - nsight-compute-profiler
+    command: >
+      bash -c "
+        echo 'Waiting for profiles to be generated...' &&
+        sleep 120 &&
+        echo 'Analyzing system profile...' &&
+        python /app/analyze_profile.py /nsight-data/system_profile.nsys-rep > /nsight-data/system_profile_analysis.json &&
+        echo 'Analyzing kernel profile...' &&
+        python /app/analyze_kernel.py /nsight-data/kernel_profile.ncu-rep > /nsight-data/kernel_profile_analysis.json &&
+        echo 'Analysis complete. Results saved to /nsight-data/'
+      "
+    volumes:
+      - ./nsight-data:/nsight-data
+      - ./analyze_profile.py:/app/analyze_profile.py
+      - ./analyze_kernel.py:/app/analyze_kernel.py
+
+  # Grafana dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+  # Prometheus için metrik toplayıcı
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  # NVIDIA DCGM Exporter (GPU metrikleri için)
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:latest
+    ports:
+      - "9400:9400"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Node Exporter (sistem metrikleri için)
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+
+volumes:
+  grafana-storage:
+  prometheus-data:

@@ -1,0 +1,109 @@
+name: ALT_LAS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, segmentation-service]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build ${{ matrix.service }} image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./${{ matrix.service }}
+        push: false
+        load: true
+        tags: alt-las/${{ matrix.service }}:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Run tests for ${{ matrix.service }}
+      run: |
+        if [ "${{ matrix.service }}" == "api-gateway" ]; then
+          cd api-gateway
+          npm install
+          npm test
+        elif [ "${{ matrix.service }}" == "segmentation-service" ]; then
+          cd segmentation-service
+          pip install -r requirements.txt
+          pytest
+        fi
+  
+  build-and-push:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, segmentation-service]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push ${{ matrix.service }} image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./${{ matrix.service }}
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/alt-las-${{ matrix.service }}:latest
+          ghcr.io/${{ github.repository_owner }}/alt-las-${{ matrix.service }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+  
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Set up kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+    
+    - name: Update image tags in Kubernetes manifests
+      run: |
+        for service in api-gateway segmentation-service; do
+          sed -i "s|alt-las/${service}:latest|ghcr.io/${{ github.repository_owner }}/alt-las-${service}:${{ github.sha }}|g" kubernetes-manifests/${service}/deployment.yaml
+        done
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f kubernetes-manifests/infrastructure/
+        kubectl apply -f kubernetes-manifests/api-gateway/
+        kubectl apply -f kubernetes-manifests/segmentation-service/
+        kubectl apply -f kubernetes-manifests/ingress.yaml
+    
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/api-gateway
+        kubectl rollout status deployment/segmentation-service

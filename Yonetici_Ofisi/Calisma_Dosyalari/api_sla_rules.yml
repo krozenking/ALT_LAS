@@ -1,0 +1,114 @@
+groups:
+  - name: api_sla_rules
+    rules:
+      # Record rules for percentile calculations
+      - record: job:http_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (job, le))
+        labels:
+          percentile: "95"
+      
+      - record: job:http_request_duration_seconds:p99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (job, le))
+        labels:
+          percentile: "99"
+      
+      - record: service:http_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))
+        labels:
+          percentile: "95"
+      
+      - record: service:http_request_duration_seconds:p99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))
+        labels:
+          percentile: "99"
+      
+      - record: endpoint:http_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, endpoint, le))
+        labels:
+          percentile: "95"
+      
+      - record: endpoint:http_request_duration_seconds:p99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, endpoint, le))
+        labels:
+          percentile: "99"
+      
+      # Record rules for GPU metrics
+      - record: service:gpu_memory_used_mb:avg
+        expr: avg(gpu_memory_used_mb) by (service)
+      
+      - record: service:gpu_utilization_percent:avg
+        expr: avg(gpu_utilization_percent) by (service)
+      
+      # Alert rules for SLA violations
+      - alert: APIHighLatencyP95
+        expr: service:http_request_duration_seconds:p95{service="ai-orchestrator"} > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency (95th percentile)"
+          description: "The 95th percentile latency for {{ $labels.service }} is {{ $value }}s, which is above the SLA threshold of 200ms."
+      
+      - alert: APIHighLatencyP99
+        expr: service:http_request_duration_seconds:p99{service="ai-orchestrator"} > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency (99th percentile)"
+          description: "The 99th percentile latency for {{ $labels.service }} is {{ $value }}s, which is above the SLA threshold of 500ms."
+      
+      - alert: APICriticalLatencyP95
+        expr: service:http_request_duration_seconds:p95{service="ai-orchestrator"} > 0.5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical API latency (95th percentile)"
+          description: "The 95th percentile latency for {{ $labels.service }} is {{ $value }}s, which is critically above the SLA threshold of 200ms."
+      
+      - alert: APICriticalLatencyP99
+        expr: service:http_request_duration_seconds:p99{service="ai-orchestrator"} > 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical API latency (99th percentile)"
+          description: "The 99th percentile latency for {{ $labels.service }} is {{ $value }}s, which is critically above the SLA threshold of 500ms."
+      
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate"
+          description: "The error rate for {{ $labels.service }} is {{ $value | humanizePercentage }}, which is above the threshold of 1%."
+      
+      - alert: CriticalErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate"
+          description: "The error rate for {{ $labels.service }} is {{ $value | humanizePercentage }}, which is critically above the threshold of 5%."
+      
+      # GPU specific alerts
+      - alert: HighGPUMemoryUsage
+        expr: service:gpu_memory_used_mb:avg / on(instance) gpu_memory_total_mb > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High GPU memory usage"
+          description: "The GPU memory usage for {{ $labels.service }} is {{ $value | humanizePercentage }}, which is above the threshold of 90%."
+      
+      - alert: HighGPUUtilization
+        expr: service:gpu_utilization_percent:avg > 95
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High GPU utilization"
+          description: "The GPU utilization for {{ $labels.service }} is {{ $value }}%, which has been above 95% for more than 15 minutes."

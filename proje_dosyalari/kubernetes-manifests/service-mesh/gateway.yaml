@@ -1,0 +1,77 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: alt-las-gateway
+  namespace: alt-las
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "alt-las.local"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: alt-las-ingress
+  namespace: alt-las
+spec:
+  hosts:
+  - "alt-las.local"
+  gateways:
+  - alt-las-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: api-gateway
+        port:
+          number: 80
+  - match:
+    - uri:
+        prefix: /segmentation
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: segmentation-service
+        port:
+          number: 8000
+  - match:
+    - uri:
+        prefix: /runner
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: runner-service
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: /archive
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: archive-service
+        port:
+          number: 9000
+  - match:
+    - uri:
+        prefix: /ai
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: ai-orchestrator
+        port:
+          number: 8001

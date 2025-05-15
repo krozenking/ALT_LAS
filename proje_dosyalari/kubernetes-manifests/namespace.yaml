@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alt-las
+  labels:
+    name: alt-las
+    app: alt-las

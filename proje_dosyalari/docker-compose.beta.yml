@@ -1,0 +1,133 @@
+# version özniteliği kullanımdan kaldırıldı
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: atlas-postgres-beta
+    environment:
+      POSTGRES_USER: atlas_user
+      POSTGRES_PASSWORD: atlas_password
+      POSTGRES_DB: atlas_user
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "atlas_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - atlas-network-beta
+
+  api-gateway:
+    image: frozen68/api-gateway:beta
+    container_name: atlas-api-gateway-beta
+    depends_on:
+      - postgres
+      - archive-service
+      - ai-orchestrator
+      - segmentation-service
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8001
+      - ARCHIVE_SERVICE_URL=http://archive-service:8081
+      - SEGMENTATION_SERVICE_URL=http://segmentation-service:8000
+      - JWT_SECRET=beta_jwt_secret_key_change_in_production
+      - REFRESH_TOKEN_SECRET=beta_refresh_token_secret_key_change_in_production
+      - DATABASE_URL=postgresql://atlas_user:atlas_password@postgres:5432/atlas_user
+    ports:
+      - "3000:3000"
+    networks:
+      - atlas-network-beta
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', {timeout: 8000}, (res) => {if (res.statusCode >= 200 && res.statusCode < 400) {process.exit(0);} else {process.exit(1);}}).on('error', (err) => {process.exit(1);})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  archive-service:
+    image: frozen68/archive-service:beta
+    container_name: atlas-archive-service-beta
+    depends_on:
+      - postgres
+    environment:
+      - PORT=8081
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=atlas_archive
+      - DB_USER=atlas_user
+      - DB_PASSWORD=atlas_password
+    networks:
+      - atlas-network-beta
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ai-orchestrator:
+    image: python:3.10-slim
+    container_name: atlas-ai-orchestrator-beta
+    working_dir: /app
+    command: bash -c "apt-get update && apt-get install -y curl && pip install fastapi uvicorn pydantic-settings psycopg2-binary && uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
+    environment:
+      - PORT=8001
+      - MODEL_CACHE_DIR=/app/cache
+      - LOG_LEVEL=INFO
+      - AI_API_KEY=beta_ai_api_key_change_in_production
+      - DATABASE_URL=postgresql://atlas_user:atlas_password@postgres:5432/atlas_user
+    volumes:
+      - ./ai-orchestrator:/app
+      - ai_model_cache:/app/cache
+      - ai_logs:/app/logs
+    networks:
+      - atlas-network-beta
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request, sys; req = urllib.request.Request('http://localhost:8001/health'); try: res = urllib.request.urlopen(req, timeout=8); sys.exit(0 if 200 <= res.getcode() < 400 else 1); except Exception as e: sys.exit(1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  segmentation-service:
+    image: python:3.9-slim
+    container_name: atlas-segmentation-service-beta
+    working_dir: /app
+    environment:
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - MEMORY_OPTIMIZATION_ENABLED=true
+      - MEMORY_CHECK_INTERVAL=300
+      - MAX_MEMORY_USAGE_PERCENT=85
+      - DATABASE_URL=postgresql://atlas_user:atlas_password@postgres:5432/atlas_user
+    volumes:
+      - ./segmentation-service/main.simple.py:/app/main.py
+      - segmentation_logs:/app/logs
+    networks:
+      - atlas-network-beta
+    depends_on:
+      - postgres
+    command: bash -c "apt-get update && apt-get install -y curl && pip install fastapi uvicorn pydantic && uvicorn main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request, sys; req = urllib.request.Request('http://localhost:8000/health'); try: res = urllib.request.urlopen(req, timeout=8); sys.exit(0 if 200 <= res.getcode() < 400 else 1); except Exception as e: sys.exit(1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  atlas-network-beta:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  ai_model_cache:
+  ai_logs:
+  segmentation_logs:

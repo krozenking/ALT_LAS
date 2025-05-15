@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-bench
+  namespace: alt-las
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-bench
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-bench
+subjects:
+- kind: ServiceAccount
+  name: kube-bench
+  namespace: alt-las
+roleRef:
+  kind: ClusterRole
+  name: kube-bench
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-bench
+  namespace: alt-las
+spec:
+  template:
+    spec:
+      hostPID: true
+      serviceAccountName: kube-bench
+      containers:
+      - name: kube-bench
+        image: aquasec/kube-bench:latest
+        command:
+        - kube-bench
+        - --json
+        - --outputfile
+        - /reports/kube-bench-report.json
+        volumeMounts:
+        - name: var-lib-kubelet
+          mountPath: /var/lib/kubelet
+          readOnly: true
+        - name: etc-systemd
+          mountPath: /etc/systemd
+          readOnly: true
+        - name: etc-kubernetes
+          mountPath: /etc/kubernetes
+          readOnly: true
+        - name: reports-volume
+          mountPath: /reports
+      restartPolicy: Never
+      volumes:
+      - name: var-lib-kubelet
+        hostPath:
+          path: /var/lib/kubelet
+      - name: etc-systemd
+        hostPath:
+          path: /etc/systemd
+      - name: etc-kubernetes
+        hostPath:
+          path: /etc/kubernetes
+      - name: reports-volume
+        emptyDir: {}

@@ -1,0 +1,49 @@
+# Test Dockerfile for Runner Service
+# Based on secure template
+# Created by Worker 8 (Security and DevOps Specialist)
+
+# Build stage
+FROM rust:1.65-slim AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Cargo files
+COPY runner-service/Cargo.toml runner-service/Cargo.lock ./
+
+# Create dummy source file to cache dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs
+
+# Build dependencies
+RUN cargo build --release
+
+# Copy application code
+COPY runner-service/src ./src
+COPY runner-service/tests ./tests # Copy tests
+
+# Build the application and tests
+RUN cargo build --release
+RUN cargo test --release --no-run # Build test executable
+
+# Runtime stage (can use builder directly if only running tests)
+FROM builder AS tester
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user (optional for test stage if not needed)
+# RUN groupadd -r appgroup && useradd -r -g appuser -G appgroup
+# USER appuser
+
+# Command to run tests
+CMD ["cargo", "test", "--release"]
+

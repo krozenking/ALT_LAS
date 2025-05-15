@@ -1,0 +1,1852 @@
+{
+  "@colors/colors@1.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DABH/colors.js",
+    "publisher": "DABH",
+    "path": "/ALT_LAS/api-gateway/node_modules/@colors/colors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@colors/colors/LICENSE"
+  },
+  "@dabh/diagnostics@2.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/diagnostics",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/@dabh/diagnostics",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@dabh/diagnostics/LICENSE"
+  },
+  "@ioredis/commands@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ioredis/commands",
+    "publisher": "Zihua Li",
+    "email": "i@zihua.li",
+    "url": "http://zihua.li",
+    "path": "/ALT_LAS/api-gateway/node_modules/@ioredis/commands",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@ioredis/commands/LICENSE"
+  },
+  "@mapbox/node-pre-gyp@1.0.11": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/mapbox/node-pre-gyp",
+    "publisher": "Dane Springmeyer",
+    "email": "dane@mapbox.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/@mapbox/node-pre-gyp",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@mapbox/node-pre-gyp/LICENSE"
+  },
+  "@noble/hashes@1.8.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/paulmillr/noble-hashes",
+    "publisher": "Paul Miller",
+    "url": "https://paulmillr.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/@noble/hashes",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@noble/hashes/LICENSE"
+  },
+  "@opentelemetry/api@1.9.0": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/open-telemetry/opentelemetry-js",
+    "publisher": "OpenTelemetry Authors",
+    "path": "/ALT_LAS/api-gateway/node_modules/@opentelemetry/api",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@opentelemetry/api/LICENSE"
+  },
+  "@paralleldrive/cuid2@2.2.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ericelliott/cuid2",
+    "publisher": "Eric Elliott",
+    "path": "/ALT_LAS/api-gateway/node_modules/@paralleldrive/cuid2",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@paralleldrive/cuid2/LICENSE"
+  },
+  "@scarf/scarf@1.4.0": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/scarf-sh/scarf-js",
+    "publisher": "Scarf Systems",
+    "path": "/ALT_LAS/api-gateway/node_modules/@scarf/scarf",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@scarf/scarf/LICENSE"
+  },
+  "@types/bcrypt@5.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/bcrypt",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/bcrypt/LICENSE"
+  },
+  "@types/body-parser@1.19.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/body-parser",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/body-parser/LICENSE"
+  },
+  "@types/connect@3.4.38": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/connect",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/connect/LICENSE"
+  },
+  "@types/express-serve-static-core@5.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/express-serve-static-core",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/express-serve-static-core/LICENSE"
+  },
+  "@types/express@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/express",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/express/LICENSE"
+  },
+  "@types/http-errors@2.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/http-errors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/http-errors/LICENSE"
+  },
+  "@types/http-proxy@1.17.16": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/http-proxy",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/http-proxy/LICENSE"
+  },
+  "@types/mime@1.3.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/mime",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/mime/LICENSE"
+  },
+  "@types/node@22.15.13": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/node",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/node/LICENSE"
+  },
+  "@types/qs@6.9.18": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/qs",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/qs/LICENSE"
+  },
+  "@types/range-parser@1.2.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/range-parser",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/range-parser/LICENSE"
+  },
+  "@types/response-time@2.3.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/response-time",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/response-time/LICENSE"
+  },
+  "@types/send@0.17.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/send",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/send/LICENSE"
+  },
+  "@types/serve-static@1.15.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/serve-static",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/serve-static/LICENSE"
+  },
+  "@types/triple-beam@1.3.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/triple-beam",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/triple-beam/LICENSE"
+  },
+  "@types/uuid@10.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "/ALT_LAS/api-gateway/node_modules/@types/uuid",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/@types/uuid/LICENSE"
+  },
+  "abbrev@1.1.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/abbrev-js",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "path": "/ALT_LAS/api-gateway/node_modules/abbrev",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/abbrev/LICENSE"
+  },
+  "accepts@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/accepts",
+    "path": "/ALT_LAS/api-gateway/node_modules/accepts",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/accepts/LICENSE"
+  },
+  "agent-base@6.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/node-agent-base",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "/ALT_LAS/api-gateway/node_modules/agent-base",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/agent-base/README.md"
+  },
+  "ansi-regex@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/chalk/ansi-regex",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/ansi-regex",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/ansi-regex/license"
+  },
+  "api-gateway@1.0.0": {
+    "licenses": "MIT",
+    "path": "/ALT_LAS/api-gateway",
+    "licenseFile": "/ALT_LAS/api-gateway/README.md"
+  },
+  "aproba@2.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/aproba",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "path": "/ALT_LAS/api-gateway/node_modules/aproba",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/aproba/LICENSE"
+  },
+  "are-we-there-yet@2.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/are-we-there-yet",
+    "publisher": "GitHub Inc.",
+    "path": "/ALT_LAS/api-gateway/node_modules/are-we-there-yet",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/are-we-there-yet/LICENSE.md"
+  },
+  "argparse@1.0.10": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodeca/argparse",
+    "path": "/ALT_LAS/api-gateway/node_modules/yamljs/node_modules/argparse",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/yamljs/node_modules/argparse/LICENSE"
+  },
+  "asap@2.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/kriskowal/asap",
+    "path": "/ALT_LAS/api-gateway/node_modules/asap",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/asap/LICENSE.md"
+  },
+  "async@3.2.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/caolan/async",
+    "publisher": "Caolan McMahon",
+    "path": "/ALT_LAS/api-gateway/node_modules/async",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/async/LICENSE"
+  },
+  "asynckit@0.4.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/alexindigo/asynckit",
+    "publisher": "Alex Indigo",
+    "email": "iam@alexindigo.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/asynckit",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/asynckit/LICENSE"
+  },
+  "axios@1.9.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/axios/axios",
+    "publisher": "Matt Zabriskie",
+    "path": "/ALT_LAS/api-gateway/node_modules/axios",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/axios/LICENSE"
+  },
+  "balanced-match@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/balanced-match",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/balanced-match",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/balanced-match/LICENSE.md"
+  },
+  "basic-auth@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/basic-auth",
+    "path": "/ALT_LAS/api-gateway/node_modules/basic-auth",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/basic-auth/LICENSE"
+  },
+  "bcrypt@5.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/kelektiv/node.bcrypt.js",
+    "publisher": "Nick Campbell",
+    "url": "https://github.com/ncb000gt",
+    "path": "/ALT_LAS/api-gateway/node_modules/bcrypt",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/bcrypt/LICENSE"
+  },
+  "bintrees@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/vadimg/js_bintrees",
+    "publisher": "Vadim Graboys",
+    "email": "dimva13@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/bintrees",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/bintrees/LICENSE"
+  },
+  "body-parser@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/body-parser",
+    "path": "/ALT_LAS/api-gateway/node_modules/body-parser",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/body-parser/LICENSE"
+  },
+  "brace-expansion@1.1.11": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/brace-expansion",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/glob/node_modules/brace-expansion",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/glob/node_modules/brace-expansion/LICENSE"
+  },
+  "braces@3.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/micromatch/braces",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/braces",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/braces/LICENSE"
+  },
+  "buffer-equal-constant-time@1.0.1": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/goinstant/buffer-equal-constant-time",
+    "publisher": "GoInstant Inc., a salesforce.com company",
+    "path": "/ALT_LAS/api-gateway/node_modules/buffer-equal-constant-time",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/buffer-equal-constant-time/LICENSE.txt"
+  },
+  "bytes@3.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/bytes.js",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/bytes",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/bytes/LICENSE"
+  },
+  "call-bind-apply-helpers@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/call-bind-apply-helpers",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/call-bind-apply-helpers",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/call-bind-apply-helpers/LICENSE"
+  },
+  "call-bound@1.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/call-bound",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/call-bound",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/call-bound/LICENSE"
+  },
+  "chownr@2.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/chownr",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/chownr",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/chownr/LICENSE"
+  },
+  "cluster-key-slot@1.1.2": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/Salakar/cluster-key-slot",
+    "publisher": "Mike Diarmid",
+    "email": "mike.diarmid@gmail.com",
+    "url": "http://github.com/Salakar/",
+    "path": "/ALT_LAS/api-gateway/node_modules/cluster-key-slot",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/cluster-key-slot/LICENSE"
+  },
+  "color-convert@1.9.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Qix-/color-convert",
+    "publisher": "Heather Arthur",
+    "email": "fayearthur@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/color/node_modules/color-convert",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/color/node_modules/color-convert/LICENSE"
+  },
+  "color-name@1.1.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dfcreative/color-name",
+    "publisher": "DY",
+    "email": "dfcreative@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/color/node_modules/color-name",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/color/node_modules/color-name/LICENSE"
+  },
+  "color-name@1.1.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/colorjs/color-name",
+    "publisher": "DY",
+    "email": "dfcreative@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/color-name",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/color-name/LICENSE"
+  },
+  "color-string@1.9.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Qix-/color-string",
+    "publisher": "Heather Arthur",
+    "email": "fayearthur@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/color-string",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/color-string/LICENSE"
+  },
+  "color-support@1.1.3": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/color-support",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/color-support",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/color-support/LICENSE"
+  },
+  "color@3.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Qix-/color",
+    "path": "/ALT_LAS/api-gateway/node_modules/color",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/color/LICENSE"
+  },
+  "colorspace@1.1.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/colorspace",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/colorspace",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/colorspace/LICENSE.md"
+  },
+  "combined-stream@1.0.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/felixge/node-combined-stream",
+    "publisher": "Felix Geisendörfer",
+    "email": "felix@debuggable.com",
+    "url": "http://debuggable.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/combined-stream",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/combined-stream/License"
+  },
+  "compressible@2.0.18": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/compressible",
+    "path": "/ALT_LAS/api-gateway/node_modules/compressible",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/compressible/LICENSE"
+  },
+  "compression@1.8.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/compression",
+    "path": "/ALT_LAS/api-gateway/node_modules/compression",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/compression/LICENSE"
+  },
+  "concat-map@0.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/substack/node-concat-map",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "/ALT_LAS/api-gateway/node_modules/concat-map",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/concat-map/LICENSE"
+  },
+  "console-control-strings@1.1.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/console-control-strings",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "url": "http://re-becca.org/",
+    "path": "/ALT_LAS/api-gateway/node_modules/console-control-strings",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/console-control-strings/LICENSE"
+  },
+  "content-disposition@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-disposition",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/content-disposition",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/content-disposition/LICENSE"
+  },
+  "content-type@1.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-type",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/content-type",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/content-type/LICENSE"
+  },
+  "cookie-signature@1.2.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/node-cookie-signature",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@learnboost.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/cookie-signature",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/cookie-signature/LICENSE"
+  },
+  "cookie@0.7.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/cookie",
+    "publisher": "Roman Shtylman",
+    "email": "shtylman@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/cookie",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/cookie/LICENSE"
+  },
+  "cors@2.8.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/cors",
+    "publisher": "Troy Goode",
+    "email": "troygoode@gmail.com",
+    "url": "https://github.com/troygoode/",
+    "path": "/ALT_LAS/api-gateway/node_modules/cors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/cors/LICENSE"
+  },
+  "debug@2.6.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/debug",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "/ALT_LAS/api-gateway/node_modules/compression/node_modules/debug",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/compression/node_modules/debug/LICENSE"
+  },
+  "debug@4.4.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/debug-js/debug",
+    "publisher": "Josh Junon",
+    "url": "https://github.com/qix-",
+    "path": "/ALT_LAS/api-gateway/node_modules/debug",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/debug/LICENSE"
+  },
+  "delayed-stream@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/felixge/node-delayed-stream",
+    "publisher": "Felix Geisendörfer",
+    "email": "felix@debuggable.com",
+    "url": "http://debuggable.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/delayed-stream",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/delayed-stream/License"
+  },
+  "delegates@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/node-delegates",
+    "path": "/ALT_LAS/api-gateway/node_modules/delegates",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/delegates/License"
+  },
+  "denque@2.1.0": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/invertase/denque",
+    "publisher": "Invertase",
+    "email": "oss@invertase.io",
+    "url": "http://github.com/invertase/",
+    "path": "/ALT_LAS/api-gateway/node_modules/denque",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/denque/LICENSE"
+  },
+  "depd@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dougwilson/nodejs-depd",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/depd",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/depd/LICENSE"
+  },
+  "detect-libc@2.0.4": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/lovell/detect-libc",
+    "publisher": "Lovell Fuller",
+    "email": "npm@lovell.info",
+    "path": "/ALT_LAS/api-gateway/node_modules/detect-libc",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/detect-libc/LICENSE"
+  },
+  "dezalgo@1.0.4": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/dezalgo",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/dezalgo",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/dezalgo/LICENSE"
+  },
+  "dotenv@16.5.0": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/motdotla/dotenv",
+    "path": "/ALT_LAS/api-gateway/node_modules/dotenv",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/dotenv/LICENSE"
+  },
+  "dunder-proto@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/dunder-proto",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/dunder-proto",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/dunder-proto/LICENSE"
+  },
+  "ecdsa-sig-formatter@1.0.11": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/Brightspace/node-ecdsa-sig-formatter",
+    "publisher": "D2L Corporation",
+    "path": "/ALT_LAS/api-gateway/node_modules/ecdsa-sig-formatter",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/ecdsa-sig-formatter/LICENSE"
+  },
+  "ee-first@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonathanong/ee-first",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/ee-first",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/ee-first/LICENSE"
+  },
+  "emoji-regex@8.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mathiasbynens/emoji-regex",
+    "publisher": "Mathias Bynens",
+    "url": "https://mathiasbynens.be/",
+    "path": "/ALT_LAS/api-gateway/node_modules/emoji-regex",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/emoji-regex/LICENSE-MIT.txt"
+  },
+  "enabled@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/enabled",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/enabled",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/enabled/LICENSE"
+  },
+  "encodeurl@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/encodeurl",
+    "path": "/ALT_LAS/api-gateway/node_modules/encodeurl",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/encodeurl/LICENSE"
+  },
+  "es-define-property@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-define-property",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/es-define-property",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/es-define-property/LICENSE"
+  },
+  "es-errors@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-errors",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/es-errors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/es-errors/LICENSE"
+  },
+  "es-object-atoms@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-object-atoms",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/es-object-atoms",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/es-object-atoms/LICENSE"
+  },
+  "es-set-tostringtag@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/es-set-tostringtag",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/es-set-tostringtag",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/es-set-tostringtag/LICENSE"
+  },
+  "escape-html@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/component/escape-html",
+    "path": "/ALT_LAS/api-gateway/node_modules/escape-html",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/escape-html/LICENSE"
+  },
+  "etag@1.8.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/etag",
+    "path": "/ALT_LAS/api-gateway/node_modules/etag",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/etag/LICENSE"
+  },
+  "eventemitter3@4.0.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/primus/eventemitter3",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/eventemitter3",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/eventemitter3/LICENSE"
+  },
+  "express-healthcheck@0.1.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/lennym/express-healthcheck",
+    "publisher": "Leonard Martin",
+    "path": "/ALT_LAS/api-gateway/node_modules/express-healthcheck",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/express-healthcheck/LICENSE"
+  },
+  "express-validator@7.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/express-validator/express-validator",
+    "publisher": "Christoph Tavan",
+    "email": "dev@tavan.de",
+    "path": "/ALT_LAS/api-gateway/node_modules/express-validator",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/express-validator/LICENSE"
+  },
+  "express@5.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/express",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "/ALT_LAS/api-gateway/node_modules/express",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/express/LICENSE"
+  },
+  "fecha@4.2.3": {
+    "licenses": "MIT",
+    "repository": "git+https://taylorhakes@github.com/taylorhakes/fecha",
+    "publisher": "Taylor Hakes",
+    "path": "/ALT_LAS/api-gateway/node_modules/fecha",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fecha/LICENSE"
+  },
+  "fill-range@7.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonschlinkert/fill-range",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/fill-range",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fill-range/LICENSE"
+  },
+  "finalhandler@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/finalhandler",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/finalhandler",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/finalhandler/LICENSE"
+  },
+  "fn.name@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/fn.name",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/fn.name",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fn.name/LICENSE"
+  },
+  "follow-redirects@1.15.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/follow-redirects/follow-redirects",
+    "publisher": "Ruben Verborgh",
+    "email": "ruben@verborgh.org",
+    "url": "https://ruben.verborgh.org/",
+    "path": "/ALT_LAS/api-gateway/node_modules/follow-redirects",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/follow-redirects/LICENSE"
+  },
+  "form-data@4.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/form-data/form-data",
+    "publisher": "Felix Geisendörfer",
+    "email": "felix@debuggable.com",
+    "url": "http://debuggable.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/form-data",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/form-data/License"
+  },
+  "formidable@3.5.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/node-formidable/formidable",
+    "path": "/ALT_LAS/api-gateway/node_modules/formidable",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/formidable/LICENSE"
+  },
+  "forwarded@0.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/forwarded",
+    "path": "/ALT_LAS/api-gateway/node_modules/forwarded",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/forwarded/LICENSE"
+  },
+  "fresh@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/fresh",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/fresh",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fresh/LICENSE"
+  },
+  "fs-minipass@2.1.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/fs-minipass",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/fs-minipass",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fs-minipass/LICENSE"
+  },
+  "fs.realpath@1.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/fs.realpath",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/fs.realpath",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fs.realpath/LICENSE"
+  },
+  "function-bind@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Raynos/function-bind",
+    "publisher": "Raynos",
+    "email": "raynos2@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/function-bind",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/function-bind/LICENSE"
+  },
+  "gauge@3.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/gauge",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "path": "/ALT_LAS/api-gateway/node_modules/gauge",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/gauge/LICENSE"
+  },
+  "get-intrinsic@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/get-intrinsic",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/get-intrinsic",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/get-intrinsic/LICENSE"
+  },
+  "get-proto@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/get-proto",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/get-proto",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/get-proto/LICENSE"
+  },
+  "glob@7.2.3": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/node-glob",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/glob",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/glob/LICENSE"
+  },
+  "gopd@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/gopd",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/gopd",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/gopd/LICENSE"
+  },
+  "has-symbols@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/has-symbols",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "url": "http://ljharb.codes",
+    "path": "/ALT_LAS/api-gateway/node_modules/has-symbols",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/has-symbols/LICENSE"
+  },
+  "has-tostringtag@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/has-tostringtag",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "url": "http://ljharb.codes",
+    "path": "/ALT_LAS/api-gateway/node_modules/has-tostringtag",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/has-tostringtag/LICENSE"
+  },
+  "has-unicode@2.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/has-unicode",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "path": "/ALT_LAS/api-gateway/node_modules/has-unicode",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/has-unicode/LICENSE"
+  },
+  "hasown@2.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/hasOwn",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/hasown",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/hasown/LICENSE"
+  },
+  "helmet@8.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/helmetjs/helmet",
+    "publisher": "Adam Baldwin",
+    "email": "adam@npmjs.com",
+    "url": "https://evilpacket.net",
+    "path": "/ALT_LAS/api-gateway/node_modules/helmet",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/helmet/LICENSE"
+  },
+  "http-errors@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/http-errors",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/http-errors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/http-errors/LICENSE"
+  },
+  "http-proxy-middleware@3.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/chimurai/http-proxy-middleware",
+    "publisher": "Steven Chim",
+    "path": "/ALT_LAS/api-gateway/node_modules/http-proxy-middleware",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/http-proxy-middleware/LICENSE"
+  },
+  "http-proxy@1.18.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/http-party/node-http-proxy",
+    "publisher": "Charlie Robbins",
+    "email": "charlie.robbins@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/http-proxy",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/http-proxy/LICENSE"
+  },
+  "https-proxy-agent@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/node-https-proxy-agent",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "/ALT_LAS/api-gateway/node_modules/https-proxy-agent",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/https-proxy-agent/README.md"
+  },
+  "iconv-lite@0.6.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ashtuchkin/iconv-lite",
+    "publisher": "Alexander Shtuchkin",
+    "email": "ashtuchkin@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/iconv-lite",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/iconv-lite/LICENSE"
+  },
+  "inflight@1.0.6": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/inflight",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/inflight",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/inflight/LICENSE"
+  },
+  "inherits@2.0.4": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/inherits",
+    "path": "/ALT_LAS/api-gateway/node_modules/inherits",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/inherits/LICENSE"
+  },
+  "ioredis@5.6.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/luin/ioredis",
+    "publisher": "Zihua Li",
+    "email": "i@zihua.li",
+    "url": "http://zihua.li",
+    "path": "/ALT_LAS/api-gateway/node_modules/ioredis",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/ioredis/LICENSE"
+  },
+  "ipaddr.js@1.9.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/whitequark/ipaddr.js",
+    "publisher": "whitequark",
+    "email": "whitequark@whitequark.org",
+    "path": "/ALT_LAS/api-gateway/node_modules/ipaddr.js",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/ipaddr.js/LICENSE"
+  },
+  "is-arrayish@0.3.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/qix-/node-is-arrayish",
+    "publisher": "Qix",
+    "url": "http://github.com/qix-",
+    "path": "/ALT_LAS/api-gateway/node_modules/simple-swizzle/node_modules/is-arrayish",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/simple-swizzle/node_modules/is-arrayish/LICENSE"
+  },
+  "is-extglob@2.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonschlinkert/is-extglob",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-extglob",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-extglob/LICENSE"
+  },
+  "is-fullwidth-code-point@3.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/is-fullwidth-code-point",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-fullwidth-code-point",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-fullwidth-code-point/license"
+  },
+  "is-glob@4.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/micromatch/is-glob",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-glob",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-glob/LICENSE"
+  },
+  "is-number@7.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonschlinkert/is-number",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-number",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-number/LICENSE"
+  },
+  "is-plain-object@5.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonschlinkert/is-plain-object",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-plain-object",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-plain-object/LICENSE"
+  },
+  "is-promise@4.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/then/is-promise",
+    "publisher": "ForbesLindesay",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-promise",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-promise/LICENSE"
+  },
+  "is-stream@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/is-stream",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "https://sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/is-stream",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/is-stream/license"
+  },
+  "jsonwebtoken@9.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/auth0/node-jsonwebtoken",
+    "publisher": "auth0",
+    "path": "/ALT_LAS/api-gateway/node_modules/jsonwebtoken",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/jsonwebtoken/LICENSE"
+  },
+  "jwa@1.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianloveswords/node-jwa",
+    "publisher": "Brian J. Brennan",
+    "email": "brianloveswords@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/jwa",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/jwa/LICENSE"
+  },
+  "jws@3.2.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianloveswords/node-jws",
+    "publisher": "Brian J Brennan",
+    "path": "/ALT_LAS/api-gateway/node_modules/jws",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/jws/LICENSE"
+  },
+  "kuler@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/kuler",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/kuler",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/kuler/LICENSE"
+  },
+  "lodash.defaults@4.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.defaults",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.defaults/LICENSE"
+  },
+  "lodash.includes@4.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.includes",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.includes/LICENSE"
+  },
+  "lodash.isarguments@3.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.isarguments",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.isarguments/LICENSE"
+  },
+  "lodash.isboolean@3.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.isboolean",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.isboolean/LICENSE"
+  },
+  "lodash.isinteger@4.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.isinteger",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.isinteger/LICENSE"
+  },
+  "lodash.isnumber@3.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.isnumber",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.isnumber/LICENSE"
+  },
+  "lodash.isplainobject@4.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.isplainobject",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.isplainobject/LICENSE"
+  },
+  "lodash.isstring@4.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.isstring",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.isstring/LICENSE"
+  },
+  "lodash.once@4.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash.once",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash.once/LICENSE"
+  },
+  "lodash@4.17.21": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/lodash",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/lodash/LICENSE"
+  },
+  "logform@2.7.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/winstonjs/logform",
+    "publisher": "Charlie Robbins",
+    "email": "charlie.robbins@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/logform",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/logform/LICENSE"
+  },
+  "make-dir@3.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/make-dir",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/make-dir",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/make-dir/license"
+  },
+  "math-intrinsics@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/math-intrinsics",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/math-intrinsics",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/math-intrinsics/LICENSE"
+  },
+  "media-typer@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/media-typer",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/media-typer",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/media-typer/LICENSE"
+  },
+  "memory-cache@0.2.0": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/ptarjan/node-cache",
+    "publisher": "Paul Tarjan",
+    "email": "npm@paulisageek.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/memory-cache",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/memory-cache/LICENSE.md"
+  },
+  "merge-descriptors@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/merge-descriptors",
+    "path": "/ALT_LAS/api-gateway/node_modules/merge-descriptors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/merge-descriptors/license"
+  },
+  "micromatch@4.0.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/micromatch/micromatch",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/micromatch",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/micromatch/LICENSE"
+  },
+  "mime-db@1.52.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-db",
+    "path": "/ALT_LAS/api-gateway/node_modules/form-data/node_modules/mime-db",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/form-data/node_modules/mime-db/LICENSE"
+  },
+  "mime-db@1.54.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-db",
+    "path": "/ALT_LAS/api-gateway/node_modules/mime-db",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/mime-db/LICENSE"
+  },
+  "mime-types@2.1.35": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-types",
+    "path": "/ALT_LAS/api-gateway/node_modules/form-data/node_modules/mime-types",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/form-data/node_modules/mime-types/LICENSE"
+  },
+  "mime-types@3.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-types",
+    "path": "/ALT_LAS/api-gateway/node_modules/mime-types",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/mime-types/LICENSE"
+  },
+  "minimatch@3.1.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/minimatch",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me",
+    "path": "/ALT_LAS/api-gateway/node_modules/glob/node_modules/minimatch",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/glob/node_modules/minimatch/LICENSE"
+  },
+  "minipass@3.3.6": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/minipass",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/fs-minipass/node_modules/minipass",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fs-minipass/node_modules/minipass/LICENSE"
+  },
+  "minipass@5.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/minipass",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/minipass",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/minipass/LICENSE"
+  },
+  "minizlib@2.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/isaacs/minizlib",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/minizlib",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/minizlib/LICENSE"
+  },
+  "mkdirp@1.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/isaacs/node-mkdirp",
+    "path": "/ALT_LAS/api-gateway/node_modules/tar/node_modules/mkdirp",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/tar/node_modules/mkdirp/LICENSE"
+  },
+  "morgan@1.10.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/morgan",
+    "path": "/ALT_LAS/api-gateway/node_modules/morgan",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/morgan/LICENSE"
+  },
+  "ms@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/zeit/ms",
+    "path": "/ALT_LAS/api-gateway/node_modules/compression/node_modules/ms",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/compression/node_modules/ms/license.md"
+  },
+  "ms@2.1.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/vercel/ms",
+    "path": "/ALT_LAS/api-gateway/node_modules/ms",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/ms/license.md"
+  },
+  "negotiator@0.6.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/negotiator",
+    "path": "/ALT_LAS/api-gateway/node_modules/negotiator",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/negotiator/LICENSE"
+  },
+  "negotiator@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/negotiator",
+    "path": "/ALT_LAS/api-gateway/node_modules/accepts/node_modules/negotiator",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/accepts/node_modules/negotiator/LICENSE"
+  },
+  "node-addon-api@5.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/node-addon-api",
+    "path": "/ALT_LAS/api-gateway/node_modules/node-addon-api",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/node-addon-api/LICENSE.md"
+  },
+  "node-fetch@2.7.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/bitinn/node-fetch",
+    "publisher": "David Frank",
+    "path": "/ALT_LAS/api-gateway/node_modules/node-fetch",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/node-fetch/LICENSE.md"
+  },
+  "nopt@5.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/nopt",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/nopt",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/nopt/LICENSE"
+  },
+  "npmlog@5.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/npmlog",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/npmlog",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/npmlog/LICENSE"
+  },
+  "object-assign@4.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/object-assign",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/object-assign",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/object-assign/license"
+  },
+  "object-inspect@1.13.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/object-inspect",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "/ALT_LAS/api-gateway/node_modules/object-inspect",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/object-inspect/LICENSE"
+  },
+  "on-finished@2.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/on-finished",
+    "path": "/ALT_LAS/api-gateway/node_modules/morgan/node_modules/on-finished",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/morgan/node_modules/on-finished/LICENSE"
+  },
+  "on-finished@2.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/on-finished",
+    "path": "/ALT_LAS/api-gateway/node_modules/on-finished",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/on-finished/LICENSE"
+  },
+  "on-headers@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/on-headers",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/on-headers",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/on-headers/LICENSE"
+  },
+  "once@1.4.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/once",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/once",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/once/LICENSE"
+  },
+  "one-time@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/one-time",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/one-time",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/one-time/LICENSE"
+  },
+  "opossum@8.4.0": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/nodeshift/opossum",
+    "publisher": "Red Hat, Inc.",
+    "path": "/ALT_LAS/api-gateway/node_modules/opossum",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/opossum/LICENSE"
+  },
+  "parseurl@1.3.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/parseurl",
+    "path": "/ALT_LAS/api-gateway/node_modules/parseurl",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/parseurl/LICENSE"
+  },
+  "path-is-absolute@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/path-is-absolute",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/path-is-absolute",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/path-is-absolute/license"
+  },
+  "path-to-regexp@8.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/path-to-regexp",
+    "path": "/ALT_LAS/api-gateway/node_modules/path-to-regexp",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/path-to-regexp/LICENSE"
+  },
+  "picomatch@2.3.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/micromatch/picomatch",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/picomatch",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/picomatch/LICENSE"
+  },
+  "prom-client@15.1.3": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/siimon/prom-client",
+    "publisher": "Simon Nyberg",
+    "path": "/ALT_LAS/api-gateway/node_modules/prom-client",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/prom-client/LICENSE"
+  },
+  "proxy-addr@2.0.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/proxy-addr",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/proxy-addr",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/proxy-addr/LICENSE"
+  },
+  "proxy-from-env@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Rob--W/proxy-from-env",
+    "publisher": "Rob Wu",
+    "email": "rob@robwu.nl",
+    "url": "https://robwu.nl/",
+    "path": "/ALT_LAS/api-gateway/node_modules/proxy-from-env",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/proxy-from-env/LICENSE"
+  },
+  "qs@6.14.0": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/ljharb/qs",
+    "path": "/ALT_LAS/api-gateway/node_modules/qs",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/qs/LICENSE.md"
+  },
+  "range-parser@1.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/range-parser",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/range-parser",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/range-parser/LICENSE"
+  },
+  "raw-body@3.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/raw-body",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/raw-body",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/raw-body/LICENSE"
+  },
+  "readable-stream@3.6.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/readable-stream",
+    "path": "/ALT_LAS/api-gateway/node_modules/are-we-there-yet/node_modules/readable-stream",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/are-we-there-yet/node_modules/readable-stream/LICENSE"
+  },
+  "redis-errors@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/NodeRedis/redis-errors",
+    "publisher": "Ruben Bridgewater",
+    "path": "/ALT_LAS/api-gateway/node_modules/redis-errors",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/redis-errors/LICENSE"
+  },
+  "redis-parser@3.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/NodeRedis/node-redis-parser",
+    "publisher": "Ruben Bridgewater",
+    "path": "/ALT_LAS/api-gateway/node_modules/redis-parser",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/redis-parser/LICENSE"
+  },
+  "requires-port@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/unshiftio/requires-port",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/requires-port",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/requires-port/LICENSE"
+  },
+  "response-time@2.3.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/response-time",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/response-time",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/response-time/LICENSE"
+  },
+  "rimraf@3.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/rimraf",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/rimraf",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/rimraf/LICENSE"
+  },
+  "router@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/router",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/router",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/router/LICENSE"
+  },
+  "safe-buffer@5.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/feross/safe-buffer",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "http://feross.org",
+    "path": "/ALT_LAS/api-gateway/node_modules/string_decoder/node_modules/safe-buffer",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/string_decoder/node_modules/safe-buffer/LICENSE"
+  },
+  "safe-buffer@5.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/feross/safe-buffer",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "https://feross.org",
+    "path": "/ALT_LAS/api-gateway/node_modules/safe-buffer",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/safe-buffer/LICENSE"
+  },
+  "safe-stable-stringify@2.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/BridgeAR/safe-stable-stringify",
+    "publisher": "Ruben Bridgewater",
+    "path": "/ALT_LAS/api-gateway/node_modules/safe-stable-stringify",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/safe-stable-stringify/LICENSE"
+  },
+  "safer-buffer@2.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ChALkeR/safer-buffer",
+    "publisher": "Nikita Skovoroda",
+    "email": "chalkerx@gmail.com",
+    "url": "https://github.com/ChALkeR",
+    "path": "/ALT_LAS/api-gateway/node_modules/safer-buffer",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/safer-buffer/LICENSE"
+  },
+  "semver@6.3.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/node-semver",
+    "publisher": "GitHub Inc.",
+    "path": "/ALT_LAS/api-gateway/node_modules/make-dir/node_modules/semver",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/make-dir/node_modules/semver/LICENSE"
+  },
+  "semver@7.7.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/node-semver",
+    "publisher": "GitHub Inc.",
+    "path": "/ALT_LAS/api-gateway/node_modules/semver",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/semver/LICENSE"
+  },
+  "send@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/send",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "/ALT_LAS/api-gateway/node_modules/send",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/send/LICENSE"
+  },
+  "serve-static@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/serve-static",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/serve-static",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/serve-static/LICENSE"
+  },
+  "set-blocking@2.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/yargs/set-blocking",
+    "publisher": "Ben Coe",
+    "email": "ben@npmjs.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/set-blocking",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/set-blocking/LICENSE.txt"
+  },
+  "setprototypeof@1.2.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/wesleytodd/setprototypeof",
+    "publisher": "Wes Todd",
+    "path": "/ALT_LAS/api-gateway/node_modules/setprototypeof",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/setprototypeof/LICENSE"
+  },
+  "side-channel-list@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-list",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/side-channel-list",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/side-channel-list/LICENSE"
+  },
+  "side-channel-map@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-map",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/side-channel-map",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/side-channel-map/LICENSE"
+  },
+  "side-channel-weakmap@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-weakmap",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/side-channel-weakmap",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/side-channel-weakmap/LICENSE"
+  },
+  "side-channel@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/side-channel",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/side-channel/LICENSE"
+  },
+  "signal-exit@3.0.7": {
+    "licenses": "ISC",
+    "repository": "https://github.com/tapjs/signal-exit",
+    "publisher": "Ben Coe",
+    "email": "ben@npmjs.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/signal-exit",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/signal-exit/LICENSE.txt"
+  },
+  "simple-swizzle@0.2.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/qix-/node-simple-swizzle",
+    "publisher": "Qix",
+    "url": "http://github.com/qix-",
+    "path": "/ALT_LAS/api-gateway/node_modules/simple-swizzle",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/simple-swizzle/LICENSE"
+  },
+  "sprintf-js@1.0.3": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/alexei/sprintf.js",
+    "publisher": "Alexandru Marasteanu",
+    "email": "hello@alexei.ro",
+    "url": "http://alexei.ro/",
+    "path": "/ALT_LAS/api-gateway/node_modules/sprintf-js",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/sprintf-js/LICENSE"
+  },
+  "stack-trace@0.0.10": {
+    "licenses": "MIT",
+    "repository": "https://github.com/felixge/node-stack-trace",
+    "publisher": "Felix Geisendörfer",
+    "email": "felix@debuggable.com",
+    "url": "http://debuggable.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/stack-trace",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/stack-trace/License"
+  },
+  "standard-as-callback@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/luin/asCallback",
+    "publisher": "luin",
+    "email": "i@zihua.li",
+    "path": "/ALT_LAS/api-gateway/node_modules/standard-as-callback",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/standard-as-callback/LICENSE"
+  },
+  "statuses@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/statuses",
+    "path": "/ALT_LAS/api-gateway/node_modules/statuses",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/statuses/LICENSE"
+  },
+  "string-width@4.2.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/string-width",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/string-width",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/string-width/license"
+  },
+  "string_decoder@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/string_decoder",
+    "path": "/ALT_LAS/api-gateway/node_modules/string_decoder",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/string_decoder/LICENSE"
+  },
+  "strip-ansi@6.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/chalk/strip-ansi",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/strip-ansi",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/strip-ansi/license"
+  },
+  "swagger-ui-dist@5.21.0": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/swagger-api/swagger-ui",
+    "path": "/ALT_LAS/api-gateway/node_modules/swagger-ui-dist",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/swagger-ui-dist/LICENSE",
+    "noticeFile": "/ALT_LAS/api-gateway/node_modules/swagger-ui-dist/NOTICE"
+  },
+  "swagger-ui-express@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/scottie1984/swagger-ui-express",
+    "publisher": "Stephen Scott",
+    "email": "scottie1984@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/swagger-ui-express",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/swagger-ui-express/LICENSE"
+  },
+  "tar@6.2.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/node-tar",
+    "publisher": "GitHub Inc.",
+    "path": "/ALT_LAS/api-gateway/node_modules/tar",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/tar/LICENSE"
+  },
+  "tdigest@0.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/welch/tdigest",
+    "publisher": "Will Welch",
+    "email": "welch@quietplease.com",
+    "url": "http://quietplease.com/",
+    "path": "/ALT_LAS/api-gateway/node_modules/tdigest",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/tdigest/LICENSE"
+  },
+  "text-hex@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/3rd-Eden/text-hex",
+    "publisher": "Arnout Kazemier",
+    "path": "/ALT_LAS/api-gateway/node_modules/text-hex",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/text-hex/LICENSE"
+  },
+  "to-regex-range@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/micromatch/to-regex-range",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "/ALT_LAS/api-gateway/node_modules/to-regex-range",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/to-regex-range/LICENSE"
+  },
+  "toidentifier@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/component/toidentifier",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/toidentifier",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/toidentifier/LICENSE"
+  },
+  "tr46@0.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Sebmaster/tr46.js",
+    "publisher": "Sebastian Mayr",
+    "email": "npm@smayr.name",
+    "path": "/ALT_LAS/api-gateway/node_modules/tr46"
+  },
+  "triple-beam@1.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/winstonjs/triple-beam",
+    "publisher": "Charlie Robbins",
+    "email": "charlie.robbins@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/triple-beam",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/triple-beam/LICENSE"
+  },
+  "type-is@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/type-is",
+    "path": "/ALT_LAS/api-gateway/node_modules/type-is",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/type-is/LICENSE"
+  },
+  "undici-types@6.21.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/undici",
+    "path": "/ALT_LAS/api-gateway/node_modules/undici-types",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/undici-types/LICENSE"
+  },
+  "unpipe@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/unpipe",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/unpipe",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/unpipe/LICENSE"
+  },
+  "util-deprecate@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/util-deprecate",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "/ALT_LAS/api-gateway/node_modules/util-deprecate",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/util-deprecate/LICENSE"
+  },
+  "uuid@11.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/uuidjs/uuid",
+    "path": "/ALT_LAS/api-gateway/node_modules/uuid",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/uuid/LICENSE.md"
+  },
+  "validator@13.12.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/validatorjs/validator.js",
+    "publisher": "Chris O'Hara",
+    "email": "cohara87@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/validator",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/validator/LICENSE"
+  },
+  "vary@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/vary",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/vary",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/vary/LICENSE"
+  },
+  "webidl-conversions@3.0.1": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/jsdom/webidl-conversions",
+    "publisher": "Domenic Denicola",
+    "email": "d@domenic.me",
+    "url": "https://domenic.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/webidl-conversions",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/webidl-conversions/LICENSE.md"
+  },
+  "whatwg-url@5.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jsdom/whatwg-url",
+    "publisher": "Sebastian Mayr",
+    "email": "github@smayr.name",
+    "path": "/ALT_LAS/api-gateway/node_modules/whatwg-url",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/whatwg-url/LICENSE.txt"
+  },
+  "wide-align@1.1.5": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/wide-align",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "url": "http://re-becca.org/",
+    "path": "/ALT_LAS/api-gateway/node_modules/wide-align",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/wide-align/LICENSE"
+  },
+  "winston-transport@4.9.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/winstonjs/winston-transport",
+    "publisher": "Charlie Robbins",
+    "email": "charlie.robbins@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/winston-transport",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/winston-transport/LICENSE"
+  },
+  "winston@3.17.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/winstonjs/winston",
+    "publisher": "Charlie Robbins",
+    "email": "charlie.robbins@gmail.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/winston",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/winston/LICENSE"
+  },
+  "wrappy@1.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/wrappy",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/wrappy",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/wrappy/LICENSE"
+  },
+  "yallist@4.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/yallist",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "/ALT_LAS/api-gateway/node_modules/fs-minipass/node_modules/yallist",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/fs-minipass/node_modules/yallist/LICENSE"
+  },
+  "yamljs@0.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jeremyfa/yaml.js",
+    "publisher": "Jeremy Faivre",
+    "email": "contact@jeremyfa.com",
+    "path": "/ALT_LAS/api-gateway/node_modules/yamljs",
+    "licenseFile": "/ALT_LAS/api-gateway/node_modules/yamljs/LICENSE"
+  }
+}
+

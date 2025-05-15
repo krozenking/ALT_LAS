@@ -1,0 +1,40 @@
+# Development Dockerfile for Archive Service
+# Created by Worker 8 (Security and DevOps Specialist)
+
+FROM golang:1.19-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install development dependencies
+RUN apk add --no-cache git build-base curl
+
+# Copy Go module files
+COPY archive-service/go.mod archive-service/go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy application code (will be mounted via volume in dev)
+# COPY archive-service /app/
+
+# Create non-root user but allow write access for development
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8081
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8081/health || exit 1
+
+# Command to run the application with hot reloading (using air or similar)
+# Assuming air is installed or added as a dependency
+# CMD ["air"]
+# Fallback: build and run (less ideal for dev)
+CMD go build -o /app/archive-service ./cmd/server && ./archive-service
+

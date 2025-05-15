@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-status-scripts
+  namespace: alt-las
+data:
+  check-backup-status.sh: |
+    #!/bin/bash
+    
+    echo "===== Yedekleme Durumu Raporu ====="
+    echo "Tarih: $(date)"
+    echo ""
+    
+    echo "PostgreSQL Yedeklemeleri:"
+    echo "-------------------------"
+    if [ -d "/postgres-backup" ]; then
+      ls -lh /postgres-backup/postgres_*.sql.gz 2>/dev/null || echo "Hiç yedekleme bulunamadı."
+    else
+      echo "Yedekleme dizini bulunamadı."
+    fi
+    echo ""
+    
+    echo "Redis Yedeklemeleri:"
+    echo "-------------------"
+    if [ -d "/redis-backup" ]; then
+      ls -lh /redis-backup/redis_*.rdb 2>/dev/null || echo "Hiç yedekleme bulunamadı."
+    else
+      echo "Yedekleme dizini bulunamadı."
+    fi
+    echo ""
+    
+    echo "Prometheus Yedeklemeleri:"
+    echo "------------------------"
+    if [ -d "/prometheus-backup" ]; then
+      ls -lh /prometheus-backup/prometheus_*.tar.gz 2>/dev/null || echo "Hiç yedekleme bulunamadı."
+    else
+      echo "Yedekleme dizini bulunamadı."
+    fi
+    echo ""
+    
+    echo "Loki Yedeklemeleri:"
+    echo "------------------"
+    if [ -d "/loki-backup" ]; then
+      ls -lh /loki-backup/loki_*.tar.gz 2>/dev/null || echo "Hiç yedekleme bulunamadı."
+    else
+      echo "Yedekleme dizini bulunamadı."
+    fi
+    echo ""
+    
+    echo "CronJob Durumu:"
+    echo "--------------"
+    kubectl get cronjobs -n alt-las | grep backup
+    echo ""
+    
+    echo "Son Yedekleme İşleri:"
+    echo "--------------------"
+    kubectl get jobs -n alt-las | grep backup
+    echo ""
+    
+    echo "===== Rapor Sonu ====="

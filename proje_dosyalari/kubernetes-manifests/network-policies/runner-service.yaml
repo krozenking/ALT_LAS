@@ -1,0 +1,80 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runner-service-policy
+  namespace: alt-las
+spec:
+  podSelector:
+    matchLabels:
+      app: runner-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # API Gateway'den gelen trafiğe izin ver
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Prometheus'tan gelen metrik toplama trafiğine izin ver
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # PostgreSQL'e giden trafiğe izin ver
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: postgres-db
+    ports:
+    - protocol: TCP
+      port: 5432
+  # NATS'a giden trafiğe izin ver
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: nats
+    ports:
+    - protocol: TCP
+      port: 4222
+  # AI Orchestrator'a giden trafiğe izin ver
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: alt-las
+      podSelector:
+        matchLabels:
+          app: ai-orchestrator
+    ports:
+    - protocol: TCP
+      port: 8001
+  # DNS trafiğine izin ver
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

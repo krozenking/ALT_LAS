@@ -1,0 +1,56 @@
+name: UI Desktop Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'ui-desktop/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'ui-desktop/**'
+  schedule:
+    - cron: '0 0 * * 0'  # Her Pazar günü çalıştır
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: ui-desktop/package.json
+    
+    - name: Install dependencies
+      run: |
+        cd ui-desktop
+        npm ci
+    
+    - name: Run npm audit
+      run: |
+        cd ui-desktop
+        npm audit --audit-level=high
+    
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      with:
+        args: --file=ui-desktop/package.json --severity-threshold=high
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    
+    - name: Run ESLint security plugin
+      run: |
+        cd ui-desktop
+        npm install eslint-plugin-security
+        npx eslint --plugin security --ext .js,.jsx,.ts,.tsx src/
+        
+    - name: Run Electron security checks
+      run: |
+        cd ui-desktop
+        npm install electron-builder-notarize
+        npx electron-builder-notarize check

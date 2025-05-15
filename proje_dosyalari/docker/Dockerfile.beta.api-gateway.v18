@@ -1,0 +1,70 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY api-gateway/package.json api-gateway/package-lock.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY api-gateway /app/
+
+# Create a simple index.js file with proper LF line endings
+RUN echo '// Simple API Gateway for ALT_LAS' > /app/src/index.js && \
+    echo 'const express = require("express");' >> /app/src/index.js && \
+    echo 'const app = express();' >> /app/src/index.js && \
+    echo 'const port = process.env.PORT || 3000;' >> /app/src/index.js && \
+    echo '' >> /app/src/index.js && \
+    echo '// Basic middleware' >> /app/src/index.js && \
+    echo 'app.use(express.json());' >> /app/src/index.js && \
+    echo '' >> /app/src/index.js && \
+    echo '// Health check endpoint' >> /app/src/index.js && \
+    echo 'app.get("/health", (req, res) => {' >> /app/src/index.js && \
+    echo '  res.json({ status: "UP" });' >> /app/src/index.js && \
+    echo '});' >> /app/src/index.js && \
+    echo '' >> /app/src/index.js && \
+    echo '// Root endpoint' >> /app/src/index.js && \
+    echo 'app.get("/", (req, res) => {' >> /app/src/index.js && \
+    echo '  res.json({ ' >> /app/src/index.js && \
+    echo '    message: "Welcome to ALT_LAS API Gateway",' >> /app/src/index.js && \
+    echo '    version: "beta.v18"' >> /app/src/index.js && \
+    echo '  });' >> /app/src/index.js && \
+    echo '});' >> /app/src/index.js && \
+    echo '' >> /app/src/index.js && \
+    echo '// Start server' >> /app/src/index.js && \
+    echo 'app.listen(port, () => {' >> /app/src/index.js && \
+    echo '  console.log(`API Gateway running on port ${port}`);' >> /app/src/index.js && \
+    echo '});' >> /app/src/index.js && \
+    echo '' >> /app/src/index.js && \
+    echo 'module.exports = app;' >> /app/src/index.js
+
+# Ensure package.json has type: commonjs
+RUN sed -i 's/"type": "module"/"type": "commonjs"/g' package.json
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app
+
+# Create necessary directories for read-only filesystem
+RUN mkdir -p /app/tmp && chown -R appuser:appgroup /app/tmp
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 3000
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Environment variables for production
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Command to run the application
+CMD ["node", "src/index.js"]

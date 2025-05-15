@@ -1,0 +1,127 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: integration-tests
+  namespace: alt-las
+  labels:
+    app: integration-tests
+    component: testing
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: integration-tests
+        component: testing
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: integration-tests
+        image: alt-las/integration-tests:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_GATEWAY_URL
+          value: "http://api-gateway:3000"
+        - name: SEGMENTATION_SERVICE_URL
+          value: "http://segmentation-service:8000"
+        - name: RUNNER_SERVICE_URL
+          value: "http://runner-service:8080"
+        - name: ARCHIVE_SERVICE_URL
+          value: "http://archive-service:9000"
+        - name: AI_ORCHESTRATOR_URL
+          value: "http://ai-orchestrator:8001"
+        - name: POSTGRES_HOST
+          value: "postgres-db"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: "altlas_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: POSTGRES_PASSWORD
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secrets
+              key: REDIS_PASSWORD
+        - name: TEST_TIMEOUT
+          value: "300"
+        - name: LOG_LEVEL
+          value: "info"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Starting Integration Tests..."
+          
+          # Wait for all services to be ready
+          echo "Waiting for API Gateway..."
+          until curl -s http://api-gateway:3000/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "Waiting for Segmentation Service..."
+          until curl -s http://segmentation-service:8000/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "Waiting for Runner Service..."
+          until curl -s http://runner-service:8080/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "Waiting for Archive Service..."
+          until curl -s http://archive-service:9000/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "Waiting for AI Orchestrator..."
+          until curl -s http://ai-orchestrator:8001/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "All services are ready. Running integration tests..."
+          
+          # Run integration tests
+          npm run test:integration
+          
+          # Check test results
+          if [ $? -eq 0 ]; then
+            echo "Integration tests passed!"
+            exit 0
+          else
+            echo "Integration tests failed!"
+            exit 1
+          fi
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: test-results
+          mountPath: /app/test-results
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: test-results
+        emptyDir: {}
+      - name: tmp-volume
+        emptyDir: {}

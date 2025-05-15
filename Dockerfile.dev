@@ -1,0 +1,73 @@
+FROM nvidia/cuda:12.6.0-cudnn8-devel-ubuntu20.04
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    ca-certificates \
+    pkg-config \
+    software-properties-common \
+    unzip \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python 3.11
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3.11-venv \
+    python3.11-distutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --set python3 /usr/bin/python3.11
+
+# Install pip for Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+
+# Create symbolic links
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
+
+# Install TensorRT (compatible with CUDA 12.6)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnvinfer-dev=8.6.1.6-1+cuda12.0 \
+    libnvinfer-plugin-dev=8.6.1.6-1+cuda12.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for AI/ML development
+COPY requirements-gpu.txt /tmp/requirements-gpu.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-gpu.txt
+
+# Set environment variables
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+ENV PATH=/usr/local/cuda/bin:${PATH}
+
+# Set working directory
+WORKDIR /workspace
+
+# Create a non-root user
+RUN useradd -m -s /bin/bash developer && \
+    chown -R developer:developer /workspace
+
+# Switch to non-root user
+USER developer
+
+# Set up a Python virtual environment
+RUN python -m venv /home/developer/venv
+ENV PATH="/home/developer/venv/bin:${PATH}"
+
+# Verify CUDA installation
+RUN python -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA version:', torch.version.cuda); print('GPU count:', torch.cuda.device_count()); print('GPU name:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A')"
+
+# Default command
+CMD ["/bin/bash"]

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: alt-las
+data:
+  NODE_ENV: "production"
+  REDIS_URL: "redis://redis:6379"
+  SEGMENTATION_SERVICE_URL: "http://segmentation-service:8000"
+  RUNNER_SERVICE_URL: "http://runner-service:8080"
+  ARCHIVE_SERVICE_URL: "http://archive-service:9000"
+  AI_ORCHESTRATOR_URL: "http://ai-orchestrator:8001"
+  LOG_LEVEL: "info"

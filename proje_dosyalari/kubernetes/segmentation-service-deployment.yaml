@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: segmentation-service
+  namespace: alt-las
+  labels:
+    app: segmentation-service
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: segmentation-service
+  template:
+    metadata:
+      labels:
+        app: segmentation-service
+        app.kubernetes.io/component: backend
+    spec:
+      # Pod level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # Assuming user 'app' in Dockerfile has UID 1000
+        runAsGroup: 1000 # Assuming group 'app' in Dockerfile has GID 1000
+        fsGroup: 1000 # Volume access group
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: segmentation-service
+        image: frozen68/segmentation-service:beta
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: PORT
+          value: "8000"
+        # Container level security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp-data
+          mountPath: /tmp
+        - name: logs-data
+          mountPath: /app/logs
+        # Add mounts for config and language_resources if needed
+        # - name: config-volume
+        #   mountPath: /app/config
+        #   readOnly: true
+        # - name: lang-res-volume
+        #   mountPath: /app/language_resources
+        #   readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /health # Assuming a health endpoint exists
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 20
+        livenessProbe:
+          httpGet:
+            path: /health # Assuming a health endpoint exists
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 20
+      volumes:
+      - name: tmp-data
+        emptyDir: {}
+      - name: logs-data
+        emptyDir: {}
+      # Define config/resource volumes if needed
+      # - name: config-volume
+      #   configMap:
+      #     name: segmentation-service-config
+      # - name: lang-res-volume
+      #   configMap:
+      #     name: segmentation-service-lang-res

@@ -1,0 +1,107 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-tests
+  namespace: alt-las
+  labels:
+    app: load-tests
+    component: testing
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: load-tests
+        component: testing
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load-tests
+        image: alt-las/load-tests:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_GATEWAY_URL
+          value: "http://api-gateway:3000"
+        - name: SEGMENTATION_SERVICE_URL
+          value: "http://segmentation-service:8000"
+        - name: RUNNER_SERVICE_URL
+          value: "http://runner-service:8080"
+        - name: ARCHIVE_SERVICE_URL
+          value: "http://archive-service:9000"
+        - name: AI_ORCHESTRATOR_URL
+          value: "http://ai-orchestrator:8001"
+        - name: TEST_DURATION
+          value: "300"
+        - name: CONCURRENT_USERS
+          value: "50"
+        - name: RAMP_UP_TIME
+          value: "60"
+        - name: TARGET_RPS
+          value: "100"
+        - name: LOG_LEVEL
+          value: "info"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Starting Load Tests..."
+          
+          # Wait for all services to be ready
+          echo "Waiting for API Gateway..."
+          until curl -s http://api-gateway:3000/health | grep -q "ok"; do
+            sleep 5
+          done
+          
+          echo "All services are ready. Running load tests..."
+          
+          # Run load tests
+          k6 run /app/load-tests/api-gateway.js --duration ${TEST_DURATION}s --vus ${CONCURRENT_USERS} --rps ${TARGET_RPS}
+          API_GATEWAY_RESULT=$?
+          
+          k6 run /app/load-tests/segmentation-service.js --duration ${TEST_DURATION}s --vus ${CONCURRENT_USERS} --rps ${TARGET_RPS}
+          SEGMENTATION_SERVICE_RESULT=$?
+          
+          k6 run /app/load-tests/runner-service.js --duration ${TEST_DURATION}s --vus ${CONCURRENT_USERS} --rps ${TARGET_RPS}
+          RUNNER_SERVICE_RESULT=$?
+          
+          k6 run /app/load-tests/archive-service.js --duration ${TEST_DURATION}s --vus ${CONCURRENT_USERS} --rps ${TARGET_RPS}
+          ARCHIVE_SERVICE_RESULT=$?
+          
+          k6 run /app/load-tests/ai-orchestrator.js --duration ${TEST_DURATION}s --vus ${CONCURRENT_USERS} --rps ${TARGET_RPS}
+          AI_ORCHESTRATOR_RESULT=$?
+          
+          k6 run /app/load-tests/end-to-end.js --duration ${TEST_DURATION}s --vus ${CONCURRENT_USERS} --rps ${TARGET_RPS}
+          END_TO_END_RESULT=$?
+          
+          # Check test results
+          if [ $API_GATEWAY_RESULT -eq 0 ] && [ $SEGMENTATION_SERVICE_RESULT -eq 0 ] && [ $RUNNER_SERVICE_RESULT -eq 0 ] && [ $ARCHIVE_SERVICE_RESULT -eq 0 ] && [ $AI_ORCHESTRATOR_RESULT -eq 0 ] && [ $END_TO_END_RESULT -eq 0 ]; then
+            echo "Load tests passed!"
+            exit 0
+          else
+            echo "Load tests failed!"
+            exit 1
+          fi
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: test-results
+          mountPath: /app/test-results
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: test-results
+        emptyDir: {}
+      - name: tmp-volume
+        emptyDir: {}

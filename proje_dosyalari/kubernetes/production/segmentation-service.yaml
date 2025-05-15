@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: segmentation-service-config
+  namespace: atlas-production
+data:
+  ENVIRONMENT: "production"
+  PORT: "8000"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "atlas_user"
+  DB_USER: "atlas_user"
+  DB_PASSWORD: "atlas_password"
+  LOG_LEVEL: "info"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: segmentation-service
+  namespace: atlas-production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: segmentation-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: segmentation-service
+    spec:
+      containers:
+      - name: segmentation-service
+        image: frozen68/segmentation-service:production
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: segmentation-service-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: segmentation-service
+  namespace: atlas-production
+spec:
+  selector:
+    app: segmentation-service
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP

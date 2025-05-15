@@ -1,0 +1,60 @@
+# Production Dockerfile for Archive Service
+# Based on secure template
+# Created by Worker 8 (Security and DevOps Specialist)
+
+# Build stage
+FROM golang:1.19-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git build-base
+
+# Copy Go module files
+COPY archive-service/go.mod archive-service/go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy application code
+COPY archive-service /app/
+
+# Build the application statically
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/archive-service ./cmd/server
+
+# Runtime stage
+FROM alpine:latest
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copy the statically linked binary from the builder stage
+COPY --from=builder /app/archive-service .
+
+# Copy migrations and config (if needed at runtime)
+COPY archive-service/migrations ./migrations
+COPY archive-service/config/config.yaml ./config/config.yaml
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8081
+
+# Add health check (standard production interval)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8081/health || exit 1
+
+# Environment variables for production
+ENV ENVIRONMENT=production
+
+# Command to run the application
+CMD ["./archive-service"]
+

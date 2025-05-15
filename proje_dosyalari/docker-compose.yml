@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    container_name: alt_las_api_gateway
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${REDIS_URL}
+      - SEGMENTATION_SERVICE_URL=${SEGMENTATION_SERVICE_URL}
+      - RUNNER_SERVICE_URL=${RUNNER_SERVICE_URL}
+      - ARCHIVE_SERVICE_URL=${ARCHIVE_SERVICE_URL}
+      - AI_ORCHESTRATOR_URL=${AI_ORCHESTRATOR_URL}
+    depends_on:
+      - redis
+      - segmentation-service
+      - runner-service
+      - archive-service
+      - ai-orchestrator
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules # node_modules'ın üzerine yazılmasını engellemek için
+    restart: unless-stopped
+
+  segmentation-service:
+    build:
+      context: ./segmentation-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    container_name: alt_las_segmentation_service
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - PORT=${SEGMENTATION_PORT}
+      # - NATS_URL=${NATS_URL} # Eğer NATS kullanıyorsa
+    volumes:
+      - ./segmentation-service:/app
+    # depends_on:
+      # - nats # Eğer NATS kullanıyorsa
+    restart: unless-stopped
+
+  runner-service:
+    build:
+      context: ./runner-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    container_name: alt_las_runner_service
+    environment:
+      - RUST_LOG=${RUST_LOG}
+      - RUNNER_AI_SERVICE_URL=${RUNNER_AI_SERVICE_URL}
+      # - NATS_URL=${NATS_URL} # Eğer NATS kullanıyorsa
+    depends_on:
+      - ai-orchestrator
+      # - nats # Eğer NATS kullanıyorsa
+    volumes:
+      - ./runner-service:/usr/src/runner-service
+    restart: unless-stopped
+
+  archive-service:
+    build:
+      context: ./archive-service
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    container_name: alt_las_archive_service
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NATS_URL=${NATS_URL}
+      - PORT=${ARCHIVE_PORT}
+    depends_on:
+      - postgres_db
+      - nats
+    volumes:
+      - ./archive-service:/app
+    restart: unless-stopped
+
+  ai-orchestrator:
+    build:
+      context: ./ai-orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    container_name: alt_las_ai_orchestrator
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - PORT=${AI_PORT}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./ai-orchestrator:/app
+    restart: unless-stopped
+
+  redis:
+    image: "redis:7-alpine"
+    container_name: alt_las_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:-}"
+
+  postgres_db:
+    image: postgres:14-alpine
+    container_name: alt_las_postgres_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  nats:
+    image: nats:2.9-alpine
+    container_name: alt_las_nats
+    ports:
+      - "4222:4222" # Client port
+      - "8222:8222" # Monitoring port
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

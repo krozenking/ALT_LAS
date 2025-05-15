@@ -1,0 +1,57 @@
+# Deep Learning Frameworks
+torch==2.2.0
+torchvision==0.17.0
+tensorflow==2.15.0
+keras==2.15.0
+
+# CUDA-accelerated Libraries
+cupy-cuda12x==12.3.0
+numba==0.58.1
+jax[cuda12_pip]>=0.4.20
+rapids-cudf==24.4.0
+rapids-cuml==24.4.0
+rapids-cugraph==24.4.0
+
+# Data Processing and Visualization
+numpy==1.24.3
+pandas==2.1.1
+matplotlib==3.8.0
+seaborn==0.13.0
+plotly==5.18.0
+scikit-learn==1.3.1
+
+# Jupyter and Development Tools
+jupyter==1.0.0
+ipykernel==6.25.2
+ipywidgets==8.1.1
+tqdm==4.66.1
+
+# Utilities
+pillow==10.0.1
+opencv-python==4.8.1.78
+albumentations==1.3.1
+
+# NLP Libraries
+transformers==4.35.0
+tokenizers==0.14.1
+spacy==3.7.2
+
+# Computer Vision
+detectron2 @ git+https://github.com/facebookresearch/detectron2.git
+opencv-contrib-python==4.8.1.78
+
+# Audio Processing
+librosa==0.10.1
+
+# Reinforcement Learning
+gymnasium==0.29.1
+stable-baselines3==2.2.1
+
+# Optimization
+optuna==3.4.0
+
+# Distributed Training
+horovod==0.28.1
+
+# Model Serving
+triton-model-analyzer==1.0.0

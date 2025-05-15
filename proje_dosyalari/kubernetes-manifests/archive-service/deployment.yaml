@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archive-service
+  namespace: alt-las
+  labels:
+    app: archive-service
+    component: archive
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: archive-service
+  template:
+    metadata:
+      labels:
+        app: archive-service
+        component: archive
+        version: v1
+    spec:
+      serviceAccountName: archive-service
+      containers:
+      - name: archive-service
+        image: alt-las/archive-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: archive-service-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: archive-service-config
+              key: PORT
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: archive-service-config
+              key: NATS_URL
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: archive-service-secrets
+              key: DATABASE_URL
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      restartPolicy: Always

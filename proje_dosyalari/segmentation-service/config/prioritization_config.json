@@ -1,0 +1,8 @@
+{
+  "default_urgency": 5,
+  "default_user_preference": 5,
+  "dependency_weight": 0.7,
+  "urgency_weight": 0.1,
+  "user_preference_weight": 0.1,
+  "confidence_weight": 0.1
+}

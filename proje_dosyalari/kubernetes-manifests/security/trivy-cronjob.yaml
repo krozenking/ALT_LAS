@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trivy-scanner
+  namespace: alt-las
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trivy-scanner
+  namespace: alt-las
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trivy-scanner
+  namespace: alt-las
+subjects:
+- kind: ServiceAccount
+  name: trivy-scanner
+  namespace: alt-las
+roleRef:
+  kind: Role
+  name: trivy-scanner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trivy-cache
+  namespace: alt-las
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trivy-config
+  namespace: alt-las
+data:
+  trivy-config.yaml: |
+    severity: "CRITICAL,HIGH,MEDIUM"
+    exit-code: 0
+    format: "json"
+    output: "/reports/trivy-report.json"
+    timeout: "10m"
+  scan-script.sh: |
+    #!/bin/bash
+    set -e
+
+    NAMESPACE="alt-las"
+    REPORT_DIR="/reports"
+    DATE=$(date +%Y%m%d%H%M%S)
+    REPORT_FILE="${REPORT_DIR}/trivy-report-${DATE}.json"
+    SUMMARY_FILE="${REPORT_DIR}/trivy-summary-${DATE}.txt"
+
+    echo "Starting container image vulnerability scan..."
+    echo "Namespace: ${NAMESPACE}"
+    echo "Report file: ${REPORT_FILE}"
+
+    # Get all deployments in the namespace
+    DEPLOYMENTS=$(kubectl get deployments -n ${NAMESPACE} -o jsonpath='{.items[*].metadata.name}')
+
+    echo "Found deployments: ${DEPLOYMENTS}"
+    echo "Scanning container images..."
+
+    echo "# Trivy Vulnerability Scan Report" > ${SUMMARY_FILE}
+    echo "Date: $(date)" >> ${SUMMARY_FILE}
+    echo "Namespace: ${NAMESPACE}" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+    echo "## Summary" >> ${SUMMARY_FILE}
+    echo "" >> ${SUMMARY_FILE}
+
+    for DEPLOYMENT in ${DEPLOYMENTS}; do
+      echo "Scanning deployment: ${DEPLOYMENT}"
+      
+      # Get container images from the deployment
+      IMAGES=$(kubectl get deployment ${DEPLOYMENT} -n ${NAMESPACE} -o jsonpath='{.spec.template.spec.containers[*].image}')
+      
+      for IMAGE in ${IMAGES}; do
+        echo "Scanning image: ${IMAGE}"
+        
+        # Run Trivy scan
+        trivy image --config /config/trivy-config.yaml --cache-dir /cache ${IMAGE}
+        
+        # Get vulnerability counts
+        CRITICAL=$(trivy image --severity CRITICAL --quiet ${IMAGE} | wc -l)
+        HIGH=$(trivy image --severity HIGH --quiet ${IMAGE} | wc -l)
+        MEDIUM=$(trivy image --severity MEDIUM --quiet ${IMAGE} | wc -l)
+        
+        echo "| ${DEPLOYMENT} | ${IMAGE} | ${CRITICAL} | ${HIGH} | ${MEDIUM} |" >> ${SUMMARY_FILE}
+      done
+    done
+
+    echo "Vulnerability scan completed."
+    echo "Report saved to: ${REPORT_FILE}"
+    echo "Summary saved to: ${SUMMARY_FILE}"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: trivy-scanner
+  namespace: alt-las
+spec:
+  schedule: "0 0 * * 0"  # Her hafta Pazar günü gece yarısı çalışır
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: trivy-scanner
+          containers:
+          - name: trivy
+            image: aquasec/trivy:latest
+            command:
+            - /bin/sh
+            - /config/scan-script.sh
+            volumeMounts:
+            - name: cache-volume
+              mountPath: /cache
+            - name: reports-volume
+              mountPath: /reports
+            - name: config-volume
+              mountPath: /config
+          restartPolicy: OnFailure
+          volumes:
+          - name: cache-volume
+            persistentVolumeClaim:
+              claimName: trivy-cache
+          - name: reports-volume
+            emptyDir: {}
+          - name: config-volume
+            configMap:
+              name: trivy-config
+              defaultMode: 0755

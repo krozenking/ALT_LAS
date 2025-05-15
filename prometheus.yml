@@ -1,0 +1,85 @@
+# Prometheus yapılandırma dosyası
+# ALT_LAS CUDA performans testleri için
+
+global:
+  scrape_interval: 15s  # Varsayılan olarak her 15 saniyede bir metrik toplama
+  evaluation_interval: 15s  # Kuralları her 15 saniyede bir değerlendirme
+  scrape_timeout: 10s  # İstek zaman aşımı
+
+# Alertmanager yapılandırması
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Kural dosyaları
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# Metrik toplama yapılandırmaları
+scrape_configs:
+  # AI Orchestrator servisi
+  - job_name: 'ai-orchestrator'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ai-orchestrator:8080']
+        labels:
+          service: 'ai-orchestrator'
+          environment: 'test'
+
+  # Segmentation Service
+  - job_name: 'segmentation-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['segmentation-service:8080']
+        labels:
+          service: 'segmentation-service'
+          environment: 'test'
+
+  # Node Exporter (sistem metrikleri)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'test-server'
+          environment: 'test'
+
+  # NVIDIA DCGM Exporter (GPU metrikleri)
+  - job_name: 'nvidia-dcgm-exporter'
+    static_configs:
+      - targets: ['nvidia-dcgm-exporter:9400']
+        labels:
+          instance: 'test-server'
+          environment: 'test'
+
+  # Locust (yük testi metrikleri)
+  - job_name: 'locust'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['locust:8089']
+        labels:
+          instance: 'locust'
+          environment: 'test'
+
+  # Prometheus kendisi
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus'
+          environment: 'test'
+
+# Uzak yazma yapılandırması (isteğe bağlı)
+remote_write:
+  # - url: 'http://remote-storage:9201/write'
+  #   write_relabel_configs:
+  #     - source_labels: [__name__]
+  #       regex: 'go_.*'
+  #       action: drop
+
+# Uzak okuma yapılandırması (isteğe bağlı)
+remote_read:
+  # - url: 'http://remote-storage:9201/read'
+  #   read_recent: true

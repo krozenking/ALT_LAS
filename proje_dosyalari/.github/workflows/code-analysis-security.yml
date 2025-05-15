@@ -1,0 +1,230 @@
+name: Code Analysis Security Workflow
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 3 * * 3'  # Weekly scan on Wednesdays at 3 AM
+
+jobs:
+  static-code-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Python code analysis
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit pylint safety
+      
+      - name: Run Bandit security scanner
+        run: bandit -r ./segmentation-service ./ai-orchestrator -f json -o bandit-results.json
+      
+      - name: Run Safety dependency checker
+        run: safety check --full-report -r requirements.txt
+      
+      # JavaScript/TypeScript code analysis
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install Node.js dependencies
+        run: |
+          npm install -g eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-security
+      
+      - name: Run ESLint with security plugins
+        run: eslint --ext .js,.ts ./api-gateway ./ui-desktop --format json --output-file eslint-results.json
+      
+      # Rust code analysis
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+      
+      - name: Run Cargo audit
+        run: |
+          cargo install cargo-audit
+          cargo audit -f ./runner-service/Cargo.lock
+      
+      - name: Run Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features -- -D warnings
+      
+      # Go code analysis
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      
+      - name: Run gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt=json -out=gosec-results.json ./archive-service/...
+      
+      # Unified code quality check
+      - name: Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      
+      # Upload all results
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-analysis-results
+          path: |
+            bandit-results.json
+            eslint-results.json
+            gosec-results.json
+
+  dependency-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # OWASP Dependency Check
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'ALT_LAS'
+          path: '.'
+          format: 'ALL'
+          out: 'dependency-check-reports'
+          args: >
+            --enableExperimental
+            --suppression suppress.xml
+      
+      # NPM Audit
+      - name: Run npm audit
+        run: |
+          cd api-gateway
+          npm audit --json > ../npm-audit-results.json || true
+      
+      # Python dependency check
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r segmentation-service/requirements.txt -f json -o pip-audit-results.json || true
+      
+      # Upload results
+      - name: Upload dependency analysis results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-analysis-results
+          path: |
+            dependency-check-reports/
+            npm-audit-results.json
+            pip-audit-results.json
+
+  infrastructure-as-code-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # TFSec for Terraform security scanning
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          soft_fail: true
+      
+      # Checkov for IaC security scanning
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./
+          framework: kubernetes,terraform,dockerfile,github_actions
+          output_format: json
+          output_file: checkov-results.json
+      
+      # Kube-linter for Kubernetes manifests
+      - name: Run kube-linter
+        run: |
+          curl -L "https://github.com/stackrox/kube-linter/releases/download/v0.6.0/kube-linter-linux.tar.gz" | tar -xz
+          ./kube-linter lint ./kubernetes/ --format json > kube-linter-results.json
+      
+      # Upload results
+      - name: Upload IaC security results
+        uses: actions/upload-artifact@v3
+        with:
+          name: iac-security-results
+          path: |
+            checkov-results.json
+            kube-linter-results.json
+
+  security-report-generation:
+    runs-on: ubuntu-latest
+    needs: [static-code-analysis, dependency-analysis, infrastructure-as-code-security]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Download all artifacts
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: security-artifacts
+      
+      # Generate consolidated report
+      - name: Generate security report
+        run: |
+          mkdir -p security-report
+          echo "# ALT_LAS Security Analysis Report" > security-report/index.md
+          echo "Generated on: $(date)" >> security-report/index.md
+          echo "Commit: ${{ github.sha }}" >> security-report/index.md
+          echo "" >> security-report/index.md
+          
+          echo "## Summary" >> security-report/index.md
+          echo "This report contains the results of various security scans performed on the ALT_LAS codebase." >> security-report/index.md
+          echo "" >> security-report/index.md
+          
+          echo "## Static Code Analysis" >> security-report/index.md
+          echo "See detailed results in the artifacts." >> security-report/index.md
+          echo "" >> security-report/index.md
+          
+          echo "## Dependency Analysis" >> security-report/index.md
+          echo "See detailed results in the artifacts." >> security-report/index.md
+          echo "" >> security-report/index.md
+          
+          echo "## Infrastructure as Code Security" >> security-report/index.md
+          echo "See detailed results in the artifacts." >> security-report/index.md
+      
+      # Upload consolidated report
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report/
+      
+      # Post summary to PR if this is a pull request
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('security-report/index.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

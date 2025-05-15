@@ -1,0 +1,75 @@
+# Beta Dockerfile for Runner Service
+# Created by Can Tekin (DevOps Engineer)
+
+# Builder stage: Compiles the Rust application
+FROM rust:latest as builder
+
+WORKDIR /usr/src/runner-service
+
+# Copy Cargo.toml and Cargo.lock to cache dependencies
+COPY runner-service/Cargo.toml runner-service/Cargo.lock ./
+
+# Create a dummy main.rs to build dependencies only if Cargo files changed
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release --locked
+
+# Copy the rest of the application source code
+COPY runner-service/src ./src
+
+# Build the application again, this time with the actual source code
+RUN touch src/main.rs && cargo build --release --locked
+
+# Runtime stage: Creates a minimal image with the compiled binary
+FROM debian:bullseye-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies and security updates
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    wget \
+    libssl1.1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appgroup && useradd -r -g appgroup -d /app -s /sbin/nologin -c "Docker image user" appuser
+
+# Create necessary directories
+RUN mkdir -p /app/alt_files /app/last_files /app/artifacts /app/tmp && \
+    chown -R appuser:appgroup /app
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /usr/src/runner-service/target/release/runner-service /app/
+
+# Set proper permissions
+RUN chown appuser:appgroup /app/runner-service && \
+    chmod 755 /app/runner-service
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8080
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Environment variables for production
+ENV NODE_ENV=production
+ENV ALT_FILES_DIR=/app/alt_files
+ENV LAST_FILES_DIR=/app/last_files
+ENV ARTIFACTS_DIR=/app/artifacts
+ENV AI_SERVICE_URL=http://ai-orchestrator:8080
+ENV AI_TIMEOUT_SECONDS=60
+ENV MAX_CONCURRENT_TASKS=8
+ENV MAX_CONCURRENT_AI_TASKS=4
+ENV BIND_ADDRESS=0.0.0.0:8080
+ENV RUST_LOG=info
+
+# Command to run the application
+CMD ["./runner-service"]

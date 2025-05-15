@@ -1,0 +1,405 @@
+openapi: 3.0.0
+info:
+  title: ALT_LAS API Gateway
+  description: API Gateway for ALT_LAS project - Platform designed to manage computer systems with artificial intelligence. Handles authentication, routing, rate limiting, service discovery, caching, and comprehensive logging.
+  version: 1.2.2 # Version updated for session analytics feature
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: ALT_LAS Team
+    url: https://github.com/krozenking/ALT_LAS
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.alt-las.com/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Access Token required for protected endpoints.
+  
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: "Invalid input provided"
+        error:
+          type: string
+          description: Detailed error type (e.g., "Bad Request")
+          example: "Bad Request"
+        details: 
+          type: object
+          additionalProperties: true
+          description: Additional error details or validation errors
+          example: { "field": "username", "issue": "already exists" }
+
+    # Auth Schemas (partially omitted for brevity, assumed mostly unchanged from 1.2.1)
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          example: newuser
+        email:
+          type: string
+          format: email
+          example: newuser@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: P@sswOrd123!
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        username:
+          type: string
+          example: newuser
+        email:
+          type: string
+          format: email
+          example: newuser@example.com
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        roles:
+          type: array
+          items:
+            type: string
+            example: "user"
+        isEmailVerified:
+          type: boolean
+          description: Indicates if the user's email address has been verified.
+          example: false
+        isActive:
+            type: boolean
+            description: Indicates if the user account is active.
+            example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-05-06T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-05-06T12:00:00Z"
+
+    LoginRequest: # Omitted for brevity
+      type: object
+    LoginResponseData: # Omitted for brevity
+      type: object
+    LoginSuccessResponse: # Omitted for brevity
+        type: object
+    RefreshRequest: # Omitted for brevity
+      type: object
+    RefreshResponseData: # Omitted for brevity
+      type: object
+    RefreshSuccessResponse: # Omitted for brevity
+        type: object
+    LogoutRequest: # Omitted for brevity
+      type: object
+    SuccessMessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "İşlem başarılı"
+
+    UserProfileUpdateRequest: # Omitted for brevity
+      type: object
+    AdminUserUpdateRequest: # Omitted for brevity
+      type: object
+
+    # Session Analytics Schema (New)
+    SessionAnalyticsData:
+      type: object
+      properties:
+        totalActiveSessions:
+          type: integer
+          description: Toplam aktif oturum sayısı.
+          example: 150
+        totalSessionsCreated:
+          type: integer
+          description: Oluşturulan toplam oturum sayısı.
+          example: 1250
+        totalSessionsInvalidated:
+          type: integer
+          description: Sonlandırılan toplam oturum sayısı.
+          example: 1100
+        averageSessionDurationMs:
+          type: number
+          format: double
+          description: Ortalama oturum süresi (milisaniye cinsinden).
+          example: 1800000.50
+        sessionsByDeviceType:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Cihaz türüne göre oturum sayısı.
+          example: { "desktop": 100, "mobile": 40, "tablet": 10 }
+        sessionsByBrowser:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Tarayıcıya göre oturum sayısı.
+          example: { "Chrome": 80, "Safari": 30, "Firefox": 20, "Edge": 20 }
+        sessionsByOs:
+          type: object
+          additionalProperties:
+            type: integer
+          description: İşletim sistemine göre oturum sayısı.
+          example: { "Windows": 70, "macOS": 20, "iOS": 25, "Android": 35 }
+
+    # Role & Permission Schemas (Omitted for brevity)
+    RoleRequest: 
+      type: object
+    RoleResponse:
+      type: object
+    PermissionResponse:
+      type: object
+
+paths:
+  # Auth paths (partially omitted for brevity, assumed mostly unchanged from 1.2.1)
+  /auth/register:
+    post:
+      summary: Yeni kullanıcı kaydı oluşturur ve doğrulama e-postası gönderir
+      tags: [Authentication]
+      # ... (rest of the definition)
+  /auth/login:
+    post:
+      summary: Kullanıcı girişi yapar ve token döndürür
+      tags: [Authentication]
+      # ... (rest of the definition)
+  /auth/verify-email/{token}:
+    get:
+      summary: E-posta doğrulama token'ını kullanarak e-postayı doğrular
+      tags: [Authentication]
+      # ... (rest of the definition)
+  /auth/resend-verification-email:
+    post:
+      summary: Giriş yapmış kullanıcı için yeni bir e-posta doğrulama token'ı gönderir
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+  /auth/refresh-token:
+    post:
+      summary: Refresh token kullanarak yeni bir access token alır
+      tags: [Authentication]
+      # ... (rest of the definition)
+  /auth/logout:
+    post:
+      summary: Kullanıcı çıkışı yapar (mevcut oturumu sonlandırır)
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+  /auth/profile:
+    get:
+      summary: Giriş yapmış kullanıcının profil bilgilerini getirir
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+    put:
+      summary: Giriş yapmış kullanıcının profil bilgilerini günceller
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+
+  # Admin - User Management (Omitted for brevity)
+  /admin/users:
+    get:
+      summary: Tüm kullanıcıları listeler (Admin)
+      tags: [Admin - Users]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+  /admin/users/{userId}:
+    get:
+      summary: Belirli bir kullanıcı detayını getirir (Admin)
+      tags: [Admin - Users]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+    put:
+      summary: Belirli bir kullanıcıyı günceller (Admin)
+      tags: [Admin - Users]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+    delete:
+      summary: Belirli bir kullanıcıyı siler (Admin)
+      tags: [Admin - Users]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+
+  # Admin - Session Analytics (New Path)
+  /admin/sessions/analytics:
+    get:
+      summary: Oturum analitik verilerini getirir (Admin)
+      tags: [Admin - Sessions]
+      security:
+        - bearerAuth: [] # Requires admin privileges
+      responses:
+        "200":
+          description: Oturum analitik verileri başarıyla alındı.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/SessionAnalyticsData"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Admin - Roles & Permissions (Omitted for brevity)
+  /admin/roles:
+    get:
+      summary: Tüm rolleri listeler (Admin)
+      tags: [Admin - Roles & Permissions]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+    post:
+      summary: Yeni bir rol oluşturur (Admin)
+      tags: [Admin - Roles & Permissions]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+  /admin/roles/{roleId}:
+    put:
+      summary: Belirli bir rolü günceller (Admin)
+      tags: [Admin - Roles & Permissions]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+    delete:
+      summary: Belirli bir rolü siler (Admin)
+      tags: [Admin - Roles & Permissions]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+  /admin/permissions:
+    get:
+      summary: Tüm izinleri listeler (Admin)
+      tags: [Admin - Roles & Permissions]
+      security:
+        - bearerAuth: []
+      # ... (rest of the definition)
+
+components:
+  responses:
+    NotFoundError:
+      description: Kaynak bulunamadı.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+            example:
+              success: false
+              statusCode: 404
+              message: "Kaynak bulunamadı"
+              error: "Not Found"
+    UnauthorizedError:
+      description: Yetkilendirme başarısız oldu veya token eksik/geçersiz.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+            example:
+              success: false
+              statusCode: 401
+              message: "Geçerli kimlik bilgileri ile kimlik doğrulaması gerekiyor"
+              error: "Unauthorized"
+    ForbiddenError:
+      description: İstenen eylemi gerçekleştirmek için yetki yok.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+            example:
+              success: false
+              statusCode: 403
+              message: "Bu kaynağa erişim izniniz yok"
+              error: "Forbidden"
+    BadRequestError:
+      description: İstek geçersiz veya hatalı.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+            example:
+              success: false
+              statusCode: 400
+              message: "Geçersiz istek parametreleri"
+              error: "Bad Request"
+    InternalServerError:
+      description: Sunucuda beklenmeyen bir hata oluştu.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+            example:
+              success: false
+              statusCode: 500
+              message: "Dahili sunucu hatası"
+              error: "Internal Server Error"
+
+tags:
+  - name: Authentication
+    description: Kullanıcı kimlik doğrulama, e-posta doğrulama, profil ve oturum işlemleri
+  - name: Admin - Users
+    description: Kullanıcı yönetimi (Admin)
+  - name: Admin - Sessions # New Tag
+    description: Oturum yönetimi ve analitikleri (Admin)
+  - name: Admin - Roles & Permissions
+    description: Rol ve izin yönetimi (Admin)
+

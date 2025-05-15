@@ -1,0 +1,42 @@
+FROM rust:1.75-slim as builder
+
+WORKDIR /usr/src/runner-service
+COPY . .
+
+# Build the application
+RUN cargo build --release
+
+# Create non-root user
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+
+# Production stage - using minimal debian image
+FROM debian:bullseye-slim
+
+# Install ca-certificates and necessary dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /usr/src/runner-service/target/release/runner-service /app/
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+# Set proper permissions
+RUN chown -R appuser:appgroup /app
+
+# Use non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the binary
+CMD ["./runner-service"]

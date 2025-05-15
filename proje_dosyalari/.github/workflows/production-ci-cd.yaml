@@ -1,0 +1,192 @@
+name: ALT_LAS Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ production ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ production ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, segmentation-service, ai-orchestrator, archive-service]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build ${{ matrix.service }} image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./${{ matrix.service }}
+        push: false
+        load: true
+        tags: alt-las/${{ matrix.service }}:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Run tests for ${{ matrix.service }}
+      run: |
+        if [ "${{ matrix.service }}" == "api-gateway" ]; then
+          cd api-gateway
+          npm install
+          npm test
+        elif [ "${{ matrix.service }}" == "segmentation-service" ]; then
+          cd segmentation-service
+          pip install -r requirements.txt
+          pytest
+        elif [ "${{ matrix.service }}" == "ai-orchestrator" ]; then
+          cd ai-orchestrator
+          pip install -r requirements.txt
+          pytest
+        elif [ "${{ matrix.service }}" == "archive-service" ]; then
+          cd archive-service
+          go test ./...
+        fi
+  
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    strategy:
+      matrix:
+        service: [api-gateway, segmentation-service, ai-orchestrator, archive-service]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build ${{ matrix.service }} image for scanning
+      uses: docker/build-push-action@v4
+      with:
+        context: ./${{ matrix.service }}
+        push: false
+        load: true
+        tags: alt-las/${{ matrix.service }}:scan
+        cache-from: type=gha
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: alt-las/${{ matrix.service }}:scan
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+  
+  build-and-push:
+    needs: [build-and-test, security-scan]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api-gateway, segmentation-service, ai-orchestrator, archive-service]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ghcr.io/${{ github.repository_owner }}/alt-las-${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,format=long
+    
+    - name: Build and push ${{ matrix.service }} image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./${{ matrix.service }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+  
+  deploy-production:
+    needs: build-and-push
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Set up kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+    
+    - name: Get the version
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Update image tags in Kubernetes manifests
+      run: |
+        for service in api-gateway segmentation-service ai-orchestrator archive-service; do
+          sed -i "s|frozen68/${service}:production|ghcr.io/${{ github.repository_owner }}/alt-las-${service}:${{ steps.get_version.outputs.VERSION }}|g" kubernetes/production/${service}.yaml
+        done
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f kubernetes/production/namespace.yaml
+        kubectl apply -f kubernetes/production/postgres.yaml
+        kubectl apply -f kubernetes/production/api-gateway.yaml
+        kubectl apply -f kubernetes/production/segmentation-service.yaml
+        kubectl apply -f kubernetes/production/ai-orchestrator.yaml
+        kubectl apply -f kubernetes/production/archive-service.yaml
+        kubectl apply -f kubernetes/production/monitoring.yaml
+    
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/api-gateway -n atlas-production
+        kubectl rollout status deployment/segmentation-service -n atlas-production
+        kubectl rollout status deployment/ai-orchestrator -n atlas-production
+        kubectl rollout status deployment/archive-service -n atlas-production
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          # ALT_LAS Release ${{ steps.get_version.outputs.VERSION }}
+          
+          This release includes the following services:
+          - API Gateway
+          - Segmentation Service
+          - AI Orchestrator
+          - Archive Service
+          
+          ## Deployment
+          
+          The services have been automatically deployed to the production environment.
+        draft: false
+        prerelease: false

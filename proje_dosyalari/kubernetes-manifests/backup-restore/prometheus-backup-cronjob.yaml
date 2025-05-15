@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prometheus-backup
+  namespace: alt-las
+spec:
+  schedule: "0 3 * * *"  # Her gün gece 03:00'de çalışır
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: prometheus-backup
+            image: alpine:3.18
+            command:
+            - /bin/sh
+            - /scripts/backup.sh
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backup
+            - name: prometheus-data
+              mountPath: /prometheus
+              readOnly: true
+            - name: scripts-volume
+              mountPath: /scripts
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: prometheus-backup-pvc
+          - name: prometheus-data
+            persistentVolumeClaim:
+              claimName: prometheus-pvc
+          - name: scripts-volume
+            configMap:
+              name: prometheus-backup-scripts
+              defaultMode: 0755

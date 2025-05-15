@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicd-metrics-exporter
+  namespace: alt-las
+  labels:
+    app: cicd-metrics-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cicd-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: cicd-metrics-exporter
+    spec:
+      containers:
+      - name: cicd-metrics-exporter
+        image: alt-las/cicd-metrics-exporter:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secrets
+              key: GITHUB_TOKEN
+        - name: JENKINS_URL
+          value: "http://jenkins:8080"
+        - name: JENKINS_USER
+          valueFrom:
+            secretKeyRef:
+              name: jenkins-secrets
+              key: JENKINS_USER
+        - name: JENKINS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: jenkins-secrets
+              key: JENKINS_TOKEN
+        - name: SONARQUBE_URL
+          value: "http://sonarqube:9000"
+        - name: SONARQUBE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: sonarqube-secrets
+              key: SONARQUBE_TOKEN
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: tmp-volume
+          mountPath: /tmp
+      volumes:
+      - name: config-volume
+        configMap:
+          name: metrics-config
+      - name: tmp-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-metrics-exporter
+  namespace: alt-las
+  labels:
+    app: cicd-metrics-exporter
+spec:
+  selector:
+    app: cicd-metrics-exporter
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

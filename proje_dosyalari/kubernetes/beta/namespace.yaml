@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: atlas-beta
+  labels:
+    name: atlas-beta
+    environment: beta

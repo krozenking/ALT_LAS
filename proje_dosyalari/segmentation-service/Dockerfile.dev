@@ -1,0 +1,59 @@
+# Stage 1: Build stage
+FROM python:3.10.13-slim-bookworm as builder
+
+WORKDIR /app
+
+# Install build dependencies if any are needed
+# RUN apt-get update && apt-get install -y --no-install-recommends build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements_updated.txt requirements.txt
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+# Stage 2: Final stage
+FROM python:3.10.13-slim-bookworm
+
+# Create a non-root user and group
+RUN groupadd --system app && useradd --system --gid app --shell /sbin/nologin app
+
+WORKDIR /app
+
+# Copy Python dependencies from builder stage
+COPY --from=builder /wheels /wheels
+COPY requirements_updated.txt requirements.txt
+RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
+    && rm -rf /wheels requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create directories and set permissions
+RUN mkdir -p /app/logs \
+    && chown -R app:app /app
+
+# Install development tools for debugging
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    vim \
+    procps \
+    net-tools \
+    htop \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# In development, we keep root for debugging purposes
+# USER app  # Commented out for development environment
+
+# Set environment variables
+ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV LOG_LEVEL=DEBUG # More verbose logging for development
+ENV FLASK_ENV=development # Assuming Flask/FastAPI might use this
+ENV FLASK_DEBUG=1
+
+# Expose port
+EXPOSE 8000
+
+# Run the application with hot-reload for development
+# Adjust the main module path if needed (e.g., src.main:app)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

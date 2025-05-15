@@ -1,0 +1,67 @@
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+
+# Temel paketleri kur
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    curl \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    sqlite3 \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python bağımlılıklarını kur
+RUN pip3 install --no-cache-dir \
+    numpy \
+    pandas \
+    matplotlib \
+    seaborn \
+    plotly \
+    dash \
+    flask \
+    requests \
+    sqlalchemy
+
+# NVIDIA apt repo ekle
+RUN curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb \
+    -o cuda-keyring.deb \
+    && dpkg -i cuda-keyring.deb \
+    && rm cuda-keyring.deb
+
+# Nsight Systems kur
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nsight-systems-2023.2.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Nsight Compute kur
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nsight-compute-2023.2.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Çalışma dizini oluştur
+WORKDIR /app
+
+# Analiz scriptlerini kopyala
+COPY analyze_profile.py /app/
+COPY analyze_kernel.py /app/
+
+# Nsight data dizini oluştur
+RUN mkdir -p /nsight-data && chmod 777 /nsight-data
+
+# Ortam değişkenlerini ayarla
+ENV PATH="/usr/local/cuda/bin:${PATH}" \
+    LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}" \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Sağlık kontrolü
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD nsys --version || exit 1
+
+# Varsayılan komut
+CMD ["/bin/bash"]

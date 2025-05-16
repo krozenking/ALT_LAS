@@ -171,7 +171,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 4.2.1.3:** Dokümantasyon kalitesinin kontrol edilmesi
     *   **Mikro Görev 4.2.2:** Nihai API kontratlarının onaylanması ve yayınlanması
         *   **Atlas Görevi 4.2.2.1:** Onay sürecinin tamamlanması
-        *   **Atlas Görevi 4.2.2.2:** Onaylanan API kontratlarının `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/API_Kontratlari_v1.0.yaml` olarak kaydedilmesi
+        *   **Atlas Görevi 4.2.2.2:** Onaylanan API kontratlarının `/Arayuz_Gelistirme_Plani/Dokumanlar/API_Kontratlari_v1.0.yaml` olarak kaydedilmesi
         *   **Atlas Görevi 4.2.2.3:** API dokümantasyonunun ilgili sistemlerde yayınlanması
 
 ## YUI-KM1-002: Chat Sekmesi Backend API Endpointleri ve Veri Modelleri
@@ -322,7 +322,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 4.2.1.3:** Dokümantasyon kalitesinin kontrol edilmesi
     *   **Mikro Görev 4.2.2:** Nihai API ve veri modellerinin onaylanması ve dokümante edilmesi
         *   **Atlas Görevi 4.2.2.1:** Onay sürecinin tamamlanması
-        *   **Atlas Görevi 4.2.2.2:** Onaylanan API ve veri modellerinin `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_API_ve_Veri_Modelleri_v1.0.yaml` olarak kaydedilmesi
+        *   **Atlas Görevi 4.2.2.2:** Onaylanan API ve veri modellerinin `/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_API_ve_Veri_Modelleri_v1.0.yaml` olarak kaydedilmesi
         *   **Atlas Görevi 4.2.2.3:** API dokümantasyonunun ilgili sistemlerde yayınlanması
 
 ## YUI-KM1-004: Chat Sekmesi Backend Entegrasyonu (Gerekiyorsa) (Yap)

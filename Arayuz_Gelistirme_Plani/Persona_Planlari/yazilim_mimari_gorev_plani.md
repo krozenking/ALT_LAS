@@ -171,7 +171,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 4.2.2.1:** Geri bildirimlerin değerlendirilmesi
         *   **Atlas Görevi 4.2.2.2:** Dokümanın güncellenmesi
         *   **Atlas Görevi 4.2.2.3:** Nihai dokümanın onay için sunulması
-        *   **Atlas Görevi 4.2.2.4:** Onaylanan dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/UI_Mimari_Tasarim_Dokumani_v1.0.md` olarak kaydedilmesi
+        *   **Atlas Görevi 4.2.2.4:** Onaylanan dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/UI_Mimari_Tasarim_Dokumani_v1.0.md` olarak kaydedilmesi
 
 ## YUI-KM0-005: Genel İnteraktif Prototip ve Kullanıcı Testleri (İlk Tur - Ana konseptler için)
 
@@ -201,7 +201,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 3.2.2.1:** Güncelleme toplantısının planlanması
         *   **Atlas Görevi 3.2.2.2:** Değişikliklerin sunulması ve tartışılması
         *   **Atlas Görevi 3.2.2.3:** Geri bildirimlerin toplanması ve değerlendirilmesi
-        *   **Atlas Görevi 3.2.2.4:** Güncellenen dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/UI_Mimari_Tasarim_Dokumani_v1.1.md` olarak kaydedilmesi
+        *   **Atlas Görevi 3.2.2.4:** Güncellenen dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/UI_Mimari_Tasarim_Dokumani_v1.1.md` olarak kaydedilmesi
 
 ## YUI-KM1-002: Chat Sekmesi Backend API Endpointleri ve Veri Modelleri
 

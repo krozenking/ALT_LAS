@@ -87,19 +87,19 @@ Bu plan, 7 teknik persona (Proje Yöneticisi, UI/UX Tasarımcısı, Kıdemli Fro
 
 Her persona için detaylı görev planları ayrı dokümanlarda sunulmuştur:
 
-1. [Proje Yöneticisi Görev Planı](/home/ubuntu/proje_yoneticisi_gorev_plani.md)
-2. [UI/UX Tasarımcısı Görev Planı](/home/ubuntu/ui_ux_tasarimcisi_gorev_plani.md)
-3. [Kıdemli Frontend Geliştirici Görev Planı](/home/ubuntu/kidemli_frontend_gelistirici_gorev_plani.md)
-4. [Kıdemli Backend Geliştirici Görev Planı](/home/ubuntu/kidemli_backend_gelistirici_gorev_plani.md)
-5. [Yazılım Mimarı Görev Planı](/home/ubuntu/yazilim_mimari_gorev_plani.md)
-6. [QA Mühendisi Görev Planı](/home/ubuntu/qa_muhendisi_gorev_plani.md)
-7. [DevOps Mühendisi Görev Planı](/home/ubuntu/devops_muhendisi_gorev_plani.md)
+1. [Proje Yöneticisi Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/proje_yoneticisi_gorev_plani.md)
+2. [UI/UX Tasarımcısı Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/ui_ux_tasarimcisi_gorev_plani.md)
+3. [Kıdemli Frontend Geliştirici Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/kidemli_frontend_gelistirici_gorev_plani.md)
+4. [Kıdemli Backend Geliştirici Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/kidemli_backend_gelistirici_gorev_plani.md)
+5. [Yazılım Mimarı Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/yazilim_mimari_gorev_plani.md)
+6. [QA Mühendisi Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/qa_muhendisi_gorev_plani.md)
+7. [DevOps Mühendisi Görev Planı](/Arayuz_Gelistirme_Plani/Persona_Planlari/devops_muhendisi_gorev_plani.md)
 
 ## Yönetici Ofisi Kurallarına Uyum
 
 Bu plan, Yönetici Ofisi kurallarına tam uyum sağlamaktadır. Tüm görevler makro, mikro ve atlas seviyesinde detaylandırılmış, sorumluluklar, zaman tahminleri, çıktılar, bağımlılıklar, dokümantasyon gereksinimleri, onay süreçleri ve test/doğrulama adımları açıkça belirtilmiştir.
 
-Detaylı uyum kontrolü için [Yönetici Ofisi Kuralları Uyum Kontrolü](/home/ubuntu/yonetici_ofisi_kurallari_uyum_kontrolu.md) dokümanına bakınız.
+Detaylı uyum kontrolü için [Yönetici Ofisi Kuralları Uyum Kontrolü](/Arayuz_Gelistirme_Plani/Dokumanlar/yonetici_ofisi_kurallari_uyum_kontrolu.md) dokümanına bakınız.
 
 ## Riskler ve Azaltma Stratejileri
 

@@ -109,7 +109,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 4.2.2.1:** Rapor sunum toplantısının planlanması
         *   **Atlas Görevi 4.2.2.2:** Raporun sunulması ve tartışılması
         *   **Atlas Görevi 4.2.2.3:** Geri bildirimlerin toplanması ve gerekirse raporun güncellenmesi
-        *   **Atlas Görevi 4.2.2.4:** Raporun `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Kullanici_Test_Raporu_Tur1_v1.0.md` adıyla kaydedilmesi
+        *   **Atlas Görevi 4.2.2.4:** Raporun `/Arayuz_Gelistirme_Plani/Dokumanlar/Kullanici_Test_Raporu_Tur1_v1.0.md` adıyla kaydedilmesi
 
 ## YUI-KM0-006: Kullanılacak Frontend Framework ve Ana Kütüphaneler için Versiyon Politikaları ve Güncelleme Stratejileri
 
@@ -251,7 +251,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 3.2.1.1:** Revizyonların yapılması
         *   **Atlas Görevi 3.2.1.2:** Onay sürecinin başlatılması
         *   **Atlas Görevi 3.2.1.3:** Onayların toplanması
-        *   **Atlas Görevi 3.2.1.4:** Onaylanan dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_Kabul_Kriterleri_ve_Test_Senaryolari_v1.0.md` adıyla kaydedilmesi
+        *   **Atlas Görevi 3.2.1.4:** Onaylanan dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_Kabul_Kriterleri_ve_Test_Senaryolari_v1.0.md` adıyla kaydedilmesi
     *   **Mikro Görev 3.2.2:** Onaylanan dokümanın ilgili paydaşlarla paylaşılması
         *   **Atlas Görevi 3.2.2.1:** Dokümanın dağıtım listesinin oluşturulması
         *   **Atlas Görevi 3.2.2.2:** Dokümanın paylaşılması

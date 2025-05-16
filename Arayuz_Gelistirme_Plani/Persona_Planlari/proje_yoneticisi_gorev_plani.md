@@ -111,7 +111,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 3.3.2.1:** Dokümanın teknik ekip tarafından gözden geçirilmesi
         *   **Atlas Görevi 3.3.2.2:** Geri bildirimlere göre revizyonların yapılması
         *   **Atlas Görevi 3.3.2.3:** Nihai dokümanın onay için üst yönetime sunulması
-        *   **Atlas Görevi 3.3.2.4:** Onaylanan dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Genel_Gereksinim_Dokumani_v1.0.md` olarak kaydedilmesi
+        *   **Atlas Görevi 3.3.2.4:** Onaylanan dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/Genel_Gereksinim_Dokumani_v1.0.md` olarak kaydedilmesi
 
 ## YUI-KM0-002: Arayüzün Genel Mimarisi ve Diğer ALT_LAS Servisleriyle Entegrasyon Noktalarının Detaylı Planlanması
 
@@ -337,7 +337,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
     *   **Mikro Görev 4.2.2:** Nihai dokümanın onay için sunulması ve kaydedilmesi
         *   **Atlas Görevi 4.2.2.1:** Onay sürecinin başlatılması
         *   **Atlas Görevi 4.2.2.2:** Onayların toplanması
-        *   **Atlas Görevi 4.2.2.3:** Onaylanan dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/KM_Giris_Cikis_Kriterleri_ve_Onay_Surecleri_v1.0.md` adıyla kaydedilmesi
+        *   **Atlas Görevi 4.2.2.3:** Onaylanan dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/KM_Giris_Cikis_Kriterleri_ve_Onay_Surecleri_v1.0.md` adıyla kaydedilmesi
 
 ## Genel Koordinasyon ve İzleme Görevleri
 

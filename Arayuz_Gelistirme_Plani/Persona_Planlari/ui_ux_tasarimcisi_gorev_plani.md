@@ -343,7 +343,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
     *   **Mikro Görev 4.2.1:** Revize edilmiş tasarım sistemi ve bileşen kütüphanesi için kilit paydaşlardan onay alınması
         *   **Atlas Görevi 4.2.1.1:** Onay sürecinin planlanması
         *   **Atlas Görevi 4.2.1.2:** Onay toplantısının gerçekleştirilmesi
-        *   **Atlas Görevi 4.2.1.3:** Onaylanan dokümanların ve kodların `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Tasarim_Sistemi_v1.0.md` ve ilgili kod deposuna kaydedilmesi
+        *   **Atlas Görevi 4.2.1.3:** Onaylanan dokümanların ve kodların `/Arayuz_Gelistirme_Plani/Dokumanlar/Tasarim_Sistemi_v1.0.md` ve ilgili kod deposuna kaydedilmesi
 
 ## YUI-KM0-005: Genel İnteraktif Prototip ve Kullanıcı Testleri (İlk Tur - Ana konseptler için)
 
@@ -456,7 +456,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
     *   **Mikro Görev 4.2.2:** Raporun Proje Yöneticisi ve ilgili paydaşlarla paylaşılması
         *   **Atlas Görevi 4.2.2.1:** Rapor sunum toplantısının planlanması
         *   **Atlas Görevi 4.2.2.2:** Raporun sunulması ve tartışılması
-        *   **Atlas Görevi 4.2.2.3:** Raporun `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Kullanici_Test_Raporu_Tur1_v1.0.md` adıyla kaydedilmesi
+        *   **Atlas Görevi 4.2.2.3:** Raporun `/Arayuz_Gelistirme_Plani/Dokumanlar/Kullanici_Test_Raporu_Tur1_v1.0.md` adıyla kaydedilmesi
 
 ## YUI-KM1-001: Chat Sekmesi Detaylı Tasarımı ve Kullanıcı Akışları
 
@@ -554,7 +554,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
     *   **Mikro Görev 3.3.1:** Revize edilmiş ve son hali verilmiş tasarımlar için kilit paydaşlardan onay alınması
         *   **Atlas Görevi 3.3.1.1:** Onay sürecinin planlanması
         *   **Atlas Görevi 3.3.1.2:** Onay toplantısının gerçekleştirilmesi
-        *   **Atlas Görevi 3.3.1.3:** Onaylanan tasarım dokümanlarının ve mockup dosyalarının `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_Tasarim_v1.0/` klasörüne kaydedilmesi
+        *   **Atlas Görevi 3.3.1.3:** Onaylanan tasarım dokümanlarının ve mockup dosyalarının `/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_Tasarim_v1.0/` klasörüne kaydedilmesi
 
 ## YUI-KM1-005: Chat Sekmesi için Kabul Kriterlerinin (Acceptance Criteria) Tanımlanması ve Test Senaryoları
 
@@ -641,4 +641,4 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 3.2.1.1:** Revizyonların yapılması
         *   **Atlas Görevi 3.2.1.2:** Onay sürecinin başlatılması
         *   **Atlas Görevi 3.2.1.3:** Onayların toplanması
-        *   **Atlas Görevi 3.2.1.4:** Onaylanan dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_Kabul_Kriterleri_ve_Test_Senaryolari_v1.0.md` adıyla kaydedilmesi
+        *   **Atlas Görevi 3.2.1.4:** Onaylanan dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/Chat_Sekmesi_Kabul_Kriterleri_ve_Test_Senaryolari_v1.0.md` adıyla kaydedilmesi

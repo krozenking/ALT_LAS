@@ -79,7 +79,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 1.3.2.1:** Dokümanın gözden geçirilmesi için toplantı planlanması
         *   **Atlas Görevi 1.3.2.2:** Geri bildirimlerin toplanması ve değerlendirilmesi
         *   **Atlas Görevi 1.3.2.3:** Dokümanın güncellenmesi ve nihai versiyonun hazırlanması
-        *   **Atlas Görevi 1.3.2.4:** Onaylanan dokümanın `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/CICD_Gereksinimleri_v1.0.md` olarak kaydedilmesi
+        *   **Atlas Görevi 1.3.2.4:** Onaylanan dokümanın `/Arayuz_Gelistirme_Plani/Dokumanlar/CICD_Gereksinimleri_v1.0.md` olarak kaydedilmesi
 
 ### Alt Görev 2: CI/CD Pipeline Tasarımı
 *   **Sorumlu Persona:** DevOps Mühendisi (Can Tekin)
@@ -213,7 +213,7 @@ Bu belge, ALT_LAS projesinin yeni kullanıcı arayüzü (UI) geliştirme planın
         *   **Atlas Görevi 4.3.2.1:** Pipeline yapılandırmalarını güncelleme prosedürlerinin dokümante edilmesi
         *   **Atlas Görevi 4.3.2.2:** Pipeline'a yeni adımlar ekleme prosedürlerinin dokümante edilmesi
         *   **Atlas Görevi 4.3.2.3:** Pipeline performansını izleme ve iyileştirme yöntemlerinin dokümante edilmesi
-        *   **Atlas Görevi 4.3.2.4:** Dokümantasyonun `/home/ubuntu/ALT_LAS/Arayuz_Gelistirme_Plani/Dokumanlar/CICD_Pipeline_Dokumantasyonu_v1.0.md` olarak kaydedilmesi
+        *   **Atlas Görevi 4.3.2.4:** Dokümantasyonun `/Arayuz_Gelistirme_Plani/Dokumanlar/CICD_Pipeline_Dokumantasyonu_v1.0.md` olarak kaydedilmesi
 
 ### Alt Görev 5: Geliştirme Ekibine CI/CD Pipeline Kullanımı Konusunda Eğitim Verilmesi
 *   **Sorumlu Persona:** DevOps Mühendisi (Can Tekin)

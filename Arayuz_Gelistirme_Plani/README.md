@@ -32,7 +32,7 @@ Geliştirme çalışmalarına başlamadan önce, tüm personaların [Hazirlik_Ko
 
 ## Eski UI Çalışmaları
 
-Önceki UI çalışmaları ve planları [UI_Arsiv](../Yonetici_Ofisi/UI_Arsiv/) klasöründe arşivlenmiştir.
+Önceki UI çalışmaları ve planları [UI_Arsiv](/Yonetici_Ofisi/UI_Arsiv/) klasöründe arşivlenmiştir.
 
 ## Katkıda Bulunma
 

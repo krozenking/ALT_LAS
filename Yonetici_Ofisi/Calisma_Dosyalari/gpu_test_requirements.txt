@@ -1,0 +1,57 @@
+# GPU Test Ortamı için Python Bağımlılıkları
+
+# Test Araçları
+pytest==7.3.1
+pytest-xdist==3.3.1
+pytest-benchmark==4.0.0
+pytest-html==3.2.0
+pytest-cov==4.1.0
+locust==2.15.1
+
+# GPU İzleme ve Profilleme
+nvidia-ml-py3==7.352.0
+py3nvml==0.2.7
+pynvml==11.5.0
+
+# Derin Öğrenme Çerçeveleri
+torch==1.13.1
+torchvision==0.14.1
+tensorflow==2.11.0
+keras==2.11.0
+
+# Veri İşleme
+numpy==1.24.3
+pandas==2.0.1
+scipy==1.10.1
+scikit-learn==1.2.2
+matplotlib==3.7.1
+seaborn==0.12.2
+
+# Görüntü İşleme
+opencv-python==4.7.0.72
+pillow==9.5.0
+
+# Doğal Dil İşleme
+transformers==4.29.2
+tokenizers==0.13.3
+sentencepiece==0.1.99
+
+# Optimizasyon
+onnx==1.14.0
+onnxruntime-gpu==1.15.0
+tensorrt==8.6.1
+
+# Yardımcı Araçlar
+tqdm==4.65.0
+pyyaml==6.0
+requests==2.30.0
+psutil==5.9.5
+docker==6.1.2
+kubernetes==26.1.0
+
+# Metrik Toplama ve Görselleştirme
+prometheus-client==0.17.0
+grafana-api==1.0.3
+
+# ALT_LAS Bağımlılıkları
+# Not: ALT_LAS projesinin gerektirdiği özel bağımlılıklar buraya eklenecektir.

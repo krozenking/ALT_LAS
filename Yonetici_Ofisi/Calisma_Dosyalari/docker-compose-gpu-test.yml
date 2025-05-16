@@ -1,0 +1,137 @@
+version: '3'
+
+services:
+  # Ampere mimarisi test ortamı (CUDA 11.4)
+  ampere-test:
+    build:
+      context: .
+      dockerfile: gpu_test_ortami_dockerfile
+      args:
+        CUDA_VERSION: "11.4"
+    image: gpu-test-env:ampere-cuda-11.4
+    container_name: ampere-test
+    volumes:
+      - ./:/app
+      - ./test_results:/app/test_results
+    environment:
+      - TEST_TYPE=all
+      - EXPORT_RESULTS_DIR=/app/test_results/ampere
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Turing mimarisi test ortamı (CUDA 11.1)
+  turing-test:
+    build:
+      context: .
+      dockerfile: gpu_test_ortami_dockerfile
+      args:
+        CUDA_VERSION: "11.1"
+    image: gpu-test-env:turing-cuda-11.1
+    container_name: turing-test
+    volumes:
+      - ./:/app
+      - ./test_results:/app/test_results
+    environment:
+      - TEST_TYPE=all
+      - EXPORT_RESULTS_DIR=/app/test_results/turing
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Volta mimarisi test ortamı (CUDA 10.2)
+  volta-test:
+    build:
+      context: .
+      dockerfile: gpu_test_ortami_dockerfile
+      args:
+        CUDA_VERSION: "10.2"
+    image: gpu-test-env:volta-cuda-10.2
+    container_name: volta-test
+    volumes:
+      - ./:/app
+      - ./test_results:/app/test_results
+    environment:
+      - TEST_TYPE=all
+      - EXPORT_RESULTS_DIR=/app/test_results/volta
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Pascal mimarisi test ortamı (CUDA 10.0)
+  pascal-test:
+    build:
+      context: .
+      dockerfile: gpu_test_ortami_dockerfile
+      args:
+        CUDA_VERSION: "10.0"
+    image: gpu-test-env:pascal-cuda-10.0
+    container_name: pascal-test
+    volumes:
+      - ./:/app
+      - ./test_results:/app/test_results
+    environment:
+      - TEST_TYPE=all
+      - EXPORT_RESULTS_DIR=/app/test_results/pascal
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Hopper mimarisi test ortamı (CUDA 11.8)
+  hopper-test:
+    build:
+      context: .
+      dockerfile: gpu_test_ortami_dockerfile
+      args:
+        CUDA_VERSION: "11.8"
+    image: gpu-test-env:hopper-cuda-11.8
+    container_name: hopper-test
+    volumes:
+      - ./:/app
+      - ./test_results:/app/test_results
+    environment:
+      - TEST_TYPE=all
+      - EXPORT_RESULTS_DIR=/app/test_results/hopper
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Rapor oluşturucu
+  report-generator:
+    build:
+      context: .
+      dockerfile: gpu_test_ortami_dockerfile
+      args:
+        CUDA_VERSION: "11.4"
+    image: gpu-test-env:report-generator
+    container_name: report-generator
+    volumes:
+      - ./:/app
+      - ./test_results:/app/test_results
+    command: python /app/test_scripts/utils/combine_reports.py --input-dir=/app/test_results --output-file=/app/test_results/combined_report.html
+    depends_on:
+      - ampere-test
+      - turing-test
+      - volta-test
+      - pascal-test
+      - hopper-test

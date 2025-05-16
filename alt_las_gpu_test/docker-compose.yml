@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  alt_las_gpu_test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alt_las_gpu_test
+    ports:
+      - "8080:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

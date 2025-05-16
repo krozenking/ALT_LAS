@@ -1,0 +1,368 @@
+name: GPU Mimarileri Uyumluluk Testleri
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'test_scripts/**'
+      - 'gpu_test_ortami_dockerfile'
+      - 'docker-compose-gpu-test.yml'
+      - '.github/workflows/gpu-test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'test_scripts/**'
+      - 'gpu_test_ortami_dockerfile'
+      - 'docker-compose-gpu-test.yml'
+      - '.github/workflows/gpu-test.yml'
+  schedule:
+    # Her gece saat 01:00'de çalıştır
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Çalıştırılacak test türü'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - functional
+          - performance
+          - compatibility
+      gpu_architecture:
+        description: 'Test edilecek GPU mimarisi'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ampere
+          - turing
+          - volta
+          - pascal
+          - hopper
+      notify_slack:
+        description: 'Slack bildirimi gönder'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  DOCKER_REGISTRY: 'registry.alt-las.com'
+  PROJECT_NAME: 'gpu-test'
+  RESULTS_DIR: '${{ github.workspace }}/test_results'
+  REPORT_DIR: '${{ github.workspace }}/reports'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      architectures: ${{ steps.set-architectures.outputs.architectures }}
+      test_type: ${{ steps.set-test-type.outputs.test_type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set architectures
+        id: set-architectures
+        run: |
+          if [ "${{ github.event.inputs.gpu_architecture }}" = "all" ] || [ -z "${{ github.event.inputs.gpu_architecture }}" ]; then
+            echo "architectures=['ampere', 'turing', 'volta', 'pascal', 'hopper']" >> $GITHUB_OUTPUT
+          else
+            echo "architectures=['${{ github.event.inputs.gpu_architecture }}']" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set test type
+        id: set-test-type
+        run: |
+          if [ -z "${{ github.event.inputs.test_type }}" ]; then
+            echo "test_type=all" >> $GITHUB_OUTPUT
+          else
+            echo "test_type=${{ github.event.inputs.test_type }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create directories
+        run: |
+          mkdir -p ${{ env.RESULTS_DIR }}
+          mkdir -p ${{ env.REPORT_DIR }}
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: ${{ fromJson(needs.prepare.outputs.architectures) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Get CUDA version
+        id: cuda-version
+        run: |
+          case "${{ matrix.architecture }}" in
+            ampere)
+              echo "version=11.4" >> $GITHUB_OUTPUT
+              ;;
+            turing)
+              echo "version=11.1" >> $GITHUB_OUTPUT
+              ;;
+            volta)
+              echo "version=10.2" >> $GITHUB_OUTPUT
+              ;;
+            pascal)
+              echo "version=10.0" >> $GITHUB_OUTPUT
+              ;;
+            hopper)
+              echo "version=11.8" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "version=11.4" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Build and push test container
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./gpu_test_ortami_dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REGISTRY }}/${{ env.PROJECT_NAME }}:${{ matrix.architecture }}-cuda-${{ steps.cuda-version.outputs.version }}
+          build-args: |
+            CUDA_VERSION=${{ steps.cuda-version.outputs.version }}
+
+  build-report-generator:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Build and push report generator
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./gpu_test_ortami_dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REGISTRY }}/${{ env.PROJECT_NAME }}:report-generator
+          build-args: |
+            CUDA_VERSION=11.4
+
+  test:
+    needs: [prepare, build]
+    runs-on: [self-hosted, gpu]
+    strategy:
+      matrix:
+        architecture: ${{ fromJson(needs.prepare.outputs.architectures) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create directories
+        run: |
+          mkdir -p ${{ env.RESULTS_DIR }}
+          mkdir -p ${{ env.REPORT_DIR }}
+
+      - name: Get CUDA version
+        id: cuda-version
+        run: |
+          case "${{ matrix.architecture }}" in
+            ampere)
+              echo "version=11.4" >> $GITHUB_OUTPUT
+              ;;
+            turing)
+              echo "version=11.1" >> $GITHUB_OUTPUT
+              ;;
+            volta)
+              echo "version=10.2" >> $GITHUB_OUTPUT
+              ;;
+            pascal)
+              echo "version=10.0" >> $GITHUB_OUTPUT
+              ;;
+            hopper)
+              echo "version=11.8" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "version=11.4" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Check GPU
+        run: nvidia-smi
+
+      - name: Run tests
+        run: |
+          docker run --rm \
+            --gpus all \
+            -v ${{ github.workspace }}:/app \
+            -v ${{ env.RESULTS_DIR }}:/app/test_results \
+            -e TEST_TYPE=${{ needs.prepare.outputs.test_type }} \
+            -e EXPORT_RESULTS_DIR=/app/test_results/${{ matrix.architecture }} \
+            ${{ env.DOCKER_REGISTRY }}/${{ env.PROJECT_NAME }}:${{ matrix.architecture }}-cuda-${{ steps.cuda-version.outputs.version }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.architecture }}
+          path: ${{ env.RESULTS_DIR }}/${{ matrix.architecture }}
+
+  report:
+    needs: [prepare, build-report-generator, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create directories
+        run: |
+          mkdir -p ${{ env.RESULTS_DIR }}
+          mkdir -p ${{ env.REPORT_DIR }}
+
+      - name: Download all test results
+        uses: actions/download-artifact@v3
+        with:
+          path: ${{ env.RESULTS_DIR }}
+
+      - name: Generate report
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -v ${{ env.RESULTS_DIR }}:/app/test_results \
+            -v ${{ env.REPORT_DIR }}:/app/reports \
+            ${{ env.DOCKER_REGISTRY }}/${{ env.PROJECT_NAME }}:report-generator \
+            python /app/test_scripts/utils/combine_reports.py \
+              --input-dir=/app/test_results \
+              --output-file=/app/reports/combined_report.html
+
+      - name: Upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: gpu-compatibility-report
+          path: ${{ env.REPORT_DIR }}
+
+      - name: Publish report
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ${{ env.REPORT_DIR }}
+
+  deploy-report:
+    needs: report
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+
+  notify:
+    needs: [test, report, deploy-report]
+    if: ${{ always() && (github.event.inputs.notify_slack == 'true' || github.event_name == 'schedule') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check test results
+        id: check-results
+        run: |
+          if [[ "${{ needs.test.result }}" == "success" && "${{ needs.report.result }}" == "success" && "${{ needs.deploy-report.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=#36a64f" >> $GITHUB_OUTPUT
+            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=#ff0000" >> $GITHUB_OUTPUT
+            echo "emoji=:x:" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "${{ steps.check-results.outputs.emoji }} GPU Mimarileri Uyumluluk Test Sonuçları",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.check-results.outputs.emoji }} GPU Mimarileri Uyumluluk Test Sonuçları",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Durum:*\n${{ steps.check-results.outputs.status }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Çalıştıran:*\n${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Test Türü:*\n${{ github.event.inputs.test_type || 'all' }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*GPU Mimarisi:*\n${{ github.event.inputs.gpu_architecture || 'all' }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Rapor:* ${{ steps.deployment.outputs.page_url }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "GitHub Actions",
+                        "emoji": true
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

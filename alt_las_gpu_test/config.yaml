@@ -1,0 +1,77 @@
+# config.yaml
+gpu:
+  # GPU algılama ve yönetimi
+  detection:
+    enabled: true
+    min_compute_capability: 7.0  # RTX 4060 için uygun
+    memory_threshold: 0.9        # %90 bellek kullanımı eşiği
+    utilization_threshold: 0.95  # %95 kullanım oranı eşiği
+    max_temperature: 85          # 85°C maksimum sıcaklık
+    health_check_interval: 60    # 60 saniye sağlık kontrolü aralığı
+
+  # GPU seçim stratejisi (tek GPU olduğu için basit)
+  selection:
+    default_strategy: "single_gpu"  # Tek GPU stratejisi
+    strategies:
+      - "single_gpu"                # Sadece tek GPU stratejisi
+
+  # İş yükü dağıtımı
+  workload:
+    queue_processing_interval: 0.1  # 100ms kuyruk işleme aralığı
+    max_concurrent_tasks_per_gpu: 4 # GPU başına maksimum 4 eşzamanlı görev
+    batch_size: 8                   # Varsayılan batch boyutu
+    timeout: 300                    # 5 dakika zaman aşımı
+    retry_count: 3                  # Başarısız görevler için 3 yeniden deneme
+
+# Test ayarları
+test:
+  # GPU algılama testi
+  detection:
+    enabled: true
+
+  # Temel işlevsellik testi
+  basic_functionality:
+    enabled: true
+    input_size: 1024
+    output_size: 1024
+    duration: 5
+
+  # Eşzamanlı işlem testi
+  concurrent_processing:
+    enabled: true
+    concurrent_tasks: 4
+    task_count: 20
+    input_size: 1024
+    output_size: 1024
+    duration: 2
+
+  # Performans testi
+  performance:
+    enabled: true
+    scenarios:
+      - name: "small_model"
+        input_size: 1024
+        output_size: 1024
+        duration: 5
+      - name: "medium_model"
+        input_size: 4096
+        output_size: 4096
+        duration: 5
+      - name: "large_model"
+        input_size: 8192
+        output_size: 8192
+        duration: 5
+
+  # Hata durumu testi
+  error_handling:
+    enabled: true
+    scenarios:
+      - name: "gpu_overload"
+        concurrent_tasks: 10
+        input_size: 16384
+        output_size: 16384
+        duration: 10
+      - name: "task_timeout"
+        input_size: 8192
+        output_size: 8192
+        duration: 310  # Zaman aşımı süresi (300s) üzerinde

@@ -1,0 +1,59 @@
+version: '3'
+
+services:
+  gpu-request-router:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gpu-request-router:latest
+    container_name: gpu-request-router
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    environment:
+      - GPU_MONITORING_URL=http://gpu-monitoring-service:8080
+      - LOGGING_URL=http://logging-service:9090
+    depends_on:
+      - gpu-monitoring-service
+      - logging-service
+    restart: unless-stopped
+    networks:
+      - alt_las_network
+
+  gpu-monitoring-service:
+    image: gpu-monitoring-service:latest
+    container_name: gpu-monitoring-service
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/nvidia-smi:/usr/bin/nvidia-smi
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - alt_las_network
+
+  logging-service:
+    image: logging-service:latest
+    container_name: logging-service
+    ports:
+      - "9090:9090"
+    volumes:
+      - logging_data:/var/log/alt_las
+    restart: unless-stopped
+    networks:
+      - alt_las_network
+
+volumes:
+  logging_data:
+
+networks:
+  alt_las_network:
+    external: true

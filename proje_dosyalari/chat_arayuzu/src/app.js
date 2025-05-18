@@ -1,6 +1,9 @@
-// ALT_LAS Chat Arayüzü JavaScript
+// ALT_LAS Chat Arayüzü JavaScript - AI Entegrasyonlu
 
-document.addEventListener('DOMContentLoaded', function() {
+// AI Entegrasyon modülünü içe aktar
+const aiIntegration = require('./ai-integration.js');
+
+document.addEventListener('DOMContentLoaded', async function() {
     // DOM elementlerini seçme
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
@@ -12,8 +15,85 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mesaj geçmişi
     let messageHistory = [];
     
+    // AI Entegrasyonunu başlat
+    let aiInitialized = false;
+    
+    try {
+        // AI Entegrasyonunu başlat
+        aiInitialized = await aiIntegration.initializeAI({
+            // Varsayılan yapılandırma
+            models: [
+                {
+                    id: 'openai-gpt4',
+                    type: 'openai',
+                    modelName: 'gpt-4',
+                    apiKey: process.env.OPENAI_API_KEY || 'sim_api_key',
+                    systemMessage: 'Sen ALT_LAS projesinin yardımcı asistanısın.'
+                },
+                {
+                    id: 'openai-gpt35',
+                    type: 'openai',
+                    modelName: 'gpt-3.5-turbo',
+                    apiKey: process.env.OPENAI_API_KEY || 'sim_api_key',
+                    systemMessage: 'Sen ALT_LAS projesinin yardımcı asistanısın.'
+                }
+            ],
+            defaultModel: 'openai-gpt4',
+            parallelQueryEnabled: true
+        });
+        
+        if (aiInitialized) {
+            console.log('AI Entegrasyon başarıyla başlatıldı');
+            
+            // Model seçim listesini güncelle
+            updateModelSelector();
+        } else {
+            console.error('AI Entegrasyon başlatılamadı');
+            addMessage('AI Entegrasyon başlatılamadı. Simülasyon modunda çalışılıyor.', 'system');
+        }
+    } catch (error) {
+        console.error('AI Entegrasyon başlatılırken hata oluştu:', error);
+        addMessage('AI Entegrasyon başlatılamadı. Simülasyon modunda çalışılıyor.', 'system');
+    }
+    
+    // Model seçim listesini güncelle
+    function updateModelSelector() {
+        // Mevcut modelleri al
+        const models = aiIntegration.getAvailableAIModels();
+        const activeModel = aiIntegration.getActiveAIModel();
+        
+        // Select elementini temizle
+        aiModelSelect.innerHTML = '';
+        
+        // Varsayılan seçenek
+        const defaultOption = document.createElement('option');
+        defaultOption.value = 'default';
+        defaultOption.textContent = 'Varsayılan Model';
+        aiModelSelect.appendChild(defaultOption);
+        
+        // Modelleri ekle
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = `${model.name} (${model.version || 'v1'})`;
+            
+            // Aktif model ise seçili yap
+            if (activeModel && model.id === activeModel.id) {
+                option.selected = true;
+            }
+            
+            // Hazır değilse devre dışı bırak
+            if (!model.ready) {
+                option.disabled = true;
+                option.textContent += ' (Hazır Değil)';
+            }
+            
+            aiModelSelect.appendChild(option);
+        });
+    }
+    
     // Mesaj gönderme işlevi
-    function sendMessage(e) {
+    async function sendMessage(e) {
         e.preventDefault();
         
         const message = messageInput.value.trim();
@@ -44,24 +124,101 @@ document.addEventListener('DOMContentLoaded', function() {
         // Otomatik scroll
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
-        // AI yanıtını simüle et (gerçek uygulamada API çağrısı yapılacak)
-        setTimeout(() => {
+        try {
+            let aiResponse;
+            
+            // AI Entegrasyon başlatıldıysa gerçek sorgu yap
+            if (aiInitialized) {
+                // Aktif model bilgisini al
+                const activeModel = aiIntegration.getActiveAIModel();
+                
+                // Paralel sorgu mu yapılacak?
+                const isParallelQuery = aiModelSelect.value === 'parallel';
+                
+                if (isParallelQuery) {
+                    // Birden fazla modele paralel sorgu gönder
+                    const models = aiIntegration.getAvailableAIModels();
+                    const modelIds = models.filter(m => m.ready).map(m => m.id);
+                    
+                    const parallelResponse = await aiIntegration.parallelQueryAI(message, messageHistory, modelIds);
+                    
+                    // Typing göstergesini kaldır
+                    chatMessages.removeChild(typingIndicator);
+                    
+                    // Karşılaştırma sonuçlarını göster
+                    addMessage(`Paralel sorgu sonuçları (${modelIds.length} model):`, 'system');
+                    
+                    // Her model yanıtını ekle
+                    for (const modelId in parallelResponse.responses) {
+                        const response = parallelResponse.responses[modelId];
+                        const model = models.find(m => m.id === modelId);
+                        
+                        if (response.error) {
+                            addMessage(`${model.name}: Hata - ${response.error}`, 'system');
+                        } else {
+                            addMessage(`${model.name} yanıtı:`, 'system');
+                            addMessage(response.content, 'ai');
+                            
+                            // En iyi yanıtı vurgulamak için
+                            if (parallelResponse.comparison.winner === modelId) {
+                                addMessage(`Bu yanıt, ${parallelResponse.comparison.scores[modelId].score}/100 puanla en iyi yanıt olarak değerlendirildi.`, 'system');
+                            }
+                        }
+                    }
+                    
+                    // En iyi yanıtı mesaj geçmişine ekle
+                    const winnerId = parallelResponse.comparison.winner;
+                    if (winnerId && parallelResponse.responses[winnerId]) {
+                        messageHistory.push({
+                            role: 'assistant',
+                            content: parallelResponse.responses[winnerId].content
+                        });
+                    }
+                } else {
+                    // Tek modele sorgu gönder
+                    const response = await aiIntegration.queryAI(message, messageHistory);
+                    
+                    // Typing göstergesini kaldır
+                    chatMessages.removeChild(typingIndicator);
+                    
+                    // AI yanıtını ekle
+                    addMessage(response.content, 'ai');
+                    
+                    // Mesaj geçmişine ekle
+                    messageHistory.push({
+                        role: 'assistant',
+                        content: response.content
+                    });
+                }
+            } else {
+                // Simülasyon modunda çalış
+                setTimeout(() => {
+                    // Typing göstergesini kaldır
+                    chatMessages.removeChild(typingIndicator);
+                    
+                    // Simüle edilmiş AI yanıtını ekle
+                    aiResponse = generateSimulatedResponse(message);
+                    addMessage(aiResponse, 'ai');
+                    
+                    // Mesaj geçmişine ekle
+                    messageHistory.push({
+                        role: 'assistant',
+                        content: aiResponse
+                    });
+                    
+                    // Otomatik scroll
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('AI yanıtı alınırken hata oluştu:', error);
+            
             // Typing göstergesini kaldır
             chatMessages.removeChild(typingIndicator);
             
-            // AI yanıtını ekle
-            const aiResponse = generateAIResponse(message);
-            addMessage(aiResponse, 'ai');
-            
-            // Mesaj geçmişine ekle
-            messageHistory.push({
-                role: 'assistant',
-                content: aiResponse
-            });
-            
-            // Otomatik scroll
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 1000);
+            // Hata mesajını göster
+            addMessage(`Üzgünüm, bir hata oluştu: ${error.message}`, 'system');
+        }
     }
     
     // Mesaj ekleme işlevi
@@ -79,6 +236,9 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         chatMessages.appendChild(messageElement);
+        
+        // Otomatik scroll
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
     // Basit markdown formatlaması
@@ -100,8 +260,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return paragraphs.map(p => `<p>${p}</p>`).join('');
     }
     
-    // Basit AI yanıt simülasyonu (gerçek uygulamada API çağrısı yapılacak)
-    function generateAIResponse(message) {
+    // Basit AI yanıt simülasyonu (AI Entegrasyon çalışmadığında)
+    function generateSimulatedResponse(message) {
         const responses = [
             "Mesajınızı aldım. Size nasıl yardımcı olabilirim?",
             "Bu konu hakkında daha fazla bilgi verebilir misiniz?",
@@ -155,9 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (file.type.startsWith('image/')) {
             previewImage(file);
         }
-        
-        // Otomatik scroll
-        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
     // Dosya boyutu formatla
@@ -201,10 +358,47 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // AI model değiştiğinde
     aiModelSelect.addEventListener('change', function() {
-        // Gerçek uygulamada burada model değişikliği işlenecek
         const selectedModel = aiModelSelect.value;
-        addMessage(`AI modeli değiştirildi: ${aiModelSelect.options[aiModelSelect.selectedIndex].text}`, 'system');
+        
+        // Paralel sorgu seçeneği
+        if (selectedModel === 'parallel') {
+            addMessage('Paralel sorgu modu aktif. Sonraki mesajınız tüm aktif modellere gönderilecek.', 'system');
+            return;
+        }
+        
+        // Varsayılan model seçeneği
+        if (selectedModel === 'default') {
+            addMessage('Varsayılan model seçildi.', 'system');
+            return;
+        }
+        
+        // AI Entegrasyon başlatıldıysa modeli değiştir
+        if (aiInitialized) {
+            try {
+                const success = aiIntegration.changeAIModel(selectedModel);
+                
+                if (success) {
+                    const activeModel = aiIntegration.getActiveAIModel();
+                    addMessage(`AI modeli değiştirildi: ${activeModel.name}`, 'system');
+                } else {
+                    addMessage(`AI modeli değiştirilemedi: ${selectedModel}`, 'system');
+                }
+            } catch (error) {
+                console.error('AI modeli değiştirilirken hata oluştu:', error);
+                addMessage(`AI modeli değiştirilemedi: ${error.message}`, 'system');
+            }
+        } else {
+            addMessage(`AI modeli değiştirildi: ${aiModelSelect.options[aiModelSelect.selectedIndex].text}`, 'system');
+        }
     });
+    
+    // Paralel sorgu seçeneğini ekle
+    function addParallelQueryOption() {
+        const option = document.createElement('option');
+        option.value = 'parallel';
+        option.textContent = 'Paralel Sorgu (Tüm Modeller)';
+        aiModelSelect.appendChild(option);
+    }
     
     // Sayfa yüklendiğinde hoş geldin mesajı
     setTimeout(() => {
@@ -213,5 +407,10 @@ document.addEventListener('DOMContentLoaded', function() {
             role: 'assistant',
             content: "Merhaba! Ben ALT_LAS Chat asistanı. Size nasıl yardımcı olabilirim?"
         });
+        
+        // Paralel sorgu seçeneğini ekle
+        if (aiInitialized) {
+            addParallelQueryOption();
+        }
     }, 500);
 });

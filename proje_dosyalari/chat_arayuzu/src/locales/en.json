@@ -1,0 +1,471 @@
+{
+  "common": {
+    "send": "Send",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear",
+    "reset": "Reset",
+    "copy": "Copy",
+    "paste": "Paste",
+    "download": "Download",
+    "upload": "Upload",
+    "share": "Share",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "chat": {
+    "title": "ALT_LAS Assistant",
+    "placeholder": "Type your message...",
+    "placeholderDisabled": "AI is initializing...",
+    "send": "Send",
+    "typing": "AI is typing...",
+    "emptyState": {
+      "title": "Start chatting with ALT_LAS Assistant",
+      "description": "You can select one of the suggested topics above or ask your own question."
+    },
+    "fileUpload": {
+      "title": "Add File",
+      "placeholder": "Click or drag and drop to add a file",
+      "maxSize": "Maximum size: {size}MB",
+      "uploaded": "Uploaded",
+      "uploading": "Uploading",
+      "error": "Error",
+      "remove": "Remove",
+      "download": "Download",
+      "unsupportedType": "Unsupported file type",
+      "tooLarge": "File is too large"
+    },
+    "voiceRecording": {
+      "start": "Record Voice Message",
+      "stop": "Stop Recording",
+      "cancel": "Cancel Recording",
+      "recording": "Recording: {time}",
+      "processing": "Processing audio...",
+      "unsupported": "Your browser does not support audio recording.",
+      "permissionDenied": "Microphone access denied"
+    },
+    "messages": {
+      "you": "You",
+      "ai": "ALT_LAS AI",
+      "system": "System",
+      "imageUploaded": "[User uploaded an image: {filename}]",
+      "fileUploaded": "[User uploaded a file: {filename}]",
+      "audioUploaded": "[User uploaded an audio recording: {filename}]",
+      "pdfUploaded": "[User uploaded a PDF file: {filename}]",
+      "errorMessage": "Sorry, an error occurred. Please try again.",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "delete": "Delete",
+      "resend": "Resend"
+    },
+    "conversation": {
+      "clear": "Clear Conversation",
+      "clearConfirm": "Are you sure you want to delete all conversation history?",
+      "copy": "Copy Conversation",
+      "download": "Download Conversation",
+      "actions": "Conversation Actions",
+      "save": "Save Conversation",
+      "load": "Load Conversation",
+      "export": "Export Conversation",
+      "delete": "Delete Conversation",
+      "saved": "Conversation saved",
+      "loaded": "Conversation loaded",
+      "deleted": "Conversation deleted",
+      "empty": "No conversation to save",
+      "titleRequired": "Title is required",
+      "titleUpdated": "Title updated",
+      "saveDescription": "Save this conversation to continue later.",
+      "titlePlaceholder": "Conversation title",
+      "noSavedConversations": "No saved conversations found",
+      "loadThis": "Load this conversation",
+      "count": "messages"
+    },
+    "settings": {
+      "title": "Settings",
+      "appearance": "Appearance",
+      "theme": {
+        "title": "Theme",
+        "light": "Light Theme",
+        "dark": "Dark Theme"
+      },
+      "fontSize": "Font Size",
+      "aiModel": {
+        "title": "AI Model",
+        "select": "Select AI Model",
+        "info": "Different AI models have different capabilities and performance characteristics."
+      },
+      "notifications": {
+        "title": "Notifications and Behavior",
+        "enable": "Notifications",
+        "autoScroll": "Auto Scroll",
+        "markdown": "Markdown Support"
+      },
+      "language": {
+        "title": "Language",
+        "select": "Select Language",
+        "tr": "Turkish",
+        "en": "English"
+      }
+    },
+    "help": {
+      "title": "ALT_LAS Assistant Help",
+      "description": "ALT_LAS Assistant is an artificial intelligence assistant that allows you to get information about the ALT_LAS project, ask questions, and get help with the project.",
+      "howToUse": {
+        "title": "How to Use?",
+        "askQuestion": "Type your question in the text box and send it. The assistant will respond as soon as possible.",
+        "suggestedTopics": "You can quickly get information by selecting one of the suggested topics at the beginning of the chat.",
+        "changeModel": "You can select different AI models from the model selector in the top right corner.",
+        "settings": "You can change the theme, notifications, and other preferences by clicking the settings icon in the top right corner."
+      },
+      "shortcuts": {
+        "title": "Keyboard Shortcuts",
+        "enter": "Send message",
+        "shiftEnter": "Add new line",
+        "ctrlSlash": "Open help menu",
+        "escape": "Close open menus",
+        "ctrlK": "Focus message box"
+      },
+      "faq": {
+        "title": "Frequently Asked Questions",
+        "capabilities": {
+          "question": "What topics can the assistant help with?",
+          "answer": "ALT_LAS Assistant can help with general information about the ALT_LAS project, technical details, use cases, features, and project vision."
+        },
+        "offline": {
+          "question": "Can the assistant work offline?",
+          "answer": "Currently, the assistant works online. Limited offline capabilities will be added in future versions."
+        },
+        "history": {
+          "question": "Is my conversation history saved?",
+          "answer": "Your conversation history is only stored in your browser during the current session. It is deleted when the page is refreshed or the browser is closed. In future versions, an option to save conversation history will be added based on user preference."
+        }
+      },
+      "moreInfo": {
+        "title": "More Information",
+        "documentation": "ALT_LAS Project Documentation",
+        "userGuide": "User Guide",
+        "privacy": "Privacy Policy"
+      }
+    }
+  },
+  "accessibility": {
+    "title": "Accessibility",
+    "fontSize": "Font Size",
+    "highContrast": "High Contrast",
+    "reduceMotion": "Reduce Motion",
+    "screenReader": "Screen Reader Mode",
+    "darkMode": "Switch to Dark Mode",
+    "lightMode": "Switch to Light Mode",
+    "keyboardNavigation": "Keyboard Navigation",
+    "textToSpeech": "Text to Speech",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetZoom": "Reset Zoom"
+  },
+  "user": {
+    "profile": "Profile",
+    "preferences": "Preferences",
+    "privacy": "Privacy",
+    "personalInfo": "Personal Information",
+    "email": "Email",
+    "role": "Role",
+    "defaultRole": "User",
+    "joinDate": "Join Date",
+    "notifications": "Notifications",
+    "notifyNewMessages": "Notify for new messages",
+    "notifyMentions": "Notify when mentioned",
+    "notifyUpdates": "Notify for updates",
+    "notifySounds": "Notification sounds",
+    "chatPreferences": "Chat Preferences",
+    "messageDisplay": "Message Display",
+    "compact": "Compact",
+    "comfortable": "Comfortable",
+    "privacySettings": "Privacy Settings",
+    "shareActivity": "Share my activity",
+    "shareActivityHelp": "Other users can see when you're online and what you're doing",
+    "showOnlineStatus": "Show my online status",
+    "showOnlineStatusHelp": "Other users can see when you're online",
+    "allowDataCollection": "Allow data collection",
+    "allowDataCollectionHelp": "Your usage data may be used to improve our services",
+    "deleteAccount": "Delete My Account",
+    "deleteAccountWarning": "This action cannot be undone and all your data will be deleted",
+    "nameRequired": "Name is required",
+    "profileUpdated": "Profile updated",
+    "preferencesUpdated": "Preferences updated"
+  },
+  "help": {
+    "title": "Help Center",
+    "searchPlaceholder": "Search help topics...",
+    "faqTab": "FAQ",
+    "tutorialsTab": "Tutorials",
+    "shortcutsTab": "Shortcuts",
+    "supportTab": "Support",
+    "frequentlyAskedQuestions": "Frequently Asked Questions",
+    "noResults": "No search results found",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "customizeShortcuts": "To customize keyboard shortcuts, click the keyboard shortcuts button in the top right corner.",
+    "backToTutorials": "Back to Tutorials",
+    "faq": {
+      "q1": "What is ALT_LAS Chat Bot?",
+      "a1": "ALT_LAS Chat Bot is an AI-powered chat interface. It allows you to interact with AI through text messages, file sharing, and voice messages.",
+      "q2": "What file types can I upload?",
+      "a2": "You can upload common file formats such as PNG, JPG, PDF, TXT, DOCX, XLSX, and CSV. The maximum file size is 10MB.",
+      "q3": "Can I save my conversations?",
+      "a3": "Yes, you can save your conversations, load them later, and export them. Your conversation history is stored locally in your browser.",
+      "q4": "How do I record a voice message?",
+      "a4": "You can record a voice message by clicking the microphone icon next to the message input box. Once the recording is complete, your message will be automatically transcribed to text.",
+      "q5": "How can I change the interface language?",
+      "a5": "You can change the interface language by clicking the language selector button in the top right corner. Currently, English and Turkish languages are supported.",
+      "q6": "How can I enable accessibility features?",
+      "a6": "You can enable accessibility features such as high contrast mode, font size adjustment, reduced motion mode, and screen reader mode by clicking the accessibility menu button in the top right corner.",
+      "q7": "How can I customize the theme?",
+      "a7": "You can customize colors, typography, border radius, and other visual elements by clicking the theme customizer button in the top right corner.",
+      "q8": "How can I customize keyboard shortcuts?",
+      "a8": "You can view, edit, and add new keyboard shortcuts by clicking the keyboard shortcuts button in the top right corner."
+    },
+    "tutorials": {
+      "title": "Tutorials",
+      "basic": {
+        "title": "Basic Usage",
+        "item1": "Getting Started",
+        "item2": "Sending Messages",
+        "item3": "File Upload",
+        "item4": "Voice Messages"
+      },
+      "advanced": {
+        "title": "Advanced Features",
+        "item1": "Conversation Management",
+        "item2": "Customizing Interface",
+        "item3": "Keyboard Shortcuts",
+        "item4": "Accessibility Features"
+      }
+    },
+    "tutorialContent": {
+      "gettingStarted": {
+        "intro": "Welcome to ALT_LAS Chat Bot! This tutorial will help you get started with the application.",
+        "step1": "When you open the application, a guest user account is automatically created.",
+        "step2": "You can adjust language, theme, and accessibility settings through the buttons in the top right corner.",
+        "step3": "Start chatting with the AI by typing a message in the input box.",
+        "conclusion": "You're now ready to use ALT_LAS Chat Bot! Check out the other tutorials for more information."
+      },
+      "sendingMessages": {
+        "intro": "The most basic way to interact with the AI is by sending text messages.",
+        "step1": "Type your message in the text box at the bottom of the screen.",
+        "step2": "Press Enter or click the send button to send your message.",
+        "step3": "A loading indicator will appear while the AI is responding. The response will be displayed automatically when it arrives.",
+        "tips": "For better results, express your questions clearly and concisely. Providing context or background information to the AI can also be helpful.",
+        "example": "Example Question:",
+        "exampleText": "What is the highest mountain in Turkey and how tall is it?"
+      },
+      "fileUpload": {
+        "intro": "ALT_LAS Chat Bot allows you to upload files to share with the AI.",
+        "step1": "Click the paperclip icon next to the message input box.",
+        "step2": "Select the file you want to upload or drag and drop the file.",
+        "step3": "After the file is uploaded, you can type a question or instruction for the AI about the file.",
+        "step4": "Press Enter or click the send button to send your message.",
+        "supportedFormats": "Supported file formats"
+      },
+      "voiceMessages": {
+        "intro": "Instead of typing, you can record voice messages to interact with the AI.",
+        "step1": "Click the microphone icon next to the message input box.",
+        "step2": "When recording starts, speak your message clearly.",
+        "step3": "When recording is complete, your message will be automatically transcribed to text.",
+        "step4": "You can edit the text and press Enter or click the send button to send it.",
+        "tips": "Avoid recording in noisy environments and speak close to your microphone. Speak slowly and clearly to improve speech recognition accuracy."
+      },
+      "conversationManagement": {
+        "intro": "ALT_LAS Chat Bot offers various features to manage your conversations.",
+        "saving": "Saving Conversations",
+        "savingDesc": "You can save the current conversation by clicking the 'Save' button in the top menu. You can give the conversation a title and save it for later access.",
+        "loading": "Loading Conversations",
+        "loadingDesc": "You can load previously saved conversations by clicking the 'Load' button in the top menu. A list of your saved conversations will be displayed.",
+        "exporting": "Exporting Conversations",
+        "exportingDesc": "You can export the current conversation as a PDF, HTML, or text file by clicking the 'Export' button in the top menu."
+      },
+      "customizingInterface": {
+        "intro": "ALT_LAS Chat Bot allows you to customize the interface according to your preferences.",
+        "theme": {
+          "title": "Theme Customization",
+          "desc": "You can customize colors, typography, border radius, and other visual elements by clicking the theme customizer button in the top right corner. You can choose from preset themes or create your own."
+        },
+        "language": {
+          "title": "Changing Language",
+          "desc": "You can change the interface language by clicking the language selector button in the top right corner. Currently, English and Turkish languages are supported."
+        },
+        "accessibility": {
+          "title": "Accessibility Settings",
+          "desc": "You can enable accessibility features such as high contrast mode, font size adjustment, reduced motion mode, and screen reader mode by clicking the accessibility menu button in the top right corner."
+        }
+      },
+      "keyboardShortcuts": {
+        "intro": "ALT_LAS Chat Bot offers various keyboard shortcuts for faster and more efficient usage.",
+        "customizing": "To customize keyboard shortcuts, click the keyboard shortcuts button in the top right corner. Here you can edit, disable, or add new shortcuts."
+      },
+      "accessibilityFeatures": {
+        "intro": "ALT_LAS Chat Bot offers various accessibility features to provide an accessible experience for everyone.",
+        "contrast": {
+          "title": "High Contrast Mode",
+          "desc": "High contrast mode makes text and other elements more visible for users with visual difficulties. You can enable this mode from the accessibility menu."
+        },
+        "fontSize": {
+          "title": "Font Size Adjustment",
+          "desc": "You can increase or decrease the font size from the accessibility menu. This is useful for users who have difficulty reading text."
+        },
+        "motion": {
+          "title": "Reduced Motion Mode",
+          "desc": "Reduced motion mode disables animations and transitions, providing a more comfortable experience for users with motion sensitivity."
+        },
+        "screenReader": {
+          "title": "Screen Reader Mode",
+          "desc": "Screen reader mode provides a specialized interface that works better with screen reader software. This mode is particularly useful for visually impaired users."
+        }
+      }
+    },
+    "shortcuts": {
+      "focusInput": "Focus message input",
+      "openHelp": "Open help center",
+      "openSettings": "Open settings",
+      "closeModals": "Close open modals",
+      "newConversation": "New conversation",
+      "saveConversation": "Save conversation",
+      "openConversation": "Open conversation",
+      "toggleAccessibility": "Toggle accessibility menu",
+      "toggleTheme": "Toggle theme"
+    },
+    "support": {
+      "title": "Support and Contact",
+      "contact": {
+        "title": "Contact Us",
+        "description": "You can reach us through the following channels for questions or issues:",
+        "email": "Email",
+        "phone": "Phone"
+      },
+      "resources": {
+        "title": "Resources",
+        "documentation": "Documentation",
+        "community": "Community Forum",
+        "blog": "Blog"
+      },
+      "feedback": {
+        "title": "Feedback",
+        "description": "You can provide feedback to help us improve ALT_LAS Chat Bot.",
+        "button": "Send Feedback"
+      }
+    }
+  },
+  "keyboard": {
+    "manager": "Keyboard Shortcuts",
+    "shortcut": "Shortcut",
+    "description": "Description",
+    "category": "Category",
+    "enabled": "Enabled",
+    "search": "Search shortcuts...",
+    "allCategories": "All Categories",
+    "noShortcuts": "No shortcuts found",
+    "resetToDefault": "Reset to Default",
+    "addShortcut": "Add Shortcut",
+    "editShortcut": "Edit Shortcut",
+    "pressKeys": "Press keys...",
+    "record": "Record",
+    "recording": "Recording...",
+    "categories": {
+      "navigation": "Navigation",
+      "editing": "Editing",
+      "system": "System",
+      "accessibility": "Accessibility",
+      "chat": "Chat"
+    },
+    "focusMessageInput": "Focus message input",
+    "openHelp": "Open help",
+    "openSettings": "Open settings",
+    "closeModals": "Close open modals",
+    "newConversation": "New conversation",
+    "saveConversation": "Save conversation",
+    "openConversation": "Open conversation",
+    "toggleAccessibility": "Toggle accessibility menu",
+    "toggleTheme": "Toggle theme"
+  },
+  "theme": {
+    "customizer": "Theme Customizer",
+    "presets": "Presets",
+    "colors": "Colors",
+    "typography": "Typography",
+    "layout": "Layout",
+    "presetsDescription": "Choose one of the preset themes below or create your own.",
+    "presetSample": "Sample text",
+    "primaryColors": "Primary Colors",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "accent": "Accent",
+    "statusColors": "Status Colors",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "background": "Background",
+    "text": "Text",
+    "fontSize": "Font Size",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "extraLarge": "Extra Large",
+    "fontFamily": "Font Family",
+    "systemDefault": "System Default",
+    "borderRadius": "Border Radius",
+    "none": "None",
+    "density": "Density",
+    "compact": "Compact",
+    "comfortable": "Comfortable",
+    "spacious": "Spacious",
+    "animations": "Animations",
+    "resetToDefault": "Reset to Default"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "markAllRead": "Mark All as Read",
+    "clearAll": "Clear All",
+    "new": "New",
+    "newMessage": "New message",
+    "newMessageFrom": "New message from {sender}",
+    "systemUpdate": "System update",
+    "connectionLost": "Connection lost",
+    "connectionRestored": "Connection restored",
+    "aiModelChanged": "AI model changed",
+    "fileUploaded": "File uploaded",
+    "fileUploadError": "File upload error",
+    "userJoined": "{user} joined",
+    "userLeft": "{user} left"
+  },
+  "errors": {
+    "general": "An error occurred",
+    "reload": "Please reload the page",
+    "tryAgain": "Please try again",
+    "networkError": "Network error",
+    "serverError": "Server error",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "validation": "Validation error",
+    "timeout": "Request timed out",
+    "unknown": "Unknown error"
+  }
+}

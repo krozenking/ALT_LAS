@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: chat-arayuzu-test-scheduled
+spec:
+  schedule: "0 0 * * *"  # Her gün gece yarısı çalıştır
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: test
+            image: ${DOCKER_REGISTRY}/chat-arayuzu-test:${IMAGE_TAG}
+            env:
+            - name: NODE_ENV
+              value: "test"
+            - name: CI
+              value: "true"
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1"
+            volumeMounts:
+            - name: test-results
+              mountPath: /app/test-results
+            - name: coverage
+              mountPath: /app/coverage
+          volumes:
+          - name: test-results
+            emptyDir: {}
+          - name: coverage
+            emptyDir: {}
+          restartPolicy: Never
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3

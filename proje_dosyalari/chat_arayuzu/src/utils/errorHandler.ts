@@ -9,7 +9,7 @@
  * @param error - The error object or message
  * @param context - Additional context information
  */
-export function logErrorToService(error: any, context?: Record<string, any>): void {
+export function logErrorToService(error: unknown, context?: Record<string, any>): void {
   // Hata nesnesini serileştirilebilir bir formata dönüştürelim
   const errorData = {
     message: error instanceof Error ? error.message : String(error),

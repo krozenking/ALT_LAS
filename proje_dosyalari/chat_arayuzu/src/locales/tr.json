@@ -1,0 +1,471 @@
+{
+  "common": {
+    "send": "Gönder",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "close": "Kapat",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "warning": "Uyarı",
+    "info": "Bilgi",
+    "yes": "Evet",
+    "no": "Hayır",
+    "ok": "Tamam",
+    "back": "Geri",
+    "next": "İleri",
+    "search": "Ara",
+    "filter": "Filtrele",
+    "sort": "Sırala",
+    "clear": "Temizle",
+    "reset": "Sıfırla",
+    "copy": "Kopyala",
+    "paste": "Yapıştır",
+    "download": "İndir",
+    "upload": "Yükle",
+    "share": "Paylaş",
+    "online": "Çevrimiçi",
+    "offline": "Çevrimdışı"
+  },
+  "chat": {
+    "title": "ALT_LAS Asistan",
+    "placeholder": "Mesajınızı yazın...",
+    "placeholderDisabled": "AI başlatılıyor...",
+    "send": "Gönder",
+    "typing": "AI yazıyor...",
+    "emptyState": {
+      "title": "ALT_LAS Asistan ile sohbete başlayın",
+      "description": "Yukarıdaki önerilen konulardan birini seçebilir veya kendi sorunuzu yazabilirsiniz."
+    },
+    "fileUpload": {
+      "title": "Dosya Ekle",
+      "placeholder": "Dosya eklemek için tıklayın veya sürükleyip bırakın",
+      "maxSize": "Maksimum boyut: {size}MB",
+      "uploaded": "Yüklendi",
+      "uploading": "Yükleniyor",
+      "error": "Hata",
+      "remove": "Kaldır",
+      "download": "İndir",
+      "unsupportedType": "Desteklenmeyen dosya tipi",
+      "tooLarge": "Dosya çok büyük"
+    },
+    "voiceRecording": {
+      "start": "Sesli Mesaj Kaydet",
+      "stop": "Kaydı Durdur",
+      "cancel": "Kaydı İptal Et",
+      "recording": "Kayıt Yapılıyor: {time}",
+      "processing": "Ses işleniyor...",
+      "unsupported": "Tarayıcınız ses kaydını desteklemiyor.",
+      "permissionDenied": "Mikrofon erişimi reddedildi"
+    },
+    "messages": {
+      "you": "Sen",
+      "ai": "ALT_LAS AI",
+      "system": "Sistem",
+      "imageUploaded": "[Kullanıcı bir görsel yükledi: {filename}]",
+      "fileUploaded": "[Kullanıcı bir dosya yükledi: {filename}]",
+      "audioUploaded": "[Kullanıcı bir ses kaydı yükledi: {filename}]",
+      "pdfUploaded": "[Kullanıcı bir PDF dosyası yükledi: {filename}]",
+      "errorMessage": "Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.",
+      "copy": "Kopyala",
+      "copied": "Kopyalandı!",
+      "delete": "Sil",
+      "resend": "Yeniden Gönder"
+    },
+    "conversation": {
+      "clear": "Sohbeti Temizle",
+      "clearConfirm": "Tüm konuşma geçmişini silmek istediğinizden emin misiniz?",
+      "copy": "Konuşmayı Kopyala",
+      "download": "Konuşmayı İndir",
+      "actions": "Konuşma İşlemleri",
+      "save": "Konuşmayı Kaydet",
+      "load": "Konuşma Yükle",
+      "export": "Konuşmayı Dışa Aktar",
+      "delete": "Konuşmayı Sil",
+      "saved": "Konuşma kaydedildi",
+      "loaded": "Konuşma yüklendi",
+      "deleted": "Konuşma silindi",
+      "empty": "Kaydedilecek konuşma yok",
+      "titleRequired": "Başlık gerekli",
+      "titleUpdated": "Başlık güncellendi",
+      "saveDescription": "Bu konuşmayı daha sonra devam etmek üzere kaydedin.",
+      "titlePlaceholder": "Konuşma başlığı",
+      "noSavedConversations": "Kaydedilmiş konuşma bulunamadı",
+      "loadThis": "Bu konuşmayı yükle",
+      "count": "mesaj"
+    },
+    "settings": {
+      "title": "Ayarlar",
+      "appearance": "Görünüm",
+      "theme": {
+        "title": "Tema",
+        "light": "Aydınlık Tema",
+        "dark": "Karanlık Tema"
+      },
+      "fontSize": "Yazı Boyutu",
+      "aiModel": {
+        "title": "AI Modeli",
+        "select": "AI Modeli Seçin",
+        "info": "Farklı AI modelleri farklı yeteneklere ve performans özelliklerine sahiptir."
+      },
+      "notifications": {
+        "title": "Bildirimler ve Davranış",
+        "enable": "Bildirimler",
+        "autoScroll": "Otomatik Kaydırma",
+        "markdown": "Markdown Desteği"
+      },
+      "language": {
+        "title": "Dil",
+        "select": "Dil Seçin",
+        "tr": "Türkçe",
+        "en": "İngilizce"
+      }
+    },
+    "help": {
+      "title": "ALT_LAS Asistan Yardım",
+      "description": "ALT_LAS Asistan, ALT_LAS projesi hakkında bilgi almanıza, sorular sormanıza ve proje ile ilgili yardım almanıza olanak tanıyan bir yapay zeka asistanıdır.",
+      "howToUse": {
+        "title": "Nasıl Kullanılır?",
+        "askQuestion": "Metin kutusuna sorunuzu yazın ve gönderin. Asistan en kısa sürede yanıt verecektir.",
+        "suggestedTopics": "Sohbet başlangıcında önerilen konulardan birini seçerek hızlıca bilgi alabilirsiniz.",
+        "changeModel": "Sağ üst köşedeki model seçiciden farklı AI modellerini seçebilirsiniz.",
+        "settings": "Sağ üst köşedeki ayarlar simgesine tıklayarak tema, bildirimler ve diğer tercihleri değiştirebilirsiniz."
+      },
+      "shortcuts": {
+        "title": "Klavye Kısayolları",
+        "enter": "Mesaj gönder",
+        "shiftEnter": "Yeni satır ekle",
+        "ctrlSlash": "Yardım menüsünü aç",
+        "escape": "Açık menüleri kapat",
+        "ctrlK": "Mesaj kutusuna odaklan"
+      },
+      "faq": {
+        "title": "Sık Sorulan Sorular",
+        "capabilities": {
+          "question": "Asistan hangi konularda yardımcı olabilir?",
+          "answer": "ALT_LAS Asistan, ALT_LAS projesi hakkında genel bilgiler, teknik detaylar, kullanım senaryoları, özellikler ve proje vizyonu konularında yardımcı olabilir."
+        },
+        "offline": {
+          "question": "Asistan çevrimdışı çalışabilir mi?",
+          "answer": "Şu anda asistan çevrimiçi çalışmaktadır. Gelecek sürümlerde sınırlı çevrimdışı yetenekler eklenecektir."
+        },
+        "history": {
+          "question": "Konuşma geçmişim kaydediliyor mu?",
+          "answer": "Konuşma geçmişiniz yalnızca mevcut oturum boyunca tarayıcınızda saklanır. Sayfa yenilendiğinde veya tarayıcı kapatıldığında konuşma geçmişi silinir. Gelecek sürümlerde, kullanıcı tercihine bağlı olarak konuşma geçmişini kaydetme seçeneği eklenecektir."
+        }
+      },
+      "moreInfo": {
+        "title": "Daha Fazla Bilgi",
+        "documentation": "ALT_LAS Proje Dokümantasyonu",
+        "userGuide": "Kullanım Kılavuzu",
+        "privacy": "Gizlilik Politikası"
+      }
+    }
+  },
+  "accessibility": {
+    "title": "Erişilebilirlik",
+    "fontSize": "Yazı Boyutu",
+    "highContrast": "Yüksek Kontrast",
+    "reduceMotion": "Hareketi Azalt",
+    "screenReader": "Ekran Okuyucu Modu",
+    "darkMode": "Karanlık Moda Geç",
+    "lightMode": "Aydınlık Moda Geç",
+    "keyboardNavigation": "Klavye Navigasyonu",
+    "textToSpeech": "Metinden Sese",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "resetZoom": "Yakınlaştırmayı Sıfırla"
+  },
+  "user": {
+    "profile": "Profil",
+    "preferences": "Tercihler",
+    "privacy": "Gizlilik",
+    "personalInfo": "Kişisel Bilgiler",
+    "email": "E-posta",
+    "role": "Rol",
+    "defaultRole": "Kullanıcı",
+    "joinDate": "Katılım Tarihi",
+    "notifications": "Bildirimler",
+    "notifyNewMessages": "Yeni mesajlar için bildirim",
+    "notifyMentions": "Bahsedildiğimde bildirim",
+    "notifyUpdates": "Güncellemeler için bildirim",
+    "notifySounds": "Bildirim sesleri",
+    "chatPreferences": "Sohbet Tercihleri",
+    "messageDisplay": "Mesaj Görünümü",
+    "compact": "Sıkışık",
+    "comfortable": "Rahat",
+    "privacySettings": "Gizlilik Ayarları",
+    "shareActivity": "Etkinliğimi paylaş",
+    "shareActivityHelp": "Diğer kullanıcılar çevrimiçi olduğunuzu ve ne yaptığınızı görebilir",
+    "showOnlineStatus": "Çevrimiçi durumumu göster",
+    "showOnlineStatusHelp": "Diğer kullanıcılar çevrimiçi olduğunuzu görebilir",
+    "allowDataCollection": "Veri toplamaya izin ver",
+    "allowDataCollectionHelp": "Kullanım verileriniz hizmetlerimizi iyileştirmek için kullanılabilir",
+    "deleteAccount": "Hesabımı Sil",
+    "deleteAccountWarning": "Bu işlem geri alınamaz ve tüm verileriniz silinir",
+    "nameRequired": "İsim gerekli",
+    "profileUpdated": "Profil güncellendi",
+    "preferencesUpdated": "Tercihler güncellendi"
+  },
+  "help": {
+    "title": "Yardım Merkezi",
+    "searchPlaceholder": "Yardım konusu ara...",
+    "faqTab": "SSS",
+    "tutorialsTab": "Öğreticiler",
+    "shortcutsTab": "Kısayollar",
+    "supportTab": "Destek",
+    "frequentlyAskedQuestions": "Sık Sorulan Sorular",
+    "noResults": "Arama sonucu bulunamadı",
+    "keyboardShortcuts": "Klavye Kısayolları",
+    "customizeShortcuts": "Klavye kısayollarını özelleştirmek için sağ üst köşedeki klavye kısayolları düğmesine tıklayın.",
+    "backToTutorials": "Öğreticilere Geri Dön",
+    "faq": {
+      "q1": "ALT_LAS Chat Botu nedir?",
+      "a1": "ALT_LAS Chat Botu, yapay zeka destekli bir sohbet arayüzüdür. Metin mesajları, dosya paylaşımı ve sesli mesajlar aracılığıyla AI ile etkileşime geçmenizi sağlar.",
+      "q2": "Hangi dosya türlerini yükleyebilirim?",
+      "a2": "PNG, JPG, PDF, TXT, DOCX, XLSX ve CSV gibi yaygın dosya formatlarını yükleyebilirsiniz. Maksimum dosya boyutu 10MB'dir.",
+      "q3": "Konuşmalarımı kaydedebilir miyim?",
+      "a3": "Evet, konuşmalarınızı kaydedebilir, daha sonra yükleyebilir ve dışa aktarabilirsiniz. Konuşma geçmişiniz yerel olarak tarayıcınızda saklanır.",
+      "q4": "Sesli mesaj nasıl kaydedilir?",
+      "a4": "Mesaj giriş kutusunun yanındaki mikrofon simgesine tıklayarak sesli mesaj kaydedebilirsiniz. Kayıt tamamlandığında, mesajınız otomatik olarak metne dönüştürülür.",
+      "q5": "Arayüz dilini nasıl değiştirebilirim?",
+      "a5": "Sağ üst köşedeki dil seçici düğmesine tıklayarak arayüz dilini değiştirebilirsiniz. Şu anda Türkçe ve İngilizce dilleri desteklenmektedir.",
+      "q6": "Erişilebilirlik özelliklerini nasıl etkinleştirebilirim?",
+      "a6": "Sağ üst köşedeki erişilebilirlik menüsü düğmesine tıklayarak yüksek kontrast modu, yazı boyutu ayarı, hareketi azaltma modu ve ekran okuyucu modu gibi erişilebilirlik özelliklerini etkinleştirebilirsiniz.",
+      "q7": "Temayı nasıl özelleştirebilirim?",
+      "a7": "Sağ üst köşedeki tema özelleştirici düğmesine tıklayarak renkleri, yazı tipini, kenar yuvarlaklığını ve diğer görsel öğeleri özelleştirebilirsiniz.",
+      "q8": "Klavye kısayollarını nasıl özelleştirebilirim?",
+      "a8": "Sağ üst köşedeki klavye kısayolları düğmesine tıklayarak mevcut kısayolları görüntüleyebilir, düzenleyebilir ve yeni kısayollar ekleyebilirsiniz."
+    },
+    "tutorials": {
+      "title": "Öğreticiler",
+      "basic": {
+        "title": "Temel Kullanım",
+        "item1": "Başlarken",
+        "item2": "Mesaj Gönderme",
+        "item3": "Dosya Yükleme",
+        "item4": "Sesli Mesajlar"
+      },
+      "advanced": {
+        "title": "Gelişmiş Özellikler",
+        "item1": "Konuşma Yönetimi",
+        "item2": "Arayüz Özelleştirme",
+        "item3": "Klavye Kısayolları",
+        "item4": "Erişilebilirlik Özellikleri"
+      }
+    },
+    "tutorialContent": {
+      "gettingStarted": {
+        "intro": "ALT_LAS Chat Botu'na hoş geldiniz! Bu öğretici, uygulamayı kullanmaya başlamanıza yardımcı olacaktır.",
+        "step1": "Uygulamayı açtığınızda, otomatik olarak bir misafir kullanıcı hesabı oluşturulur.",
+        "step2": "Sağ üst köşedeki düğmeler aracılığıyla dil, tema ve erişilebilirlik ayarlarını yapabilirsiniz.",
+        "step3": "Mesaj giriş kutusuna bir mesaj yazarak AI ile sohbete başlayabilirsiniz.",
+        "conclusion": "Artık ALT_LAS Chat Botu'nu kullanmaya hazırsınız! Daha fazla bilgi için diğer öğreticilere göz atabilirsiniz."
+      },
+      "sendingMessages": {
+        "intro": "AI ile etkileşime geçmenin en temel yolu metin mesajları göndermektir.",
+        "step1": "Ekranın alt kısmındaki metin kutusuna mesajınızı yazın.",
+        "step2": "Mesajınızı göndermek için Enter tuşuna basın veya gönder düğmesine tıklayın.",
+        "step3": "AI yanıt verirken bir yükleme göstergesi görünecektir. Yanıt geldiğinde otomatik olarak görüntülenecektir.",
+        "tips": "Daha iyi sonuçlar için, sorularınızı açık ve net bir şekilde ifade edin. AI'ya bağlama veya arka plan bilgisi sağlamak da yardımcı olabilir.",
+        "example": "Örnek Soru:",
+        "exampleText": "Türkiye'nin en yüksek dağı hangisidir ve yüksekliği ne kadardır?"
+      },
+      "fileUpload": {
+        "intro": "ALT_LAS Chat Botu, AI ile paylaşmak istediğiniz dosyaları yüklemenize olanak tanır.",
+        "step1": "Mesaj giriş kutusunun yanındaki ataç simgesine tıklayın.",
+        "step2": "Yüklemek istediğiniz dosyayı seçin veya dosyayı sürükleyip bırakın.",
+        "step3": "Dosya yüklendikten sonra, AI'ya dosya hakkında bir soru veya talimat yazabilirsiniz.",
+        "step4": "Mesajınızı göndermek için Enter tuşuna basın veya gönder düğmesine tıklayın.",
+        "supportedFormats": "Desteklenen dosya formatları"
+      },
+      "voiceMessages": {
+        "intro": "Metin yazmak yerine sesli mesaj kaydederek AI ile etkileşime geçebilirsiniz.",
+        "step1": "Mesaj giriş kutusunun yanındaki mikrofon simgesine tıklayın.",
+        "step2": "Kayıt başladığında, mesajınızı net bir şekilde söyleyin.",
+        "step3": "Kayıt tamamlandığında, mesajınız otomatik olarak metne dönüştürülecektir.",
+        "step4": "Metni düzenleyebilir ve göndermek için Enter tuşuna basabilir veya gönder düğmesine tıklayabilirsiniz.",
+        "tips": "Gürültülü ortamlarda kayıt yapmaktan kaçının ve mikrofonunuza yakın konuşun. Konuşma tanıma doğruluğunu artırmak için yavaş ve net konuşun."
+      },
+      "conversationManagement": {
+        "intro": "ALT_LAS Chat Botu, konuşmalarınızı yönetmenize olanak tanıyan çeşitli özellikler sunar.",
+        "saving": "Konuşma Kaydetme",
+        "savingDesc": "Üst menüdeki 'Kaydet' düğmesine tıklayarak mevcut konuşmayı kaydedebilirsiniz. Konuşmaya bir başlık verebilir ve daha sonra erişmek üzere kaydedebilirsiniz.",
+        "loading": "Konuşma Yükleme",
+        "loadingDesc": "Üst menüdeki 'Yükle' düğmesine tıklayarak önceden kaydedilmiş konuşmaları yükleyebilirsiniz. Kaydedilmiş konuşmalarınızın bir listesi görüntülenecektir.",
+        "exporting": "Konuşma Dışa Aktarma",
+        "exportingDesc": "Üst menüdeki 'Dışa Aktar' düğmesine tıklayarak mevcut konuşmayı PDF, HTML veya metin dosyası olarak dışa aktarabilirsiniz."
+      },
+      "customizingInterface": {
+        "intro": "ALT_LAS Chat Botu, arayüzü kişisel tercihlerinize göre özelleştirmenize olanak tanır.",
+        "theme": {
+          "title": "Tema Özelleştirme",
+          "desc": "Sağ üst köşedeki tema özelleştirici düğmesine tıklayarak renkleri, yazı tipini, kenar yuvarlaklığını ve diğer görsel öğeleri özelleştirebilirsiniz. Hazır temalar arasından seçim yapabilir veya kendi temanızı oluşturabilirsiniz."
+        },
+        "language": {
+          "title": "Dil Değiştirme",
+          "desc": "Sağ üst köşedeki dil seçici düğmesine tıklayarak arayüz dilini değiştirebilirsiniz. Şu anda Türkçe ve İngilizce dilleri desteklenmektedir."
+        },
+        "accessibility": {
+          "title": "Erişilebilirlik Ayarları",
+          "desc": "Sağ üst köşedeki erişilebilirlik menüsü düğmesine tıklayarak yüksek kontrast modu, yazı boyutu ayarı, hareketi azaltma modu ve ekran okuyucu modu gibi erişilebilirlik özelliklerini etkinleştirebilirsiniz."
+        }
+      },
+      "keyboardShortcuts": {
+        "intro": "ALT_LAS Chat Botu, daha hızlı ve verimli kullanım için çeşitli klavye kısayolları sunar.",
+        "customizing": "Klavye kısayollarını özelleştirmek için sağ üst köşedeki klavye kısayolları düğmesine tıklayın. Burada mevcut kısayolları düzenleyebilir, devre dışı bırakabilir veya yeni kısayollar ekleyebilirsiniz."
+      },
+      "accessibilityFeatures": {
+        "intro": "ALT_LAS Chat Botu, herkes için erişilebilir bir deneyim sağlamak amacıyla çeşitli erişilebilirlik özellikleri sunar.",
+        "contrast": {
+          "title": "Yüksek Kontrast Modu",
+          "desc": "Yüksek kontrast modu, görme zorluğu yaşayan kullanıcılar için metinleri ve diğer öğeleri daha görünür hale getirir. Bu modu erişilebilirlik menüsünden etkinleştirebilirsiniz."
+        },
+        "fontSize": {
+          "title": "Yazı Boyutu Ayarı",
+          "desc": "Yazı boyutunu erişilebilirlik menüsünden artırabilir veya azaltabilirsiniz. Bu, metinleri okumakta zorlanan kullanıcılar için faydalıdır."
+        },
+        "motion": {
+          "title": "Hareketi Azaltma Modu",
+          "desc": "Hareketi azaltma modu, animasyonları ve geçişleri devre dışı bırakarak hareket duyarlılığı olan kullanıcılar için daha rahat bir deneyim sağlar."
+        },
+        "screenReader": {
+          "title": "Ekran Okuyucu Modu",
+          "desc": "Ekran okuyucu modu, ekran okuyucu yazılımlarıyla daha iyi uyumluluk sağlayan özel bir arayüz sunar. Bu mod, görme engelli kullanıcılar için özellikle faydalıdır."
+        }
+      }
+    },
+    "shortcuts": {
+      "focusInput": "Mesaj kutusuna odaklan",
+      "openHelp": "Yardım merkezini aç",
+      "openSettings": "Ayarları aç",
+      "closeModals": "Açık pencereleri kapat",
+      "newConversation": "Yeni konuşma",
+      "saveConversation": "Konuşmayı kaydet",
+      "openConversation": "Konuşma aç",
+      "toggleAccessibility": "Erişilebilirlik menüsünü aç/kapat",
+      "toggleTheme": "Temayı değiştir"
+    },
+    "support": {
+      "title": "Destek ve İletişim",
+      "contact": {
+        "title": "Bize Ulaşın",
+        "description": "Sorularınız veya sorunlarınız için aşağıdaki kanallardan bize ulaşabilirsiniz:",
+        "email": "E-posta",
+        "phone": "Telefon"
+      },
+      "resources": {
+        "title": "Kaynaklar",
+        "documentation": "Dokümantasyon",
+        "community": "Topluluk Forumu",
+        "blog": "Blog"
+      },
+      "feedback": {
+        "title": "Geri Bildirim",
+        "description": "ALT_LAS Chat Botu'nu geliştirmemize yardımcı olmak için geri bildirimde bulunabilirsiniz.",
+        "button": "Geri Bildirim Gönder"
+      }
+    }
+  },
+  "keyboard": {
+    "manager": "Klavye Kısayolları",
+    "shortcut": "Kısayol",
+    "description": "Açıklama",
+    "category": "Kategori",
+    "enabled": "Etkin",
+    "search": "Kısayol ara...",
+    "allCategories": "Tüm Kategoriler",
+    "noShortcuts": "Kısayol bulunamadı",
+    "resetToDefault": "Varsayılana Sıfırla",
+    "addShortcut": "Kısayol Ekle",
+    "editShortcut": "Kısayol Düzenle",
+    "pressKeys": "Tuşlara basın...",
+    "record": "Kaydet",
+    "recording": "Kaydediliyor...",
+    "categories": {
+      "navigation": "Gezinme",
+      "editing": "Düzenleme",
+      "system": "Sistem",
+      "accessibility": "Erişilebilirlik",
+      "chat": "Sohbet"
+    },
+    "focusMessageInput": "Mesaj kutusuna odaklan",
+    "openHelp": "Yardımı aç",
+    "openSettings": "Ayarları aç",
+    "closeModals": "Açık pencereleri kapat",
+    "newConversation": "Yeni konuşma",
+    "saveConversation": "Konuşmayı kaydet",
+    "openConversation": "Konuşma aç",
+    "toggleAccessibility": "Erişilebilirlik menüsünü aç/kapat",
+    "toggleTheme": "Temayı değiştir"
+  },
+  "theme": {
+    "customizer": "Tema Özelleştirici",
+    "presets": "Hazır Temalar",
+    "colors": "Renkler",
+    "typography": "Tipografi",
+    "layout": "Düzen",
+    "presetsDescription": "Aşağıdaki hazır temalardan birini seçin veya kendi temanızı oluşturun.",
+    "presetSample": "Örnek metin",
+    "primaryColors": "Ana Renkler",
+    "primary": "Ana Renk",
+    "secondary": "İkincil Renk",
+    "accent": "Vurgu Rengi",
+    "statusColors": "Durum Renkleri",
+    "success": "Başarı",
+    "error": "Hata",
+    "warning": "Uyarı",
+    "info": "Bilgi",
+    "lightMode": "Aydınlık Mod",
+    "darkMode": "Karanlık Mod",
+    "background": "Arka Plan",
+    "text": "Metin",
+    "fontSize": "Yazı Boyutu",
+    "small": "Küçük",
+    "medium": "Orta",
+    "large": "Büyük",
+    "extraLarge": "Çok Büyük",
+    "fontFamily": "Yazı Tipi",
+    "systemDefault": "Sistem Varsayılanı",
+    "borderRadius": "Kenar Yuvarlaklığı",
+    "none": "Yok",
+    "density": "Yoğunluk",
+    "compact": "Sıkışık",
+    "comfortable": "Rahat",
+    "spacious": "Geniş",
+    "animations": "Animasyonlar",
+    "resetToDefault": "Varsayılana Sıfırla"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "empty": "Bildirim bulunmuyor",
+    "markAllRead": "Tümünü Okundu İşaretle",
+    "clearAll": "Tümünü Temizle",
+    "new": "Yeni",
+    "newMessage": "Yeni mesaj",
+    "newMessageFrom": "{sender} tarafından yeni mesaj",
+    "systemUpdate": "Sistem güncellemesi",
+    "connectionLost": "Bağlantı kesildi",
+    "connectionRestored": "Bağlantı yeniden kuruldu",
+    "aiModelChanged": "AI modeli değiştirildi",
+    "fileUploaded": "Dosya yüklendi",
+    "fileUploadError": "Dosya yükleme hatası",
+    "userJoined": "{user} katıldı",
+    "userLeft": "{user} ayrıldı"
+  },
+  "errors": {
+    "general": "Bir hata oluştu",
+    "reload": "Lütfen sayfayı yenileyin",
+    "tryAgain": "Lütfen tekrar deneyin",
+    "networkError": "Ağ hatası",
+    "serverError": "Sunucu hatası",
+    "notFound": "Bulunamadı",
+    "unauthorized": "Yetkisiz erişim",
+    "forbidden": "Erişim engellendi",
+    "validation": "Doğrulama hatası",
+    "timeout": "İstek zaman aşımına uğradı",
+    "unknown": "Bilinmeyen hata"
+  }
+}

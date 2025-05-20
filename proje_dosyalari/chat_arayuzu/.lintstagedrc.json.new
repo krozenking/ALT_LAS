@@ -1,0 +1,16 @@
+{
+  "*.{js,jsx,ts,tsx}": [
+    "eslint --fix",
+    "vitest related --run --passWithNoTests"
+  ],
+  "*.test.{js,jsx,ts,tsx}": [
+    "eslint --fix",
+    "vitest related --run"
+  ],
+  "*.cy.{js,jsx,ts,tsx}": [
+    "eslint --fix"
+  ],
+  "*.{json,md,html,css}": [
+    "prettier --write"
+  ]
+}

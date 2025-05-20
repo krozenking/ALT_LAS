@@ -14,7 +14,7 @@ const ErrorTest: React.FC = () => {
   // Function to trigger a runtime error
   const triggerRuntimeError = () => {
     try {
-      // @ts-ignore - Intentionally causing an error
+      // @ts-expect-error - Intentionally causing an error
       const obj = null;
       obj.nonExistentMethod();
     } catch (error) {
@@ -29,7 +29,7 @@ const ErrorTest: React.FC = () => {
     try {
       // Intentionally create a Message with missing required fields
       const invalidMessage: Message = {
-        // @ts-ignore - Intentionally missing required fields
+        // @ts-expect-error - Intentionally missing required fields
         content: 'Test message'
       };
       console.log('Invalid message created:', invalidMessage);

@@ -1,6 +1,6 @@
-# ALT_LAS Entegrasyon Modülü Ana Dosyası
-
 /**
+ * ALT_LAS Entegrasyon Modülü Ana Dosyası
+ *
  * ALT_LAS Çoklu AI Entegrasyon Modülü
  * Bu modül, farklı AI modellerine bağlantı kurma, model seçimi ve paralel sorgu işleme özelliklerini sağlar.
  */
@@ -21,10 +21,10 @@ const OpenAIAdapter = require('./models/OpenAIAdapter');
 function initializeAIIntegration(config = {}) {
   // Yapılandırma yöneticisini oluştur
   const configManager = new ConfigManager(config);
-  
+
   // AI entegrasyon servisini oluştur
   const integrationService = new AIIntegrationService(config);
-  
+
   // API'yi döndür
   return {
     /**
@@ -34,7 +34,7 @@ function initializeAIIntegration(config = {}) {
     async initialize() {
       return await integrationService.initialize();
     },
-    
+
     /**
      * Aktif modele sorgu gönderir
      * @param {string} prompt - Kullanıcı girdisi
@@ -45,7 +45,7 @@ function initializeAIIntegration(config = {}) {
     async query(prompt, context = [], options = {}) {
       return await integrationService.query(prompt, context, options);
     },
-    
+
     /**
      * Birden fazla modele paralel sorgu gönderir
      * @param {string} prompt - Kullanıcı girdisi
@@ -57,7 +57,7 @@ function initializeAIIntegration(config = {}) {
     async parallelQuery(prompt, context = [], modelIds = [], options = {}) {
       return await integrationService.parallelQuery(prompt, context, modelIds, options);
     },
-    
+
     /**
      * Yeni bir model kaydeder
      * @param {Object} modelConfig - Model yapılandırması
@@ -66,11 +66,11 @@ function initializeAIIntegration(config = {}) {
     async registerModel(modelConfig) {
       // Yapılandırmaya ekle
       configManager.addModelConfig(modelConfig);
-      
+
       // Servise kaydet
       return await integrationService.registerModel(modelConfig);
     },
-    
+
     /**
      * Aktif modeli değiştirir
      * @param {string} modelId - Model ID
@@ -79,11 +79,11 @@ function initializeAIIntegration(config = {}) {
     setActiveModel(modelId) {
       // Yapılandırmayı güncelle
       configManager.setDefaultModel(modelId);
-      
+
       // Servisi güncelle
       return integrationService.setActiveModel(modelId);
     },
-    
+
     /**
      * Kayıtlı tüm modellerin bilgilerini döndürür
      * @returns {Array<Object>} - Model bilgileri
@@ -91,7 +91,7 @@ function initializeAIIntegration(config = {}) {
     getAvailableModels() {
       return integrationService.getAvailableModels();
     },
-    
+
     /**
      * Aktif modelin bilgilerini döndürür
      * @returns {Object|null} - Model bilgileri
@@ -99,7 +99,7 @@ function initializeAIIntegration(config = {}) {
     getActiveModelInfo() {
       return integrationService.getActiveModelInfo();
     },
-    
+
     /**
      * Yapılandırmayı döndürür
      * @returns {Object} - Yapılandırma
@@ -107,7 +107,7 @@ function initializeAIIntegration(config = {}) {
     getConfig() {
       return configManager.getConfig();
     },
-    
+
     /**
      * Yapılandırmayı günceller
      * @param {string} key - Yapılandırma anahtarı
@@ -116,7 +116,7 @@ function initializeAIIntegration(config = {}) {
     updateConfig(key, value) {
       configManager.set(key, value);
     },
-    
+
     /**
      * Yanıt kalitesini değerlendirir
      * @param {string} response - AI yanıtı
@@ -125,7 +125,7 @@ function initializeAIIntegration(config = {}) {
     evaluateResponse(response) {
       return AIUtils.evaluateResponseQuality(response);
     },
-    
+
     /**
      * Farklı model yanıtlarını karşılaştırır
      * @param {Object} responses - Model yanıtları
@@ -134,10 +134,10 @@ function initializeAIIntegration(config = {}) {
     compareResponses(responses) {
       return AIUtils.compareResponses(responses);
     },
-    
+
     // Yardımcı sınıfları dışa aktar
     utils: AIUtils,
-    
+
     // Versiyon bilgisi
     version: '0.1.0'
   };

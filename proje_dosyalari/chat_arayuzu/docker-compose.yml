@@ -1,28 +1,85 @@
-version: '3'
+version: '3.8'
 
 services:
-  frontend:
+  # Frontend uygulaması
+  chat-frontend:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_ENV: ${ENVIRONMENT:-production}
+    image: altlas/chat-frontend:${TAG:-latest}
+    container_name: altlas-chat-frontend
+    restart: unless-stopped
     ports:
-      - "5173:5173"
-    volumes:
-      - ./src:/app/src
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      - API_URL=${API_URL:-http://chat-api:3000}
+    networks:
+      - altlas-network
     depends_on:
-      - backend
-    environment:
-      - VITE_API_URL=http://localhost:3000/api
-      - VITE_SOCKET_URL=http://localhost:3000
+      - chat-api
 
-  backend:
+  # Backend API
+  chat-api:
     build:
-      context: ./server
+      context: ../chat_api
       dockerfile: Dockerfile
+    image: altlas/chat-api:${TAG:-latest}
+    container_name: altlas-chat-api
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-    volumes:
-      - ./server:/app
+      - "${API_PORT:-3000}:3000"
     environment:
+      - NODE_ENV=${ENVIRONMENT:-production}
       - PORT=3000
-      - CLIENT_URL=http://localhost:5173
+      - DATABASE_URL=${DATABASE_URL:-mongodb://chat-db:27017/altlas}
+      - AI_SERVICE_URL=${AI_SERVICE_URL:-http://chat-ai:5000}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    networks:
+      - altlas-network
+    depends_on:
+      - chat-db
+
+  # AI Servisi
+  chat-ai:
+    build:
+      context: ../chat_ai
+      dockerfile: Dockerfile
+    image: altlas/chat-ai:${TAG:-latest}
+    container_name: altlas-chat-ai
+    restart: unless-stopped
+    ports:
+      - "${AI_PORT:-5000}:5000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_CACHE_DIR=/app/model_cache
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ai-model-cache:/app/model_cache
+    networks:
+      - altlas-network
+
+  # Veritabanı
+  chat-db:
+    image: mongo:6
+    container_name: altlas-chat-db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-27017}:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASSWORD:-password}
+    volumes:
+      - chat-db-data:/data/db
+    networks:
+      - altlas-network
+
+networks:
+  altlas-network:
+    driver: bridge
+
+volumes:
+  chat-db-data:
+  ai-model-cache:

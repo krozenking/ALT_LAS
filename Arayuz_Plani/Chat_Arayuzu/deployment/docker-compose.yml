@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL}
+        - REACT_APP_WS_URL=${REACT_APP_WS_URL}
+        - REACT_APP_VERSION=${REACT_APP_VERSION}
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - altlas-network
+    depends_on:
+      - api
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # API service
+  api:
+    image: altlas/api:latest
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    restart: unless-stopped
+    networks:
+      - altlas-network
+    depends_on:
+      - mongodb
+      - redis
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - WS_PORT=3001
+      - MONGO_URI=mongodb://mongodb:27017/altlas
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_EXPIRES_IN=7d
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # MongoDB service
+  mongodb:
+    image: mongo:5.0
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    networks:
+      - altlas-network
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=altlas
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/altlas --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Redis service
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - altlas-network
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  altlas-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  redis-data:
+  uploads:

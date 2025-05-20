@@ -1,14 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App'
-import { initErrorHandling } from './utils/errorHandler'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
+import './index.css';
+import './styles/chat.css';
+import App from './App.tsx';
+import theme from './theme';
+import { initErrorHandling } from './utils/errorHandler';
 
 // Initialize global error handling
 initErrorHandling();
 
 // Log application startup
-console.log('Application starting...');
+console.log('ALT_LAS Chat Arayüzü başlatılıyor...');
 
 // Hata yakalama işlemleri artık errorHandler.ts içinde merkezi olarak yönetiliyor
 // window.onerror ve console.error override'ları kaldırıldı
@@ -21,11 +24,14 @@ try {
 
   createRoot(rootElement).render(
     <StrictMode>
-      <App />
+      <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+      <ChakraProvider theme={theme}>
+        <App />
+      </ChakraProvider>
     </StrictMode>,
   );
 
-  console.log('Application rendered successfully');
+  console.log('Uygulama başarıyla render edildi');
 } catch (error) {
-  console.error('Failed to render application:', error);
+  console.error('Uygulama render edilirken hata oluştu:', error);
 }

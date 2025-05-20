@@ -12,7 +12,22 @@
     "test:a11y": "jest --testPathPattern=a11y",
     "test:store": "jest --testPathPattern=store",
     "test:integration": "jest --testPathPattern=integration",
-    "test:performance": "lighthouse-ci"
+    "test:performance": "lighthouse-ci",
+    "test:performance:desktop": "lighthouse-ci --preset=desktop",
+    "test:performance:mobile": "lighthouse-ci --preset=mobile",
+    "test:performance:budget": "lighthouse-ci --budget-path=./lighthouse-budget.json",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci",
+    "test:report": "jest --coverage --reporters=default --reporters=jest-html-reporter",
+    "test:summary": "jest --coverage --coverageReporters=text-summary",
+    "test:parallel": "jest --maxWorkers=50%",
+    "cypress": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:component": "cypress open --component",
+    "cypress:run:component": "cypress run --component",
+    "percy": "percy exec -- cypress run",
+    "test:e2e": "start-server-and-test dev http://localhost:3000 cypress:run",
+    "test:visual": "start-server-and-test dev http://localhost:3000 percy"
   },
   "dependencies": {
     "next": "^14.0.0",
@@ -42,6 +57,15 @@
     "axe-core": "^4.7.0",
     "jest-axe": "^8.0.0",
     "@lhci/cli": "^0.12.0",
-    "msw": "^1.2.0"
+    "msw": "^1.2.0",
+    "cypress": "^13.0.0",
+    "@percy/cli": "^1.27.0",
+    "@percy/cypress": "^3.1.0",
+    "start-server-and-test": "^2.0.0",
+    "cypress-axe": "^1.5.0",
+    "eslint-plugin-cypress": "^2.15.0",
+    "jest-html-reporter": "^3.10.0",
+    "jest-junit": "^16.0.0",
+    "jest-sonar-reporter": "^2.0.0"
   }
 }

@@ -1,0 +1,14 @@
+{
+  "pageTitle": "ALT_LAS UI Test Raporu",
+  "outputPath": "./test-report.html",
+  "includeFailureMsg": true,
+  "includeSuiteFailure": true,
+  "includeConsoleLog": true,
+  "executionTimeWarningThreshold": 5,
+  "executionMode": "reporter",
+  "dateFormat": "yyyy-mm-dd HH:MM:ss",
+  "sort": "status",
+  "theme": "dark",
+  "styleOverridePath": "./jest-html-reporter-style.css",
+  "useCssFile": true
+}

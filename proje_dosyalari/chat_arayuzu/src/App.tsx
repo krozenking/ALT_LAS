@@ -1,13 +1,60 @@
-import { useState, useEffect } from 'react';
-import Chat from './components/Chat/Chat';
-import ErrorTest from './components/ErrorTest';
+import React, { useState, useEffect } from 'react';
+import { ChakraProvider, Box, Flex, useColorMode, Button, extendTheme, HStack } from '@chakra-ui/react';
+import { MoonIcon, SunIcon } from '@chakra-ui/icons';
+import ChatContainer from './components/Chat/ChatContainer';
+import LanguageSelector from './components/Chat/LanguageSelector';
+import AccessibilityMenu from './components/Chat/AccessibilityMenu';
+import NotificationButton from './components/Notifications/NotificationButton';
+import ThemeButton from './components/Theme/ThemeButton';
+import KeyboardShortcutsButton from './components/Keyboard/KeyboardShortcutsButton';
+import HelpButton from './components/Help/HelpButton';
+import NotificationProvider from './components/Notifications/NotificationSystem';
 import apiService from './services/api.service';
 import { User } from './types';
+import useTranslation, { Language } from './hooks/useTranslation';
+import useAccessibility from './hooks/useAccessibility';
+import useThemeCustomization from './hooks/useThemeCustomization';
+import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
+import { initAccessibility } from './utils/accessibility';
+import './styles/accessibility.css';
+import './styles/theme.css';
 
-function App() {
+// Chakra UI tema yapılandırması
+const theme = extendTheme({
+  config: {
+    initialColorMode: 'system',
+    useSystemColorMode: true,
+  },
+  styles: {
+    global: (props: unknown) => ({
+      body: {
+        bg: props.colorMode === 'dark' ? 'gray.900' : 'gray.50',
+      },
+    }),
+  },
+});
+
+const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [conversationId, setConversationId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const { colorMode, toggleColorMode } = useColorMode();
+  const { t, language, changeLanguage } = useTranslation();
+  const {
+    fontSize,
+    highContrast,
+    reduceMotion,
+    screenReaderMode,
+    setFontSize,
+    setHighContrast,
+    setReduceMotion,
+    setScreenReaderMode
+  } = useAccessibility();
+
+  // Erişilebilirlik özelliklerini başlat
+  useEffect(() => {
+    const cleanup = initAccessibility();
+    return cleanup;
+  }, []);
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -42,70 +89,124 @@ function App() {
         localStorage.setItem('userId', newUser.id);
       } catch (error) {
         console.error('Kullanıcı oluşturma hatası:', error);
-      }
-    };
-
-    const initializeConversation = () => {
-      // Gerçek uygulamada konuşma yönetimi yapılacak
-      // Şimdilik basit bir konuşma ID'si oluşturuyoruz
-      const storedConversationId = localStorage.getItem('conversationId');
-
-      if (storedConversationId) {
-        setConversationId(storedConversationId);
-      } else {
-        const newConversationId = `conv_${Date.now()}`;
-        setConversationId(newConversationId);
-        localStorage.setItem('conversationId', newConversationId);
+        // API hatası durumunda geçici kullanıcı oluştur
+        const tempUser: User = {
+          id: 'temp-user-' + Date.now(),
+          name: 'Misafir Kullanıcı',
+          email: 'misafir@altlas.com',
+          createdAt: new Date().toISOString()
+        };
+        setUser(tempUser);
       }
     };
 
     initializeUser();
-    initializeConversation();
   }, []);
 
-  // Kullanıcı ve konuşma ID'si hazır olduğunda, konuşmayı kullanıcıya ekle
+  // Kullanıcı bilgilerini güncelle
+  const handleUpdateUser = (updatedUser: User) => {
+    // Gerçek uygulamada burada API çağrısı yapılır
+    console.log('Kullanıcı güncellendi:', updatedUser);
+    setUser(updatedUser);
+
+    // Yerel depolamaya kaydet
+    try {
+      apiService.updateUser(updatedUser);
+    } catch (error) {
+      console.error('Kullanıcı güncellenirken hata:', error);
+    }
+  };
+
+  // Sistem temasını izle
   useEffect(() => {
-    const addConversationToUser = async () => {
-      if (user && conversationId) {
-        try {
-          await apiService.addConversation(user.id, conversationId);
-        } catch (error) {
-          console.error('Konuşma ekleme hatası:', error);
-        }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches && colorMode !== 'dark') {
+        toggleColorMode();
+      } else if (!e.matches && colorMode !== 'light') {
+        toggleColorMode();
       }
     };
 
-    addConversationToUser();
-  }, [user, conversationId]);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [colorMode, toggleColorMode]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Yükleniyor...</p>
-        </div>
-      </div>
+      <Flex height="100vh" alignItems="center" justifyContent="center">
+        <Box textAlign="center">
+          <Box
+            className="animate-spin"
+            border="4px solid"
+            borderColor="gray.200"
+            borderTopColor="blue.500"
+            borderRadius="50%"
+            width="50px"
+            height="50px"
+            mx="auto"
+          />
+          <Box mt={4} color="gray.500">Yükleniyor...</Box>
+        </Box>
+      </Flex>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="container mx-auto max-w-4xl">
-        {/* Hata test paneli */}
-        <div className="mb-4">
-          <ErrorTest />
-        </div>
+    <Box minH="100vh">
+      <Flex direction="column" h="100vh" maxW="1200px" mx="auto" p={4}>
+        <Flex justifyContent="flex-end" mb={4}>
+          <HStack spacing={2}>
+            <LanguageSelector
+              currentLanguage={language}
+              onLanguageChange={changeLanguage}
+            />
+            <NotificationButton size="sm" />
+            <HelpButton size="sm" />
+            <KeyboardShortcutsButton size="sm" />
+            <ThemeButton size="sm" />
+            <AccessibilityMenu
+              fontSize={fontSize}
+              onFontSizeChange={setFontSize}
+              highContrast={highContrast}
+              onHighContrastChange={setHighContrast}
+              reduceMotion={reduceMotion}
+              onReduceMotionChange={setReduceMotion}
+              screenReaderMode={screenReaderMode}
+              onScreenReaderModeChange={setScreenReaderMode}
+            />
+            <Button onClick={toggleColorMode} size="sm" variant="ghost">
+              {colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+            </Button>
+          </HStack>
+        </Flex>
 
-        {user && conversationId ? (
-          <Chat userId={user.id} conversationId={conversationId} />
-        ) : (
-          <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-            <p className="text-red-500">Kullanıcı veya konuşma başlatılamadı. Lütfen sayfayı yenileyin.</p>
-          </div>
-        )}
-      </div>
-    </div>
+        <Box flex="1" borderRadius="lg" overflow="hidden" boxShadow="lg">
+          {user ? (
+            <ChatContainer
+              user={user}
+              onUpdateUser={handleUpdateUser}
+            />
+          ) : (
+            <Box textAlign="center" p={8} bg="white" borderRadius="lg" boxShadow="lg">
+              <Box color="red.500">Kullanıcı başlatılamadı. Lütfen sayfayı yenileyin.</Box>
+            </Box>
+          )}
+        </Box>
+      </Flex>
+    </Box>
+  );
+};
+
+function App() {
+  return (
+    <ChakraProvider theme={theme}>
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
+    </ChakraProvider>
   );
 }
 

@@ -1,0 +1,116 @@
+name: Test Report
+
+on:
+  workflow_run:
+    workflows: [CI, Integration Tests]
+    types:
+      - completed
+
+jobs:
+  report:
+    name: Generate Test Report
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Download artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: ${{ github.event.workflow_run.workflow_id }}
+        run_id: ${{ github.event.workflow_run.id }}
+        path: artifacts
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Generate test report
+      run: |
+        mkdir -p reports
+        npm run generate-test-report
+    
+    - name: Publish Test Report
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          const reportPath = path.join(process.env.GITHUB_WORKSPACE, 'reports/summary.json');
+          if (!fs.existsSync(reportPath)) {
+            console.log('No test report found');
+            return;
+          }
+          
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          
+          const summary = `
+          # Test Report
+          
+          ## Summary
+          
+          - Total Tests: ${report.totalTests}
+          - Passed: ${report.passed}
+          - Failed: ${report.failed}
+          - Skipped: ${report.skipped}
+          - Duration: ${report.duration}ms
+          
+          ## Details
+          
+          ${report.suites.map(suite => `
+          ### ${suite.name}
+          
+          ${suite.tests.map(test => `
+          - ${test.status === 'passed' ? '✅' : test.status === 'failed' ? '❌' : '⏭️'} ${test.name}
+          ${test.status === 'failed' ? `  - Error: ${test.error}` : ''}
+          `).join('')}
+          `).join('')}
+          `;
+          
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const botComment = comments.find(comment => {
+            return comment.user.type === 'Bot' && comment.body.includes('# Test Report');
+          });
+          
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: summary,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: summary,
+            });
+          }
+    
+    - name: Publish Test Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./reports
+        destination_dir: test-reports/${{ github.event.workflow_run.id }}
+    
+    - name: Upload Test Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-report
+        path: reports/

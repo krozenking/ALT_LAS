@@ -1,0 +1,18 @@
+version: 2
+snapshot:
+  widths:
+    - 375  # Mobile
+    - 768  # Tablet
+    - 1280 # Desktop
+  minHeight: 1024
+  percyCSS: |
+    /* Hide elements that may cause flakiness */
+    .date-time { visibility: hidden; }
+    .random-data { display: none; }
+discovery:
+  allowedHostnames: []
+  disallowedHostnames: []
+  networkIdleTimeout: 100
+upload:
+  files: "**/*.{png,jpg,jpeg}"
+  ignore: ""

@@ -19,7 +19,12 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
   const token = parts[1];
 
   try {
-    const secret = process.env.JWT_SECRET || 'default_jwt_secret_change_in_production';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('JWT_SECRET çevre değişkeni tanımlanmamış!');
+      return next(new UnauthorizedError('Sunucu yapılandırma hatası'));
+    }
+    
     const decoded = jwt.verify(token, secret) as { userId: string | number }; // Assume token contains userId
 
     // Ensure userId is a string before passing to the service
@@ -117,4 +122,3 @@ declare global {
     }
   }
 }
-
